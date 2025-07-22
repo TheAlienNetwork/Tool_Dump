@@ -84,8 +84,32 @@ export interface AnalysisResults {
   generatedAt: string;
 }
 
+export interface DeviceReport {
+  id: number;
+  dumpId: number;
+  mpSerialNumber: string | null;
+  mpFirmwareVersion: string | null;
+  mdgSerialNumber: string | null;
+  mdgFirmwareVersion: string | null;
+  circulationHours: number | null;
+  numberOfPulses: number | null;
+  motorOnTimeMinutes: number | null;
+  commErrorsTimeMinutes: number | null;
+  commErrorsPercent: number | null;
+  hallStatusTimeMinutes: number | null;
+  hallStatusPercent: number | null;
+  mpMaxTempCelsius: number | null;
+  mpMaxTempFahrenheit: number | null;
+  mdgEdtTotalHours: number | null;
+  mdgExtremeShockIndex: number | null;
+  mdgMaxTempCelsius: number | null;
+  mdgMaxTempFahrenheit: number | null;
+  createdAt: Date;
+}
+
 export interface MemoryDumpDetails {
   memoryDump: MemoryDump;
   sensorData: SensorData[];
   analysisResults?: AnalysisResults;
+  deviceReport?: DeviceReport;
 }

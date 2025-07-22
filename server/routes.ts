@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
@@ -7,6 +7,10 @@ import { storage } from "./storage";
 import { BinaryParser } from "./services/binaryParser";
 import { AnalysisEngine } from "./services/analysisEngine";
 import { PDFGenerator } from "./services/pdfGenerator";
+
+interface MulterRequest extends Request {
+  files?: Express.Multer.File[];
+}
 
 const upload = multer({ 
   dest: 'uploads/',
@@ -26,15 +30,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const dumps = await storage.getMemoryDumps();
       res.json(dumps);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch memory dumps", error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch memory dumps", error: error?.message });
     }
   });
 
   // Upload binary files
-  app.post("/api/memory-dumps/upload", upload.array('files'), async (req, res) => {
+  app.post("/api/memory-dumps/upload", upload.array('files'), async (req: MulterRequest, res) => {
     try {
-      const files = req.files as Express.Multer.File[];
+      const files = req.files;
       
       if (!files || files.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
@@ -64,19 +68,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileType
           });
 
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error processing file ${file.originalname}:`, error);
           results.push({
             filename: file.originalname,
             status: 'error',
-            error: error.message
+            error: error?.message
           });
         }
       }
 
       res.json({ results });
-    } catch (error) {
-      res.status(500).json({ message: "Upload failed", error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ message: "Upload failed", error: error?.message });
     }
   });
 
@@ -92,14 +96,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const sensorData = await storage.getSensorDataByDumpId(id);
       const analysisResults = await storage.getAnalysisResultsByDumpId(id);
+      const deviceReport = await storage.getDeviceReportByDumpId(id);
 
       res.json({
         memoryDump,
         sensorData,
-        analysisResults
+        analysisResults,
+        deviceReport
       });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch memory dump", error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch memory dump", error: error?.message });
     }
   });
 
@@ -114,8 +120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(analysisResults);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch analysis results", error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch analysis results", error: error?.message });
     }
   });
 
@@ -150,8 +156,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.send(reportBuffer);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to generate report", error: error.message });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to generate report", error: error?.message });
     }
   });
 
@@ -166,6 +172,15 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
 
     // Parse the binary file
     const parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
+    
+    // Extract device information and store it
+    const deviceInfo = BinaryParser.extractDeviceInfo(
+      require('fs').readFileSync(filePath), 
+      filename, 
+      fileType
+    );
+    deviceInfo.dumpId = dumpId;
+    await storage.createDeviceReport(deviceInfo);
     
     // Convert to sensor data format
     const sensorDataArray = BinaryParser.convertToSensorDataArray(parsedData, dumpId);
@@ -192,9 +207,9 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
       if (err) console.error('Failed to delete uploaded file:', err);
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error processing memory dump ${dumpId}:`, error);
-    await storage.updateMemoryDumpStatus(dumpId, 'error', error.message);
+    await storage.updateMemoryDumpStatus(dumpId, 'error', error?.message);
     
     // Clean up uploaded file
     fs.unlink(filePath, (err) => {

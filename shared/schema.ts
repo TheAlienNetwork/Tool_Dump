@@ -78,6 +78,29 @@ export const analysisResults = pgTable("analysis_results", {
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
 });
 
+export const deviceReports = pgTable("device_reports", {
+  id: serial("id").primaryKey(),
+  dumpId: integer("dump_id").references(() => memoryDumps.id).notNull(),
+  mpSerialNumber: text("mp_serial_number"),
+  mpFirmwareVersion: text("mp_firmware_version"),
+  mdgSerialNumber: text("mdg_serial_number"),
+  mdgFirmwareVersion: text("mdg_firmware_version"),
+  circulationHours: real("circulation_hours"),
+  numberOfPulses: integer("number_of_pulses"),
+  motorOnTimeMinutes: real("motor_on_time_minutes"),
+  commErrorsTimeMinutes: real("comm_errors_time_minutes"),
+  commErrorsPercent: real("comm_errors_percent"),
+  hallStatusTimeMinutes: real("hall_status_time_minutes"),
+  hallStatusPercent: real("hall_status_percent"),
+  mpMaxTempCelsius: real("mp_max_temp_celsius"),
+  mpMaxTempFahrenheit: real("mp_max_temp_fahrenheit"),
+  mdgEdtTotalHours: real("mdg_edt_total_hours"),
+  mdgExtremeShockIndex: real("mdg_extreme_shock_index"),
+  mdgMaxTempCelsius: real("mdg_max_temp_celsius"),
+  mdgMaxTempFahrenheit: real("mdg_max_temp_fahrenheit"),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+});
+
 export const insertMemoryDumpSchema = createInsertSchema(memoryDumps).omit({
   id: true,
   uploadedAt: true,
@@ -95,9 +118,16 @@ export const insertAnalysisResultsSchema = createInsertSchema(analysisResults).o
   generatedAt: true,
 });
 
+export const insertDeviceReportSchema = createInsertSchema(deviceReports).omit({
+  id: true,
+  generatedAt: true,
+});
+
 export type InsertMemoryDump = z.infer<typeof insertMemoryDumpSchema>;
 export type MemoryDump = typeof memoryDumps.$inferSelect;
 export type InsertSensorData = z.infer<typeof insertSensorDataSchema>;
 export type SensorData = typeof sensorData.$inferSelect;
 export type InsertAnalysisResults = z.infer<typeof insertAnalysisResultsSchema>;
 export type AnalysisResults = typeof analysisResults.$inferSelect;
+export type InsertDeviceReport = z.infer<typeof insertDeviceReportSchema>;
+export type DeviceReport = typeof deviceReports.$inferSelect;

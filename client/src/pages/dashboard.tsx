@@ -4,6 +4,7 @@ import FileUpload from "@/components/FileUpload";
 import HealthSummary from "@/components/HealthSummary";
 import DataVisualization from "@/components/DataVisualization";
 import DataTable from "@/components/DataTable";
+import { DeviceReport } from "@/components/DeviceReport";
 import { MemoryDump } from "@/lib/types";
 
 export default function Dashboard() {
@@ -73,6 +74,9 @@ export default function Dashboard() {
 
         {/* Tool Health Summary */}
         {selectedDump && <HealthSummary memoryDump={selectedDump} />}
+
+        {/* Device Report Information */}
+        {selectedDump && <DeviceReport memoryDump={selectedDump} />}
 
         {/* Data Visualization */}
         {selectedDump && <DataVisualization memoryDump={selectedDump} />}

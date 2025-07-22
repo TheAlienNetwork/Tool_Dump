@@ -1,4 +1,4 @@
-import { memoryDumps, sensorData, analysisResults, type MemoryDump, type InsertMemoryDump, type SensorData, type InsertSensorData, type AnalysisResults, type InsertAnalysisResults } from "@shared/schema";
+import { memoryDumps, sensorData, analysisResults, deviceReports, type MemoryDump, type InsertMemoryDump, type SensorData, type InsertSensorData, type AnalysisResults, type InsertAnalysisResults, type DeviceReport, type InsertDeviceReport } from "@shared/schema";
 
 export interface IStorage {
   // Memory Dumps
@@ -14,18 +14,24 @@ export interface IStorage {
   // Analysis Results
   createAnalysisResults(results: InsertAnalysisResults): Promise<AnalysisResults>;
   getAnalysisResultsByDumpId(dumpId: number): Promise<AnalysisResults | undefined>;
+  
+  // Device Reports
+  createDeviceReport(report: InsertDeviceReport): Promise<DeviceReport>;
+  getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined>;
 }
 
 export class MemStorage implements IStorage {
   private memoryDumps: Map<number, MemoryDump>;
   private sensorData: Map<number, SensorData[]>;
   private analysisResults: Map<number, AnalysisResults>;
+  private deviceReports: Map<number, DeviceReport>;
   private currentId: number;
 
   constructor() {
     this.memoryDumps = new Map();
     this.sensorData = new Map();
     this.analysisResults = new Map();
+    this.deviceReports = new Map();
     this.currentId = 1;
   }
 
@@ -74,6 +80,56 @@ export class MemStorage implements IStorage {
       const sensorEntry: SensorData = {
         ...entry,
         id: this.currentId++,
+        tempMP: entry.tempMP ?? null,
+        resetMP: entry.resetMP ?? null,
+        batteryCurrMP: entry.batteryCurrMP ?? null,
+        batteryVoltMP: entry.batteryVoltMP ?? null,
+        flowStatus: entry.flowStatus ?? null,
+        maxX: entry.maxX ?? null,
+        maxY: entry.maxY ?? null,
+        maxZ: entry.maxZ ?? null,
+        threshold: entry.threshold ?? null,
+        motorMin: entry.motorMin ?? null,
+        motorAvg: entry.motorAvg ?? null,
+        motorMax: entry.motorMax ?? null,
+        motorHall: entry.motorHall ?? null,
+        actuationTime: entry.actuationTime ?? null,
+        accelAX: entry.accelAX ?? null,
+        accelAY: entry.accelAY ?? null,
+        accelAZ: entry.accelAZ ?? null,
+        shockZ: entry.shockZ ?? null,
+        shockX: entry.shockX ?? null,
+        shockY: entry.shockY ?? null,
+        shockCountAxial50: entry.shockCountAxial50 ?? null,
+        shockCountAxial100: entry.shockCountAxial100 ?? null,
+        shockCountLat50: entry.shockCountLat50 ?? null,
+        shockCountLat100: entry.shockCountLat100 ?? null,
+        rotRpmMax: entry.rotRpmMax ?? null,
+        rotRpmAvg: entry.rotRpmAvg ?? null,
+        rotRpmMin: entry.rotRpmMin ?? null,
+        v3_3VA_DI: entry.v3_3VA_DI ?? null,
+        v5VD: entry.v5VD ?? null,
+        v3_3VD: entry.v3_3VD ?? null,
+        v1_9VD: entry.v1_9VD ?? null,
+        v1_5VD: entry.v1_5VD ?? null,
+        v1_8VA: entry.v1_8VA ?? null,
+        v3_3VA: entry.v3_3VA ?? null,
+        vBatt: entry.vBatt ?? null,
+        i5VD: entry.i5VD ?? null,
+        i3_3VD: entry.i3_3VD ?? null,
+        iBatt: entry.iBatt ?? null,
+        gamma: entry.gamma ?? null,
+        accelStabX: entry.accelStabX ?? null,
+        accelStabY: entry.accelStabY ?? null,
+        accelStabZ: entry.accelStabZ ?? null,
+        accelStabZH: entry.accelStabZH ?? null,
+        surveyTGF: entry.surveyTGF ?? null,
+        surveyTMF: entry.surveyTMF ?? null,
+        surveyDipA: entry.surveyDipA ?? null,
+        surveyINC: entry.surveyINC ?? null,
+        surveyCINC: entry.surveyCINC ?? null,
+        surveyAZM: entry.surveyAZM ?? null,
+        surveyCAZM: entry.surveyCAZM ?? null,
       };
       this.sensorData.get(dumpId)!.push(sensorEntry);
     });
@@ -88,6 +144,8 @@ export class MemStorage implements IStorage {
     const results: AnalysisResults = {
       ...insertResults,
       id,
+      criticalIssues: insertResults.criticalIssues ?? 0,
+      warnings: insertResults.warnings ?? 0,
       generatedAt: new Date(),
     };
     this.analysisResults.set(insertResults.dumpId, results);
@@ -96,6 +154,21 @@ export class MemStorage implements IStorage {
 
   async getAnalysisResultsByDumpId(dumpId: number): Promise<AnalysisResults | undefined> {
     return this.analysisResults.get(dumpId);
+  }
+
+  async createDeviceReport(insertReport: InsertDeviceReport): Promise<DeviceReport> {
+    const id = this.currentId++;
+    const report: DeviceReport = {
+      ...insertReport,
+      id,
+      generatedAt: new Date(),
+    };
+    this.deviceReports.set(insertReport.dumpId, report);
+    return report;
+  }
+
+  async getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined> {
+    return this.deviceReports.get(dumpId);
   }
 }
 
