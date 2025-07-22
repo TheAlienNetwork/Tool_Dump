@@ -1,9 +1,9 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, ComposedChart, Area, AreaChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemoryDumpDetails } from "@/lib/types";
 import { Activity, Thermometer, Zap, AlertTriangle, Battery, Gauge, RotateCw, Cpu, Compass } from "lucide-react";
+import { useMemo } from "react";
 
 interface DataVisualizationProps {
   memoryDump: {
@@ -121,66 +121,91 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   const sensorData = dumpDetails.sensorData;
 
   // Sample data for charts (take every 20th record to reduce chart load but maintain detail)
-  const chartData = sensorData
-    .filter((_, index) => index % 20 === 0)
-    .slice(0, 1000) // Limit to 1000 points for performance
-    .map((record, index) => ({
-      index,
-      time: new Date(record.rtd).toLocaleTimeString(),
-      rtd: record.rtd,
-      // MP Data
-      tempMP: record.tempMP,
-      resetMP: record.resetMP,
-      batteryVoltMP: record.batteryVoltMP,
-      batteryCurrMP: record.batteryCurrMP,
-      flowStatus: record.flowStatus === 'On' ? 1 : 0,
-      maxX: record.maxX,
-      maxY: record.maxY,
-      maxZ: record.maxZ,
-      threshold: record.threshold,
-      motorMin: record.motorMin,
-      motorAvg: record.motorAvg,
-      motorMax: record.motorMax,
-      motorHall: record.motorHall,
-      actuationTime: record.actuationTime,
-      // MDG Data
-      accelAX: record.accelAX,
-      accelAY: record.accelAY,
-      accelAZ: record.accelAZ,
-      shockZ: record.shockZ,
-      shockX: record.shockX,
-      shockY: record.shockY,
-      shockCountAxial50: record.shockCountAxial50,
-      shockCountAxial100: record.shockCountAxial100,
-      shockCountLat50: record.shockCountLat50,
-      shockCountLat100: record.shockCountLat100,
-      rotRpmMax: record.rotRpmMax,
-      rotRpmAvg: record.rotRpmAvg,
-      rotRpmMin: record.rotRpmMin,
-      v3_3VA_DI: record.v3_3VA_DI,
-      v5VD: record.v5VD,
-      v3_3VD: record.v3_3VD,
-      v1_9VD: record.v1_9VD,
-      v1_5VD: record.v1_5VD,
-      v1_8VA: record.v1_8VA,
-      v3_3VA: record.v3_3VA,
-      vBatt: record.vBatt,
-      i5VD: record.i5VD,
-      i3_3VD: record.i3_3VD,
-      iBatt: record.iBatt,
-      gamma: record.gamma,
-      accelStabX: record.accelStabX,
-      accelStabY: record.accelStabY,
-      accelStabZ: record.accelStabZ,
-      accelStabZH: record.accelStabZH,
-      surveyTGF: record.surveyTGF,
-      surveyTMF: record.surveyTMF,
-      surveyDipA: record.surveyDipA,
-      surveyINC: record.surveyINC,
-      surveyCINC: record.surveyCINC,
-      surveyAZM: record.surveyAZM,
-      surveyCAZM: record.surveyCAZM,
-    }));
+  const chartData = useMemo(() => {
+    if (!sensorData) return [];
+
+    return sensorData
+      .filter((_, index) => index % Math.max(1, Math.floor(sensorData.length / 1000)) === 0)
+      .map(item => ({
+        time: new Date(item.rtd).toLocaleTimeString(),
+
+        // Acceleration data (MDG)
+        accelAX: item.accelAX,
+        accelAY: item.accelAY,
+        accelAZ: item.accelAZ,
+
+        // Shock data (MDG)
+        shockX: item.shockX,
+        shockY: item.shockY,
+        shockZ: item.shockZ,
+
+        // Shock counters (MDG)
+        shockCountAxial50: item.shockCountAxial50,
+        shockCountAxial100: item.shockCountAxial100,
+        shockCountLat50: item.shockCountLat50,
+        shockCountLat100: item.shockCountLat100,
+
+        // RPM data (MDG)
+        rotRpmMax: item.rotRpmMax,
+        rotRpmAvg: item.rotRpmAvg,
+        rotRpmMin: item.rotRpmMin,
+
+        // Power rails (MDG)
+        vBatt: item.vBatt,
+        v5VD: item.v5VD,
+        v3_3VD: item.v3_3VD,
+        v3_3VA: item.v3_3VA,
+        v1_8VA: item.v1_8VA,
+        v1_9VD: item.v1_9VD,
+        v1_5VD: item.v1_5VD,
+        v3_3VA_DI: item.v3_3VA_DI,
+
+        // Current monitoring (MDG)
+        iBatt: item.iBatt,
+        i5VD: item.i5VD,
+        i3_3VD: item.i3_3VD,
+
+        // Environmental (MDG)
+        gamma: item.gamma,
+
+        // Stability (MDG)
+        accelStabX: item.accelStabX,
+        accelStabY: item.accelStabY,
+        accelStabZ: item.accelStabZ,
+        accelStabZH: item.accelStabZH,
+
+        // Survey data (MDG)
+        surveyTGF: item.surveyTGF,
+        surveyTMF: item.surveyTMF,
+        surveyDipA: item.surveyDipA,
+        surveyINC: item.surveyINC,
+        surveyCINC: item.surveyCINC,
+        surveyAZM: item.surveyAZM,
+        surveyCAZM: item.surveyCAZM,
+
+        // Battery data (MP)
+        batteryVoltMP: item.batteryVoltMP,
+        batteryCurrMP: item.batteryCurrMP,
+
+        // Temperature (MP)
+        tempMP: item.tempMP,
+
+        // Motor performance (MP)
+        motorMin: item.motorMin,
+        motorAvg: item.motorAvg,
+        motorMax: item.motorMax,
+        motorHall: item.motorHall,
+
+        // Actuation (MP)
+        actuationTime: item.actuationTime,
+
+        // Vibration data (MP)
+        maxX: item.maxX,
+        maxY: item.maxY,
+        maxZ: item.maxZ,
+        threshold: item.threshold,
+      }));
+  }, [sensorData]);
 
   // Filter data by type
   const mpData = chartData.filter(d => d.tempMP !== null);
