@@ -330,32 +330,121 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* 3. Vibration, Flow Status, Max X,Y,Z, and Threshold */}
+                {/* 3. Vibration Analysis - Max X,Y,Z and Threshold */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Activity className="w-5 h-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Vibration, Flow Status, Max X,Y,Z, and Threshold</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">Vibration Analysis - Max X,Y,Z and Threshold</h3>
+                  </div>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={mpData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Acceleration (g)', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value: any, name: string) => [
+                            `${typeof value === 'number' ? value.toFixed(3) : value} g`, 
+                            name
+                          ]}
+                        />
+                        <Legend />
+                        <Line type="monotone" dataKey="maxX" stroke="#3B82F6" strokeWidth={2} name="Max X (g)" dot={false} />
+                        <Line type="monotone" dataKey="maxY" stroke="#10B981" strokeWidth={2} name="Max Y (g)" dot={false} />
+                        <Line type="monotone" dataKey="maxZ" stroke="#F59E0B" strokeWidth={2} name="Max Z (g)" dot={false} />
+                        <Line type="monotone" dataKey="threshold" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="5 5" name="Threshold" dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* 4. Flow Status Analysis with Advanced Metrics */}
+                <div className="glass-morphism rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-5 h-5 text-emerald-400" />
+                      <h3 className="text-lg font-semibold text-slate-200">Flow Status Analysis</h3>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30">
+                        <span className="text-emerald-400 text-sm font-medium">
+                          Active: {pumpOnPercent.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="bg-slate-600/20 px-3 py-1 rounded-full border border-slate-500/30">
+                        <span className="text-slate-400 text-sm font-medium">
+                          Inactive: {(100 - pumpOnPercent).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Acceleration (g)', angle: -90, position: 'insideLeft' }} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Flow Status', angle: 90, position: 'insideRight' }} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Flow Status', angle: -90, position: 'insideLeft' }} domain={[0, 1]} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Duration (s)', angle: 90, position: 'insideRight' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value: any, name: string) => {
+                            if (name === 'Flow Status') {
+                              return [value === 1 ? 'ON' : 'OFF', 'Flow Status'];
+                            }
+                            return [value, name];
+                          }}
+                        />
                         <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="maxX" stroke="#3B82F6" strokeWidth={2} name="Max X (g)" dot={false} />
-                        <Line yAxisId="left" type="monotone" dataKey="maxY" stroke="#10B981" strokeWidth={2} name="Max Y (g)" dot={false} />
-                        <Line yAxisId="left" type="monotone" dataKey="maxZ" stroke="#F59E0B" strokeWidth={2} name="Max Z (g)" dot={false} />
-                        <Line yAxisId="left" type="monotone" dataKey="threshold" stroke="#8B5CF6" strokeWidth={1} name="Threshold" dot={false} />
-                        <Bar yAxisId="right" dataKey="flowStatus" fill="#EF4444" name="Flow Status (On=1, Off=0)" />
+                        <Area 
+                          yAxisId="left" 
+                          type="stepAfter" 
+                          dataKey="flowStatus" 
+                          stroke="#10B981" 
+                          fill="#10B981" 
+                          fillOpacity={0.3} 
+                          strokeWidth={2} 
+                          name="Flow Status" 
+                        />
+                        <Line 
+                          yAxisId="right" 
+                          type="monotone" 
+                          dataKey="actuationTime" 
+                          stroke="#F59E0B" 
+                          strokeWidth={2} 
+                          name="Actuation Time (s)" 
+                          dot={false} 
+                        />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+                  
+                  {/* Flow Status Statistics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-lg p-4 border border-emerald-500/20">
+                      <div className="text-emerald-400 text-xs uppercase font-medium mb-2">Total On Time</div>
+                      <div className="text-2xl font-bold text-emerald-400">{pumpOnTime.toLocaleString()}</div>
+                      <div className="text-emerald-300 text-sm">records</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-slate-500/10 to-gray-500/10 rounded-lg p-4 border border-slate-500/20">
+                      <div className="text-slate-400 text-xs uppercase font-medium mb-2">Total Off Time</div>
+                      <div className="text-2xl font-bold text-slate-400">{(totalRecords - pumpOnTime).toLocaleString()}</div>
+                      <div className="text-slate-300 text-sm">records</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Duty Cycle</div>
+                      <div className="text-2xl font-bold text-blue-400">{pumpOnPercent.toFixed(1)}%</div>
+                      <div className="text-blue-300 text-sm">efficiency</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Total Records</div>
+                      <div className="text-2xl font-bold text-purple-400">{totalRecords.toLocaleString()}</div>
+                      <div className="text-purple-300 text-sm">data points</div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 4. Motor Current (MP) Min, Avg, Max, Hall */}
+                {/* 5. Motor Current (MP) Min, Avg, Max, Hall */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Gauge className="w-5 h-5 text-purple-400" />
@@ -378,7 +467,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* 5. Actuation Time vs Average Motor Current (MP) */}
+                {/* 6. Actuation Time vs Average Motor Current (MP) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-yellow-400" />
@@ -405,7 +494,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
             {/* MDG Charts */}
             {mdgData.length > 0 && (
               <>
-                {/* 6. Acceleration Temperature (MDG) AX, AY, AZ, RTD, Reset */}
+                {/* 7. Acceleration Temperature (MDG) AX, AY, AZ, RTD, Reset */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Activity className="w-5 h-5 text-blue-400" />
@@ -429,7 +518,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* 7. Shock Peak Z (g) (MDG) */}
+                {/* 8. Shock Peak Z (g) (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-red-400" />
@@ -449,7 +538,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* 8. Shock Peak X,Y (g) (MDG) */}
+                {/* 9. Shock Peak X,Y (g) (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-orange-400" />

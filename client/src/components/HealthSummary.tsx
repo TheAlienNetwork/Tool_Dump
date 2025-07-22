@@ -65,11 +65,11 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return <Badge className="bg-red-50 text-white text-xs">CRITICAL</Badge>;
+        return <Badge className="bg-gradient-to-r from-rose-500 to-red-600 text-white border-0 shadow-lg shadow-red-500/30 text-xs font-bold px-3 py-1">CRITICAL</Badge>;
       case 'warning':
-        return <Badge className="bg-yellow-30 text-gray-100 text-xs">WARNING</Badge>;
+        return <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg shadow-amber-500/30 text-xs font-bold px-3 py-1">WARNING</Badge>;
       default:
-        return <Badge className="bg-ibm-blue text-white text-xs">INFO</Badge>;
+        return <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg shadow-blue-500/30 text-xs font-bold px-3 py-1">INFO</Badge>;
     }
   };
 
@@ -217,35 +217,61 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
                   Detected Issues
                 </h3>
                 
-                {analysisResults.issues.map((issue, index) => (
-                  <div key={index} className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          {getSeverityIcon(issue.severity)}
-                          <span className="text-lg font-semibold text-slate-100">{issue.issue}</span>
-                          {getSeverityBadge(issue.severity)}
-                        </div>
-                        <p className="text-slate-300 mb-4 leading-relaxed">{issue.explanation}</p>
-                        <div className="flex items-center space-x-6 text-sm text-slate-400">
-                          <span className="bg-dark-700/50 px-3 py-1 rounded-full">
-                            Occurrences: <span className="text-slate-200 font-medium">{issue.count}</span>
-                          </span>
-                          {issue.firstTime && (
-                            <span className="bg-dark-700/50 px-3 py-1 rounded-full">
-                              First: <span className="text-slate-200 font-medium">{new Date(issue.firstTime).toLocaleTimeString()}</span>
-                            </span>
-                          )}
-                          {issue.lastTime && (
-                            <span className="bg-dark-700/50 px-3 py-1 rounded-full">
-                              Last: <span className="text-slate-200 font-medium">{new Date(issue.lastTime).toLocaleTimeString()}</span>
-                            </span>
-                          )}
+                {analysisResults.issues.map((issue, index) => {
+                  // Enhanced temperature formatting to handle extreme values
+                  const formatTemperature = (tempStr: string) => {
+                    const tempMatch = tempStr.match(/([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)°F/);
+                    if (tempMatch) {
+                      const temp = parseFloat(tempMatch[1]);
+                      if (Math.abs(temp) > 1e10) {
+                        return tempStr.replace(tempMatch[0], "Invalid sensor reading");
+                      }
+                      return tempStr.replace(tempMatch[0], `${temp.toFixed(1)}°F`);
+                    }
+                    return tempStr;
+                  };
+
+                  const formattedIssue = formatTemperature(issue.issue);
+                  
+                  return (
+                    <div key={index} className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300 border border-slate-700/50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-slate-700/30 to-slate-800/30">
+                              {getSeverityIcon(issue.severity)}
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-lg font-semibold text-slate-100 block mb-2">{formattedIssue}</span>
+                              {getSeverityBadge(issue.severity)}
+                            </div>
+                          </div>
+                          <div className="bg-slate-800/30 rounded-lg p-4 mb-4">
+                            <p className="text-slate-300 leading-relaxed">{issue.explanation}</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            <div className="bg-gradient-to-r from-slate-700/20 to-slate-800/20 px-4 py-2 rounded-lg border border-slate-600/20">
+                              <div className="text-slate-400 text-xs uppercase font-medium">Occurrences</div>
+                              <div className="text-slate-200 font-bold text-lg">{issue.count.toLocaleString()}</div>
+                            </div>
+                            {issue.firstTime && (
+                              <div className="bg-gradient-to-r from-blue-700/20 to-blue-800/20 px-4 py-2 rounded-lg border border-blue-600/20">
+                                <div className="text-blue-400 text-xs uppercase font-medium">First Occurrence</div>
+                                <div className="text-slate-200 font-medium">{new Date(issue.firstTime).toLocaleTimeString()}</div>
+                              </div>
+                            )}
+                            {issue.lastTime && (
+                              <div className="bg-gradient-to-r from-purple-700/20 to-purple-800/20 px-4 py-2 rounded-lg border border-purple-600/20">
+                                <div className="text-purple-400 text-xs uppercase font-medium">Last Occurrence</div>
+                                <div className="text-slate-200 font-medium">{new Date(issue.lastTime).toLocaleTimeString()}</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="glass-morphism rounded-xl p-8 text-center">
