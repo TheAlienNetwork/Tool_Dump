@@ -873,31 +873,275 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
               </div>
             )}
 
-            {/* Data Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-morphism rounded-xl p-6 text-center">
-                <div className="text-3xl font-bold text-blue-400">{sensorData.length.toLocaleString()}</div>
-                <div className="text-slate-400 text-sm">Total Records</div>
-              </div>
-              {mpData.length > 0 && (
-                <div className="glass-morphism rounded-xl p-6 text-center">
-                  <div className="text-3xl font-bold text-red-400">
-                    {(() => {
-                      const validTemps = mpData.filter(d => d.tempMP !== null && d.tempMP !== undefined && !isNaN(d.tempMP));
-                      if (validTemps.length === 0) return "No Data";
-                      const maxTemp = Math.max(...validTemps.map(d => d.tempMP!));
-                      return `${maxTemp.toFixed(1)}°F`;
-                    })()}
+            {/* Comprehensive Data Summary for All Plots */}
+            <div className="space-y-8">
+              {/* Overall Summary */}
+              <div className="glass-morphism rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-slate-200 mb-6 flex items-center space-x-2">
+                  <Activity className="w-5 h-5 text-blue-400" />
+                  <span>Overall Data Summary</span>
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                    <div className="text-blue-400 text-xs uppercase font-medium mb-2">Total Records</div>
+                    <div className="text-2xl font-bold text-blue-400">{sensorData.length.toLocaleString()}</div>
+                    <div className="text-blue-300 text-sm">data points</div>
                   </div>
-                  <div className="text-slate-400 text-sm">Max Temperature (MP)</div>
+                  <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20">
+                    <div className="text-red-400 text-xs uppercase font-medium mb-2">MP Records</div>
+                    <div className="text-2xl font-bold text-red-400">{mpData.length.toLocaleString()}</div>
+                    <div className="text-red-300 text-sm">motor pump data</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                    <div className="text-green-400 text-xs uppercase font-medium mb-2">MDG Records</div>
+                    <div className="text-2xl font-bold text-green-400">{mdgData.length.toLocaleString()}</div>
+                    <div className="text-green-300 text-sm">sensor data</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                    <div className="text-purple-400 text-xs uppercase font-medium mb-2">Data Coverage</div>
+                    <div className="text-2xl font-bold text-purple-400">
+                      {((mpData.length + mdgData.length) / sensorData.length * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-purple-300 text-sm">processed</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MP Data Summary */}
+              {mpData.length > 0 && (
+                <div className="glass-morphism rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-slate-200 mb-6 flex items-center space-x-2">
+                    <Zap className="w-5 h-5 text-red-400" />
+                    <span>Motor Pump (MP) Data Summary</span>
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {/* Flow Status Stats (existing) */}
+                    <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-lg p-4 border border-emerald-500/20">
+                      <div className="text-emerald-400 text-xs uppercase font-medium mb-2">Total On Time</div>
+                      <div className="text-2xl font-bold text-emerald-400">{pumpOnTime.toLocaleString()}</div>
+                      <div className="text-emerald-300 text-sm">records</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-slate-500/10 to-gray-500/10 rounded-lg p-4 border border-slate-500/20">
+                      <div className="text-slate-400 text-xs uppercase font-medium mb-2">Total Off Time</div>
+                      <div className="text-2xl font-bold text-slate-400">{(totalRecords - pumpOnTime).toLocaleString()}</div>
+                      <div className="text-slate-300 text-sm">records</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Duty Cycle</div>
+                      <div className="text-2xl font-bold text-blue-400">{pumpOnPercent.toFixed(1)}%</div>
+                      <div className="text-blue-300 text-sm">efficiency</div>
+                    </div>
+                    
+                    {/* Temperature Stats */}
+                    <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Max Temperature</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const validTemps = mpData.filter(d => d.tempMP !== null && d.tempMP !== undefined && !isNaN(d.tempMP));
+                          if (validTemps.length === 0) return "N/A";
+                          const maxTemp = Math.max(...validTemps.map(d => d.tempMP!));
+                          return `${maxTemp.toFixed(1)}°F`;
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">peak temp</div>
+                    </div>
+                    
+                    {/* Battery Stats */}
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20">
+                      <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Avg Battery V</div>
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {(() => {
+                          const validVolts = mpData.filter(d => d.batteryVoltMP !== null && d.batteryVoltMP !== undefined && !isNaN(d.batteryVoltMP));
+                          if (validVolts.length === 0) return "N/A";
+                          const avgVolt = validVolts.reduce((sum, d) => sum + d.batteryVoltMP!, 0) / validVolts.length;
+                          return `${avgVolt.toFixed(1)}V`;
+                        })()}
+                      </div>
+                      <div className="text-yellow-300 text-sm">average</div>
+                    </div>
+                  </div>
+                  
+                  {/* Second row for MP stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    {/* Motor Current Stats */}
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Peak Motor Current</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const validCurrent = mpData.filter(d => d.motorMax !== null && d.motorMax !== undefined && !isNaN(d.motorMax));
+                          if (validCurrent.length === 0) return "N/A";
+                          const maxCurrent = Math.max(...validCurrent.map(d => d.motorMax!));
+                          return `${maxCurrent.toFixed(1)}A`;
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">maximum</div>
+                    </div>
+                    
+                    {/* Vibration Stats */}
+                    <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20">
+                      <div className="text-cyan-400 text-xs uppercase font-medium mb-2">Max Vibration</div>
+                      <div className="text-2xl font-bold text-cyan-400">
+                        {(() => {
+                          const validVibes = mpData.filter(d => d.maxZ !== null && d.maxZ !== undefined && !isNaN(d.maxZ));
+                          if (validVibes.length === 0) return "N/A";
+                          const maxVibe = Math.max(...validVibes.map(d => d.maxZ!));
+                          return `${maxVibe.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-cyan-300 text-sm">Z-axis peak</div>
+                    </div>
+                    
+                    {/* Actuation Time Stats */}
+                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">Avg Actuation</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime));
+                          if (validActuation.length === 0) return "N/A";
+                          const avgActuation = validActuation.reduce((sum, d) => sum + d.actuationTime!, 0) / validActuation.length;
+                          return `${avgActuation.toFixed(1)}s`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">average time</div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-lg p-4 border border-pink-500/20">
+                      <div className="text-pink-400 text-xs uppercase font-medium mb-2">Total MP Records</div>
+                      <div className="text-2xl font-bold text-pink-400">{mpData.length.toLocaleString()}</div>
+                      <div className="text-pink-300 text-sm">data points</div>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              {/* MDG Data Summary */}
               {mdgData.length > 0 && (
-                <div className="glass-morphism rounded-xl p-6 text-center">
-                  <div className="text-3xl font-bold text-green-400">
-                    {mdgData.filter(d => d.shockZ && d.shockZ > 6).length}
+                <div className="glass-morphism rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-slate-200 mb-6 flex items-center space-x-2">
+                    <Compass className="w-5 h-5 text-green-400" />
+                    <span>Memory Data Gauge (MDG) Summary</span>
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {/* Acceleration Stats */}
+                    <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Max Acceleration</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validAccel = mdgData.filter(d => d.accelAZ !== null && d.accelAZ !== undefined && !isNaN(d.accelAZ));
+                          if (validAccel.length === 0) return "N/A";
+                          const maxAccel = Math.max(...validAccel.map(d => Math.abs(d.accelAZ!)));
+                          return `${maxAccel.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">peak AZ</div>
+                    </div>
+                    
+                    {/* Shock Events */}
+                    <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">High Shock Events</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {mdgData.filter(d => d.shockZ && Math.abs(d.shockZ) > 6).length}
+                      </div>
+                      <div className="text-red-300 text-sm">>6g events</div>
+                    </div>
+                    
+                    {/* RPM Stats */}
+                    <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20">
+                      <div className="text-cyan-400 text-xs uppercase font-medium mb-2">Max RPM</div>
+                      <div className="text-2xl font-bold text-cyan-400">
+                        {(() => {
+                          const validRPM = mdgData.filter(d => d.rotRpmMax !== null && d.rotRpmMax !== undefined && !isNaN(d.rotRpmMax));
+                          if (validRPM.length === 0) return "N/A";
+                          const maxRPM = Math.max(...validRPM.map(d => d.rotRpmMax!));
+                          return maxRPM.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-cyan-300 text-sm">peak rotation</div>
+                    </div>
+                    
+                    {/* Battery Voltage */}
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Avg Battery V</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validBatt = mdgData.filter(d => d.vBatt !== null && d.vBatt !== undefined && !isNaN(d.vBatt));
+                          if (validBatt.length === 0) return "N/A";
+                          const avgBatt = validBatt.reduce((sum, d) => sum + d.vBatt!, 0) / validBatt.length;
+                          return `${avgBatt.toFixed(1)}V`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">average</div>
+                    </div>
+                    
+                    {/* Gamma Radiation */}
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20">
+                      <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Peak Gamma</div>
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {(() => {
+                          const validGamma = mdgData.filter(d => d.gamma !== null && d.gamma !== undefined && !isNaN(d.gamma));
+                          if (validGamma.length === 0) return "N/A";
+                          const maxGamma = Math.max(...validGamma.map(d => d.gamma!));
+                          return `${maxGamma.toFixed(1)}`;
+                        })()}
+                      </div>
+                      <div className="text-yellow-300 text-sm">cps max</div>
+                    </div>
                   </div>
-                  <div className="text-slate-400 text-sm">High Shock Events</div>
+                  
+                  {/* Second row for MDG stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    {/* Survey Stats */}
+                    <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Max Inclination</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const validInc = mdgData.filter(d => d.surveyINC !== null && d.surveyINC !== undefined && !isNaN(d.surveyINC));
+                          if (validInc.length === 0) return "N/A";
+                          const maxInc = Math.max(...validInc.map(d => Math.abs(d.surveyINC!)));
+                          return `${maxInc.toFixed(1)}°`;
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">maximum</div>
+                    </div>
+                    
+                    {/* Power Consumption */}
+                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">Peak Current</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const validCurrent = mdgData.filter(d => d.iBatt !== null && d.iBatt !== undefined && !isNaN(d.iBatt));
+                          if (validCurrent.length === 0) return "N/A";
+                          const maxCurrent = Math.max(...validCurrent.map(d => Math.abs(d.iBatt!)));
+                          return `${maxCurrent.toFixed(2)}A`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">battery draw</div>
+                    </div>
+                    
+                    {/* Shock Count Total */}
+                    <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 rounded-lg p-4 border border-rose-500/20">
+                      <div className="text-rose-400 text-xs uppercase font-medium mb-2">Total Shock Count</div>
+                      <div className="text-2xl font-bold text-rose-400">
+                        {(() => {
+                          const totalShocks = mdgData.reduce((sum, d) => {
+                            const axial50 = d.shockCountAxial50 || 0;
+                            const axial100 = d.shockCountAxial100 || 0;
+                            const lat50 = d.shockCountLat50 || 0;
+                            const lat100 = d.shockCountLat100 || 0;
+                            return sum + axial50 + axial100 + lat50 + lat100;
+                          }, 0);
+                          return totalShocks.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-rose-300 text-sm">all events</div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-lg p-4 border border-emerald-500/20">
+                      <div className="text-emerald-400 text-xs uppercase font-medium mb-2">Total MDG Records</div>
+                      <div className="text-2xl font-bold text-emerald-400">{mdgData.length.toLocaleString()}</div>
+                      <div className="text-emerald-300 text-sm">data points</div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
