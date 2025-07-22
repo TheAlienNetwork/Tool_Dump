@@ -218,47 +218,103 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
             {/* MP Charts */}
             {mpData.length > 0 && (
               <>
-                {/* Temperature and Reset */}
+                {/* Enhanced Temperature Plot */}
                 <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Thermometer className="w-5 h-5 text-red-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Temperature (MP) & Reset</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Thermometer className="w-5 h-5 text-red-400" />
+                      <h3 className="text-lg font-semibold text-slate-200">MP Temperature Analysis</h3>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-slate-400">
+                      <span>Avg: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.tempMP || 0), 0) / mpData.filter(d => d.tempMP !== null).length).toFixed(1) : 'N/A'}°F</span>
+                      <span>Max: {mpData.length > 0 ? Math.max(...mpData.filter(d => d.tempMP !== null).map(d => d.tempMP || 0)).toFixed(1) : 'N/A'}°F</span>
+                    </div>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Temperature (°F)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Reset Count', angle: 90, position: 'insideRight' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value, name) => [
+                            typeof value === 'number' ? value.toFixed(2) : value,
+                            name
+                          ]}
+                        />
                         <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="tempMP" stroke="#EF4444" strokeWidth={2} name="Temperature (°F)" dot={false} />
-                        <Bar yAxisId="right" dataKey="resetMP" fill="#10B981" name="Reset Count" />
+                        <Area yAxisId="left" type="monotone" dataKey="tempMP" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={2} name="Temperature (°F)" />
+                        <Bar yAxisId="right" dataKey="resetMP" fill="#10B981" name="Reset Count" opacity={0.7} />
                       </ComposedChart>
                     </ResponsiveContainer>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                    <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                      <div className="text-red-400 font-medium">Critical Zone</div>
+                      <div className="text-slate-400">&gt; 130°F</div>
+                    </div>
+                    <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                      <div className="text-amber-400 font-medium">Warning Zone</div>
+                      <div className="text-slate-400">100-130°F</div>
+                    </div>
+                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                      <div className="text-emerald-400 font-medium">Normal Zone</div>
+                      <div className="text-slate-400">&lt; 100°F</div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Battery Voltage and Current */}
+                {/* Enhanced Battery Analysis */}
                 <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Battery className="w-5 h-5 text-green-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Battery (MP) Current & Voltage</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Battery className="w-5 h-5 text-green-400" />
+                      <h3 className="text-lg font-semibold text-slate-200">MP Battery System Analysis</h3>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-slate-400">
+                      <span>Avg V: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.batteryVoltMP || 0), 0) / mpData.filter(d => d.batteryVoltMP !== null).length).toFixed(2) : 'N/A'}V</span>
+                      <span>Avg A: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.batteryCurrMP || 0), 0) / mpData.filter(d => d.batteryCurrMP !== null).length).toFixed(2) : 'N/A'}A</span>
+                    </div>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Current (A)', angle: 90, position: 'insideRight' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value, name) => [
+                            typeof value === 'number' ? value.toFixed(3) : value,
+                            name
+                          ]}
+                        />
                         <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="batteryVoltMP" stroke="#10B981" strokeWidth={2} name="Battery Voltage (V)" dot={false} />
+                        <Area yAxisId="left" type="monotone" dataKey="batteryVoltMP" stroke="#10B981" fill="#10B981" fillOpacity={0.2} strokeWidth={2} name="Battery Voltage (V)" />
                         <Line yAxisId="right" type="monotone" dataKey="batteryCurrMP" stroke="#F59E0B" strokeWidth={2} name="Battery Current (A)" dot={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
+                  </div>
+                  <div className="mt-4 grid grid-cols-4 gap-3 text-sm">
+                    <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                      <div className="text-red-400 font-medium">Low Voltage</div>
+                      <div className="text-slate-400">&lt; 11.5V</div>
+                    </div>
+                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                      <div className="text-emerald-400 font-medium">Normal</div>
+                      <div className="text-slate-400">11.5-15.5V</div>
+                    </div>
+                    <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                      <div className="text-amber-400 font-medium">High Voltage</div>
+                      <div className="text-slate-400">&gt; 15.5V</div>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                      <div className="text-blue-400 font-medium">Power Status</div>
+                      <div className="text-slate-400">{mpData.filter(d => (d.batteryCurrMP || 0) > 0).length > 0 ? 'Active' : 'Idle'}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -287,26 +343,56 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Motor Current */}
+                {/* Enhanced Motor Average Analysis */}
                 <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Gauge className="w-5 h-5 text-purple-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Motor Current (MP) Min, Avg, Max, Hall</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Gauge className="w-5 h-5 text-purple-400" />
+                      <h3 className="text-lg font-semibold text-slate-200">MP Motor Performance Analysis</h3>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-slate-400">
+                      <span>Avg Current: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.motorAvg || 0), 0) / mpData.filter(d => d.motorAvg !== null).length).toFixed(3) : 'N/A'}A</span>
+                      <span>Peak: {mpData.length > 0 ? Math.max(...mpData.filter(d => d.motorMax !== null).map(d => d.motorMax || 0)).toFixed(3) : 'N/A'}A</span>
+                    </div>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mpData}>
+                      <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Current (A)', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value, name) => [
+                            typeof value === 'number' ? value.toFixed(4) : value,
+                            name
+                          ]}
+                        />
                         <Legend />
-                        <Line type="monotone" dataKey="motorMin" stroke="#EF4444" strokeWidth={2} name="Motor Min (A)" dot={false} />
-                        <Line type="monotone" dataKey="motorAvg" stroke="#10B981" strokeWidth={2} name="Motor Avg (A)" dot={false} />
-                        <Line type="monotone" dataKey="motorMax" stroke="#F59E0B" strokeWidth={2} name="Motor Max (A)" dot={false} />
+                        <Area type="monotone" dataKey="motorMax" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={1} name="Motor Max (A)" />
+                        <Area type="monotone" dataKey="motorAvg" stroke="#10B981" fill="#10B981" fillOpacity={0.3} strokeWidth={3} name="Motor Avg (A)" />
+                        <Area type="monotone" dataKey="motorMin" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.1} strokeWidth={1} name="Motor Min (A)" />
                         <Line type="monotone" dataKey="motorHall" stroke="#8B5CF6" strokeWidth={2} name="Motor Hall" dot={false} />
-                      </LineChart>
+                      </ComposedChart>
                     </ResponsiveContainer>
+                  </div>
+                  <div className="mt-4 grid grid-cols-4 gap-3 text-sm">
+                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                      <div className="text-emerald-400 font-medium">Normal Load</div>
+                      <div className="text-slate-400">&lt; 1.0A</div>
+                    </div>
+                    <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                      <div className="text-amber-400 font-medium">High Load</div>
+                      <div className="text-slate-400">1.0-2.0A</div>
+                    </div>
+                    <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                      <div className="text-red-400 font-medium">Overcurrent</div>
+                      <div className="text-slate-400">&gt; 2.0A</div>
+                    </div>
+                    <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                      <div className="text-purple-400 font-medium">Motor Status</div>
+                      <div className="text-slate-400">{mpData.filter(d => (d.motorAvg || 0) > 0.1).length > 0 ? 'Active' : 'Idle'}</div>
+                    </div>
                   </div>
                 </div>
 

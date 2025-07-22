@@ -43,7 +43,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
     );
   }
 
-  const deviceReport = memoryDumpDetails?.deviceReport;
+  const deviceReport = (memoryDumpDetails as any)?.deviceReport;
 
   if (!deviceReport) {
     return (
