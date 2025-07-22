@@ -419,9 +419,9 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-2xl font-bold text-purple-400">
                         {(() => {
                           const thresholdEvents = mpData.filter(d => {
-                            const validX = d.maxX !== null && !isNaN(d.maxX) && isFinite(d.maxX) && Math.abs(d.maxX) > 1.5;
-                            const validY = d.maxY !== null && !isNaN(d.maxY) && isFinite(d.maxY) && Math.abs(d.maxY) > 1.5;
-                            const validZ = d.maxZ !== null && !isNaN(d.maxZ) && isFinite(d.maxZ) && Math.abs(d.maxZ) > 1.5;
+                            const validX = d.maxX !== null && d.maxX !== undefined && !isNaN(d.maxX) && isFinite(d.maxX) && Math.abs(d.maxX) > 1.5;
+                            const validY = d.maxY !== null && d.maxY !== undefined && !isNaN(d.maxY) && isFinite(d.maxY) && Math.abs(d.maxY) > 1.5;
+                            const validZ = d.maxZ !== null && d.maxZ !== undefined && !isNaN(d.maxZ) && isFinite(d.maxZ) && Math.abs(d.maxZ) > 1.5;
                             return validX || validY || validZ;
                           });
                           return thresholdEvents.length.toLocaleString();
@@ -559,7 +559,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line yAxisId="left" type="monotone" dataKey="motorAvg" stroke="#10B981" strokeWidth={2} name="Avg Motor Current (A)" dot={false} />
-                        <Line yAxisId="right" type="monotone" dataKeyactuationTime" stroke="#F59E0B" strokeWidth={2} name="Actuation Time (s)" dot={false} />
+                        <Line yAxisId="right" type="monotone" dataKey="actuationTime" stroke="#F59E0B" strokeWidth={2} name="Actuation Time (s)" dot={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
