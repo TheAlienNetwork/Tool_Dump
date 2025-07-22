@@ -255,59 +255,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     const CHUNK_SIZE = 10000; // Perfect balance of speed and reliability
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
-        // Direct conversion to database format - no intermediate objects
-        const sensorDataBatch = BinaryParser.convertToSensorDataArray({
-          RTD: batch.RTD,
-          TempMP: batch.TempMP,
-          ResetMP: batch.ResetMP,
-          BatteryCurrMP: batch.BatteryCurrMP,
-          BatteryVoltMP: batch.BatteryVoltMP,
-          FlowStatus: batch.FlowStatus,
-          MaxX: batch.MaxX,
-          MaxY: batch.MaxY,
-          MaxZ: batch.MaxZ,
-          Threshold: batch.Threshold,
-          MotorMin: batch.MotorMin,
-          MotorAvg: batch.MotorAvg,
-          MotorMax: batch.MotorMax,
-          MotorHall: batch.MotorHall,
-          ActuationTime: batch.ActuationTime,
-          AccelAX: batch.AccelAX,
-          AccelAY: batch.AccelAZ,
-          AccelStabX: batch.AccelStabX,
-          AccelStabY: batch.AccelStabY,
-          AccelStabZ: batch.AccelStabZ,
-          AccelStabZH: batch.AccelStabZH,
-          ShockZ: batch.ShockZ,
-          ShockX: batch.ShockX,
-          ShockY: batch.ShockY,
-          ShockCountAxial50: batch.ShockCountAxial50,
-          ShockCountAxial100: batch.ShockCountAxial100,
-          ShockCountLat50: batch.ShockCountLat50,
-          ShockCountLat100: batch.ShockCountLat100,
-          RotRpmMax: batch.RotRpmMax,
-          RotRpmAvg: batch.RotRpmAvg,
-          RotRpmMin: batch.RotRpmMin,
-          V3_3VA_DI: batch.V3_3VA_DI,
-          V5VD: batch.V5VD,
-          V3_3VD: batch.V3_3VD,
-          V1_9VD: batch.V1_9VD,
-          V1_5VD: batch.V1_5VD,
-          V1_8VA: batch.V1_8VA,
-          V3_3VA: batch.V3_3VA,
-          VBatt: batch.VBatt,
-          I5VD: batch.I5VD,
-          I3_3VD: batch.I3_3VD,
-          IBatt: batch.IBatt,
-          Gamma: batch.Gamma,
-          SurveyTGF: batch.SurveyTGF,
-          SurveyTMF: batch.SurveyTMF,
-          SurveyDipA: batch.SurveyDipA,
-          SurveyINC: batch.SurveyINC,
-          SurveyCINC: batch.SurveyCINC,
-          SurveyAZM: batch.SurveyAZM,
-          SurveyCAZM: batch.SurveyCAZM,
-        }, dumpId);
+        // Direct conversion to database format - use the batch directly
+        const sensorDataBatch = BinaryParser.convertToSensorDataArray(batch, dumpId);
 
         // Store batch immediately and clear memory references
         await storage.createSensorData(sensorDataBatch);

@@ -225,7 +225,7 @@ export class BinaryParser {
       }
     } finally {
       fs.closeSync(fd);
-      console.log(`✅ MDG FILE PROCESSING COMPLETE: ${totalRecords} records processed in ${batchIndex} batches`);
+      console.log(`✅ MDG FILE PROCESSING COMPLETE: ${totalRecords} records processed in ${batchIndex || 0} batches`);
     }
   }
 
@@ -365,7 +365,7 @@ export class BinaryParser {
       }
     } finally {
       fs.closeSync(fd);
-      console.log(`✅ MP FILE PROCESSING COMPLETE: ${totalRecords} records processed in ${batchIndex} batches`);
+      console.log(`✅ MP FILE PROCESSING COMPLETE: ${totalRecords} records processed in ${batchIndex || 0} batches`);
     }
   }
 
