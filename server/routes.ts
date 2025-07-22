@@ -240,17 +240,18 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     const initialMemory = process.memoryUsage();
     console.log(`Starting processing for dump ${dumpId}. Initial memory: ${Math.round(initialMemory.heapUsed / 1024 / 1024)}MB`);
 
-    // Parse the binary file with memory optimization
-    parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
-
-    // Extract device information and store it
-    buffer = fs.readFileSync(filePath);
-    const deviceInfo = BinaryParser.extractDeviceInfo(buffer, filename, fileType);
+    // Extract device information first (read header only)
+    const headerBuffer = Buffer.alloc(256);
+    const fd = fs.openSync(filePath, 'r');
+    fs.readSync(fd, headerBuffer, 0, 256, 0);
+    fs.closeSync(fd);
+    
+    const deviceInfo = BinaryParser.extractDeviceInfo(headerBuffer, filename, fileType);
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
-    
-    // Clear buffer from memory immediately
-    buffer = null;
+
+    // Parse the binary file with streaming to reduce memory usage
+    parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
 
     // Convert to sensor data format with smaller batch processing
     const sensorDataArray = BinaryParser.convertToSensorDataArray(parsedData, dumpId);
@@ -258,8 +259,8 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     // Clear parsed data from memory
     parsedData = null;
 
-    // Store sensor data in smaller batches to prevent memory issues
-    const batchSize = 250; // Further reduced batch size
+    // Store sensor data in very small batches to prevent memory issues
+    const batchSize = 100; // Much smaller batch size
     console.log(`Processing ${sensorDataArray.length} records in batches of ${batchSize}`);
     
     for (let i = 0; i < sensorDataArray.length; i += batchSize) {
@@ -267,24 +268,27 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
         const batch = sensorDataArray.slice(i, i + batchSize);
         await storage.createSensorData(batch);
         
-        // More aggressive garbage collection
-        if (i % (batchSize * 2) === 0) {
+        // Very aggressive memory management
+        if (i % batchSize === 0) {
           if (global.gc) {
             global.gc();
           }
-          // Longer delay to reduce memory pressure
-          await new Promise(resolve => setTimeout(resolve, 50));
+          // Pause to allow memory cleanup
+          await new Promise(resolve => setTimeout(resolve, 10));
           
-          // Check memory usage
+          // Check memory usage every batch
           const currentMemory = process.memoryUsage();
-          console.log(`Processed ${i + batch.length} records. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+          if (i % (batchSize * 10) === 0) {
+            console.log(`Processed ${i + batch.length} records. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+          }
           
-          // If memory usage is too high, force a longer pause
-          if (currentMemory.heapUsed > 800 * 1024 * 1024) { // 800MB threshold
-            console.log('High memory usage detected, pausing...');
-            await new Promise(resolve => setTimeout(resolve, 200));
+          // If memory usage is high, force cleanup
+          if (currentMemory.heapUsed > 500 * 1024 * 1024) { // 500MB threshold
+            console.log('Memory usage detected, cleaning up...');
+            await new Promise(resolve => setTimeout(resolve, 100));
             if (global.gc) {
               global.gc();
+              global.gc(); // Double GC
             }
           }
         }

@@ -20,10 +20,12 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     enabled: memoryDump?.status === 'completed',
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnReconnect: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+    enabled: !!selectedDump
   });
 
   // Process data for charts - using actual sensor data
