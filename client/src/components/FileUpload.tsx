@@ -18,6 +18,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
 
   const handleFileUpload = async (files: FileList) => {
     if (files.length === 0) return;
@@ -47,6 +48,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
 
     setUploading(true);
     setUploadProgress(0);
+    setUploadingFiles(Array.from(validFiles));
 
     try {
       const formData = new FormData();
@@ -72,14 +74,14 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
       }
 
       const result = await response.json();
-      
+
       toast({
         title: "Upload successful",
         description: `${validFiles.length} file(s) uploaded and processing started`,
       });
 
       onUploadComplete();
-      
+
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -94,6 +96,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      setUploadingFiles([]);
     }
   };
 
@@ -198,34 +201,26 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
             </div>
           )}
 
-          {/* File List */}
-          {memoryDumps.length > 0 && (
+          {/* Currently Processing Files */}
+          {uploadingFiles.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-gray-10 uppercase tracking-wide">Recent Files</h4>
-              {memoryDumps.slice(0, 5).map((dump) => (
-                <div 
-                  key={dump.id} 
-                  className={`flex items-center justify-between bg-gray-80 rounded-lg p-3 cursor-pointer hover:bg-gray-70 transition-colors`}
-                  onClick={() => dump.status === 'completed' && onSelectDump(dump)}
-                >
+              <h4 className="text-sm font-semibold text-slate-200 uppercase tracking-wide">Processing Files</h4>
+              {uploadingFiles.map((file, index) => (
+                <div key={index} className="flex items-center justify-between bg-dark-700/50 rounded-lg p-3">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-ibm-blue rounded flex items-center justify-center">
-                      <span className="text-xs text-white font-mono">BIN</span>
+                    <div className="w-8 h-8 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center">
+                      <span className="text-xs text-blue-400 font-mono">BIN</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-10">{dump.filename}</p>
-                      <p className="text-xs text-gray-40">
-                        {dump.fileType} • {new Date(dump.uploadedAt).toLocaleDateString()}
+                      <p className="text-sm font-medium text-slate-200">{file.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {getStatusIcon(dump.status)}
-                    <span className={`text-xs ${getStatusColor(dump.status)}`}>
-                      {dump.status === 'processing' ? 'Processing' : 
-                       dump.status === 'completed' ? 'Completed' :
-                       dump.status === 'error' ? 'Error' : 'Pending'}
-                    </span>
+                    <Clock className="w-4 h-4 text-blue-400 animate-spin" />
+                    <span className="text-xs text-blue-400">Processing</span>
                   </div>
                 </div>
               ))}

@@ -20,20 +20,53 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     enabled: memoryDump?.status === 'completed',
   });
 
-  if (!memoryDump) {
-    return (
-      <section className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent">
-            Data Visualization & Analysis
-          </h2>
-        </div>
-        <div className="glass-morphism rounded-xl p-8 text-center">
-          <p className="text-slate-400 text-lg">Select a memory dump to view visualizations</p>
-        </div>
-      </section>
-    );
-  }
+  // Always call hooks at the top level - move all useMemo calls here
+  const chartData = useMemo(() => {
+    const sensorData = dumpDetails?.sensorData;
+    if (!sensorData) return [];
+    return sensorData.map((data, index) => ({
+      index,
+      timestamp: new Date(data.rtd).toLocaleTimeString(),
+      tempMP: data.tempMP,
+      batteryVoltMP: data.batteryVoltMP,
+      shockZ: data.shockZ,
+      shockX: data.shockX,
+      shockY: data.shockY,
+      motorMin: data.motorMin,
+      motorAvg: data.motorAvg,
+      motorMax: data.motorMax,
+      accelAX: data.accelAX,
+      accelAY: data.accelAY,
+      accelAZ: data.accelAZ,
+      rotRpmMin: data.rotRpmMin,
+      rotRpmAvg: data.rotRpmAvg,
+      rotRpmMax: data.rotRpmMax,
+      gamma: data.gamma,
+      v3_3VD: data.v3_3VD,
+      v5VD: data.v5VD,
+      vBatt: data.vBatt,
+      surveyINC: data.surveyINC,
+      surveyAZM: data.surveyAZM,
+    }));
+  }, [dumpDetails?.sensorData]);
+
+  const ModernTooltip = useMemo(() => {
+    return ({ active, payload, label }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="glass-morphism rounded-lg p-4 border border-blue-500/30">
+            <p className="text-slate-300 text-sm mb-2">{`Index: ${label}`}</p>
+            {payload.map((entry: any, index: number) => (
+              <p key={index} className="text-sm" style={{ color: entry.color }}>
+                {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
+              </p>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    };
+  }, []);
 
   const handleDownloadPDF = async () => {
     try {
@@ -60,6 +93,21 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     }
   };
 
+  if (!memoryDump) {
+    return (
+      <section className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent">
+            Data Visualization & Analysis
+          </h2>
+        </div>
+        <div className="glass-morphism rounded-xl p-8 text-center">
+          <p className="text-slate-400 text-lg">Select a memory dump to view visualizations</p>
+        </div>
+      </section>
+    );
+  }
+
   if (isLoading) {
     return (
       <section className="space-y-8">
@@ -79,55 +127,6 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
       </section>
     );
   }
-
-  const sensorData = dumpDetails?.sensorData;
-
-  // Prepare data for charts - memoized to prevent constant re-computation
-  const chartData = useMemo(() => {
-    if (!sensorData) return [];
-    return sensorData.map((data, index) => ({
-      index,
-      timestamp: new Date(data.rtd).toLocaleTimeString(),
-      tempMP: data.tempMP,
-      batteryVoltMP: data.batteryVoltMP,
-      shockZ: data.shockZ,
-      shockX: data.shockX,
-      shockY: data.shockY,
-      motorMin: data.motorMin,
-      motorAvg: data.motorAvg,
-      motorMax: data.motorMax,
-      accelAX: data.accelAX,
-      accelAY: data.accelAY,
-      accelAZ: data.accelAZ,
-      rotRpmMin: data.rotRpmMin,
-      rotRpmAvg: data.rotRpmAvg,
-      rotRpmMax: data.rotRpmMax,
-      gamma: data.gamma,
-      v3_3VD: data.v3_3VD,
-      v5VD: data.v5VD,
-      vBatt: data.vBatt,
-      surveyINC: data.surveyINC,
-      surveyAZM: data.surveyAZM,
-    }));
-  }, [sensorData]);
-
-  const ModernTooltip = useMemo(() => {
-    return ({ active, payload, label }: any) => {
-      if (active && payload && payload.length) {
-        return (
-          <div className="glass-morphism rounded-lg p-4 border border-blue-500/30">
-            <p className="text-slate-300 text-sm mb-2">{`Index: ${label}`}</p>
-            {payload.map((entry: any, index: number) => (
-              <p key={index} className="text-sm" style={{ color: entry.color }}>
-                {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
-              </p>
-            ))}
-          </div>
-        );
-      }
-      return null;
-    };
-  }, []);
 
   if (!dumpDetails?.sensorData) {
     return (

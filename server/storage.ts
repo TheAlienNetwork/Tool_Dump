@@ -172,6 +172,19 @@ export class MemStorage implements IStorage {
   async getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined> {
     return this.deviceReports.get(dumpId);
   }
+
+  // Additional methods needed by routes
+  async getSensorData(dumpId: number): Promise<SensorData[]> {
+    return this.getSensorDataByDumpId(dumpId);
+  }
+
+  async getAnalysisResult(dumpId: number): Promise<AnalysisResults | undefined> {
+    return this.getAnalysisResultsByDumpId(dumpId);
+  }
+
+  async getDeviceReport(dumpId: number): Promise<DeviceReport | undefined> {
+    return this.getDeviceReportByDumpId(dumpId);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -226,6 +239,20 @@ export class DatabaseStorage implements IStorage {
 
   async getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined> {
     const [report] = await db.select().from(deviceReports).where(eq(deviceReports.dumpId, dumpId));
+    return report;
+  }
+
+  // Additional methods needed by routes
+  async getSensorData(dumpId: number): Promise<SensorData[]> {
+    return this.getSensorDataByDumpId(dumpId);
+  }
+
+  async getAnalysisResult(dumpId: number): Promise<AnalysisResults | undefined> {
+    return this.getAnalysisResultsByDumpId(dumpId);
+  }
+
+  async getDeviceReport(dumpId: number): Promise<DeviceReport | undefined> {
+    return this.getDeviceReportByDumpId(dumpId);
   }
 }
 
