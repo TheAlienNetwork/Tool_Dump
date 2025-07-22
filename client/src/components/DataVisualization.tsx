@@ -220,16 +220,12 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
             {/* MP Charts */}
             {mpData.length > 0 && (
               <>
-                {/* Enhanced Temperature Plot */}
+                {/* 1. Temperature (MP) and Reset */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       <Thermometer className="w-5 h-5 text-red-400" />
-                      <h3 className="text-lg font-semibold text-slate-200">MP Temperature Analysis</h3>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-slate-400">
-                      <span>Avg: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.tempMP || 0), 0) / mpData.filter(d => d.tempMP !== null).length).toFixed(1) : 'N/A'}°F</span>
-                      <span>Max: {mpData.length > 0 ? Math.max(...mpData.filter(d => d.tempMP !== null).map(d => d.tempMP || 0)).toFixed(1) : 'N/A'}°F</span>
+                      <h3 className="text-lg font-semibold text-slate-200">Temperature (MP) and Reset</h3>
                     </div>
                   </div>
                   <div className="h-80">
@@ -239,46 +235,20 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
                         <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Temperature (°F)', angle: -90, position: 'insideLeft' }} />
                         <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Reset Count', angle: 90, position: 'insideRight' }} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                          formatter={(value, name) => [
-                            typeof value === 'number' ? value.toFixed(2) : value,
-                            name
-                          ]}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area yAxisId="left" type="monotone" dataKey="tempMP" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={2} name="Temperature (°F)" />
                         <Bar yAxisId="right" dataKey="resetMP" fill="#10B981" name="Reset Count" opacity={0.7} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
-                    <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                      <div className="text-red-400 font-medium">Critical Zone</div>
-                      <div className="text-slate-400">&gt; 130°F</div>
-                    </div>
-                    <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                      <div className="text-amber-400 font-medium">Warning Zone</div>
-                      <div className="text-slate-400">100-130°F</div>
-                    </div>
-                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                      <div className="text-emerald-400 font-medium">Normal Zone</div>
-                      <div className="text-slate-400">&lt; 100°F</div>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Enhanced Battery Analysis */}
+                {/* 2. Battery (MP) Current and Voltage */}
                 <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Battery className="w-5 h-5 text-green-400" />
-                      <h3 className="text-lg font-semibold text-slate-200">MP Battery System Analysis</h3>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-slate-400">
-                      <span>Avg V: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.batteryVoltMP || 0), 0) / mpData.filter(d => d.batteryVoltMP !== null).length).toFixed(2) : 'N/A'}V</span>
-                      <span>Avg A: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.batteryCurrMP || 0), 0) / mpData.filter(d => d.batteryCurrMP !== null).length).toFixed(2) : 'N/A'}A</span>
-                    </div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Battery className="w-5 h-5 text-green-400" />
+                    <h3 className="text-lg font-semibold text-slate-200">Battery (MP) Current and Voltage</h3>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -287,52 +257,28 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
                         <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
                         <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Current (A)', angle: 90, position: 'insideRight' }} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                          formatter={(value, name) => [
-                            typeof value === 'number' ? value.toFixed(3) : value,
-                            name
-                          ]}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area yAxisId="left" type="monotone" dataKey="batteryVoltMP" stroke="#10B981" fill="#10B981" fillOpacity={0.2} strokeWidth={2} name="Battery Voltage (V)" />
                         <Line yAxisId="right" type="monotone" dataKey="batteryCurrMP" stroke="#F59E0B" strokeWidth={2} name="Battery Current (A)" dot={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="mt-4 grid grid-cols-4 gap-3 text-sm">
-                    <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                      <div className="text-red-400 font-medium">Low Voltage</div>
-                      <div className="text-slate-400">&lt; 11.5V</div>
-                    </div>
-                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                      <div className="text-emerald-400 font-medium">Normal</div>
-                      <div className="text-slate-400">11.5-15.5V</div>
-                    </div>
-                    <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                      <div className="text-amber-400 font-medium">High Voltage</div>
-                      <div className="text-slate-400">&gt; 15.5V</div>
-                    </div>
-                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                      <div className="text-blue-400 font-medium">Power Status</div>
-                      <div className="text-slate-400">{mpData.filter(d => (d.batteryCurrMP || 0) > 0).length > 0 ? 'Active' : 'Idle'}</div>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Vibration & Flow Status */}
+                {/* 3. Vibration, Flow Status, Max X,Y,Z, and Threshold */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Activity className="w-5 h-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Vibration, Flow Status & Max X,Y,Z, Threshold</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">Vibration, Flow Status, Max X,Y,Z, and Threshold</h3>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Acceleration (g)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Flow Status', angle: 90, position: 'insideRight' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line yAxisId="left" type="monotone" dataKey="maxX" stroke="#3B82F6" strokeWidth={2} name="Max X (g)" dot={false} />
@@ -345,17 +291,11 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Enhanced Motor Average Analysis */}
+                {/* 4. Motor Current (MP) Min, Avg, Max, Hall */}
                 <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Gauge className="w-5 h-5 text-purple-400" />
-                      <h3 className="text-lg font-semibold text-slate-200">MP Motor Performance Analysis</h3>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-slate-400">
-                      <span>Avg Current: {mpData.length > 0 ? (mpData.reduce((acc, d) => acc + (d.motorAvg || 0), 0) / mpData.filter(d => d.motorAvg !== null).length).toFixed(3) : 'N/A'}A</span>
-                      <span>Peak: {mpData.length > 0 ? Math.max(...mpData.filter(d => d.motorMax !== null).map(d => d.motorMax || 0)).toFixed(3) : 'N/A'}A</span>
-                    </div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Gauge className="w-5 h-5 text-purple-400" />
+                    <h3 className="text-lg font-semibold text-slate-200">Motor Current (MP) Min, Avg, Max, Hall</h3>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -363,13 +303,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
                         <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Current (A)', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                          formatter={(value, name) => [
-                            typeof value === 'number' ? value.toFixed(4) : value,
-                            name
-                          ]}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area type="monotone" dataKey="motorMax" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={1} name="Motor Max (A)" />
                         <Area type="monotone" dataKey="motorAvg" stroke="#10B981" fill="#10B981" fillOpacity={0.3} strokeWidth={3} name="Motor Avg (A)" />
@@ -378,27 +312,9 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="mt-4 grid grid-cols-4 gap-3 text-sm">
-                    <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                      <div className="text-emerald-400 font-medium">Normal Load</div>
-                      <div className="text-slate-400">&lt; 1.0A</div>
-                    </div>
-                    <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                      <div className="text-amber-400 font-medium">High Load</div>
-                      <div className="text-slate-400">1.0-2.0A</div>
-                    </div>
-                    <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                      <div className="text-red-400 font-medium">Overcurrent</div>
-                      <div className="text-slate-400">&gt; 2.0A</div>
-                    </div>
-                    <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="text-purple-400 font-medium">Motor Status</div>
-                      <div className="text-slate-400">{mpData.filter(d => (d.motorAvg || 0) > 0.1).length > 0 ? 'Active' : 'Idle'}</div>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Actuation Time vs Average Motor Current */}
+                {/* 5. Actuation Time vs Average Motor Current (MP) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-yellow-400" />
@@ -409,8 +325,8 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Current (A)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Time (s)', angle: 90, position: 'insideRight' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line yAxisId="left" type="monotone" dataKey="motorAvg" stroke="#10B981" strokeWidth={2} name="Avg Motor Current (A)" dot={false} />
@@ -425,29 +341,31 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
             {/* MDG Charts */}
             {mdgData.length > 0 && (
               <>
-                {/* Acceleration Data */}
+                {/* 6. Acceleration Temperature (MDG) AX, AY, AZ, RTD, Reset */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Activity className="w-5 h-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Acceleration (MDG) AX, AY, AZ, RTD</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">Acceleration Temperature (MDG) AX, AY, AZ, RTD, Reset</h3>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mdgData}>
+                      <ComposedChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Acceleration (g)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Reset Count', angle: 90, position: 'insideRight' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
-                        <Line type="monotone" dataKey="accelAX" stroke="#3B82F6" strokeWidth={2} name="Accel AX (g)" dot={false} />
-                        <Line type="monotone" dataKey="accelAY" stroke="#10B981" strokeWidth={2} name="Accel AY (g)" dot={false} />
-                        <Line type="monotone" dataKey="accelAZ" stroke="#F59E0B" strokeWidth={2} name="Accel AZ (g)" dot={false} />
-                      </LineChart>
+                        <Line yAxisId="left" type="monotone" dataKey="accelAX" stroke="#3B82F6" strokeWidth={2} name="Accel AX (g)" dot={false} />
+                        <Line yAxisId="left" type="monotone" dataKey="accelAY" stroke="#10B981" strokeWidth={2} name="Accel AY (g)" dot={false} />
+                        <Line yAxisId="left" type="monotone" dataKey="accelAZ" stroke="#F59E0B" strokeWidth={2} name="Accel AZ (g)" dot={false} />
+                        <Bar yAxisId="right" dataKey="resetMP" fill="#EF4444" name="Reset Count" opacity={0.7} />
+                      </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Shock Peak Z */}
+                {/* 7. Shock Peak Z (g) (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-red-400" />
@@ -458,7 +376,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <AreaChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Shock Z (g)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area type="monotone" dataKey="shockZ" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} name="Shock Z (g)" />
@@ -467,7 +385,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Shock Peak X,Y */}
+                {/* 8. Shock Peak X,Y (g) (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-orange-400" />
@@ -478,7 +396,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <AreaChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Shock (g)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area type="monotone" dataKey="shockX" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} name="Shock X (g)" />
@@ -488,18 +406,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Axial Shock Count */}
+                {/* 9. Axial Shock Count (cps) (MDG) 50g and 100g */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <AlertTriangle className="w-5 h-5 text-yellow-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Axial Shock Count (cps) (MDG) 50g & 100g</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">Axial Shock Count (cps) (MDG) 50g and 100g</h3>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Count (cps)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Bar dataKey="shockCountAxial50" fill="#F59E0B" name="Axial 50g Count" />
@@ -509,18 +427,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Lateral Shock Count */}
+                {/* 10. Lateral Shock Count (cps) (MDG) 50g and 100g */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <AlertTriangle className="w-5 h-5 text-purple-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Lateral Shock Count (cps) (MDG) 50g & 100g</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">Lateral Shock Count (cps) (MDG) 50g and 100g</h3>
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Count (cps)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Bar dataKey="shockCountLat50" fill="#8B5CF6" name="Lateral 50g Count" />
@@ -530,7 +448,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Rotation RPM */}
+                {/* 11. Rotation RPM (MDG) Max, Avg, Min */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <RotateCw className="w-5 h-5 text-cyan-400" />
@@ -541,7 +459,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'RPM', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="rotRpmMax" stroke="#EF4444" strokeWidth={2} name="RPM Max" dot={false} />
@@ -552,7 +470,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* System Voltage */}
+                {/* 12. System Voltage (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Cpu className="w-5 h-5 text-green-400" />
@@ -563,7 +481,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="v3_3VA_DI" stroke="#EF4444" strokeWidth={1} name="3.3VA_DI" dot={false} />
@@ -578,7 +496,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Battery Voltage MDG */}
+                {/* 13. Battery Voltage (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Battery className="w-5 h-5 text-green-400" />
@@ -589,7 +507,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <AreaChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area type="monotone" dataKey="vBatt" stroke="#10B981" fill="#10B981" fillOpacity={0.3} name="Battery Voltage (V)" />
@@ -598,7 +516,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* System Current */}
+                {/* 14. System Current (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Zap className="w-5 h-5 text-yellow-400" />
@@ -609,7 +527,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Current (A)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="i5VD" stroke="#EF4444" strokeWidth={2} name="I5VD (A)" dot={false} />
@@ -620,7 +538,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Gamma Radiation */}
+                {/* 15. Gamma (cps) (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -631,7 +549,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <AreaChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Gamma (cps)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Area type="monotone" dataKey="gamma" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} name="Gamma (cps)" />
@@ -640,7 +558,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Accel Long Term Stability */}
+                {/* 16. Acceleration Long Term Stability (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Activity className="w-5 h-5 text-blue-400" />
@@ -651,7 +569,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Stability', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="accelStabX" stroke="#3B82F6" strokeWidth={2} name="Accel Stab X" dot={false} />
@@ -663,7 +581,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Survey TGF */}
+                {/* 17. Survey TGF (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Compass className="w-5 h-5 text-cyan-400" />
@@ -674,7 +592,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'TGF (g)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="surveyTGF" stroke="#06B6D4" strokeWidth={2} name="Survey TGF (g)" dot={false} />
@@ -683,7 +601,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Survey TMF */}
+                {/* 18. Survey TMF (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Gauge className="w-5 h-5 text-purple-400" />
@@ -694,7 +612,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'TMF (Gauss)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="surveyTMF" stroke="#8B5CF6" strokeWidth={2} name="Survey TMF (Gauss)" dot={false} />
@@ -703,7 +621,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Survey DipA */}
+                {/* 19. Survey DipA (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <RotateCw className="w-5 h-5 text-orange-400" />
@@ -714,7 +632,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'DipA (Deg)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="surveyDipA" stroke="#F59E0B" strokeWidth={2} name="Survey DipA (Deg)" dot={false} />
@@ -723,7 +641,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* Survey vs CINC CAZM */}
+                {/* 20. Survey vs CINC CAZM (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Compass className="w-5 h-5 text-emerald-400" />
@@ -734,7 +652,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <LineChart data={mdgData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Degrees', angle: -90, position: 'insideLeft' }} />
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="surveyINC" stroke="#10B981" strokeWidth={2} name="Survey INC" dot={false} />
@@ -781,14 +699,14 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
               <div className="glass-morphism rounded-xl p-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <Thermometer className="w-5 h-5 text-red-400" />
-                  <h3 className="text-lg font-semibold text-slate-200">Temperature Distribution Histogram (MP)</h3>
+                  <h3 className="text-lg font-semibold text-slate-200">Temperature Distribution Histogram</h3>
                 </div>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={tempHistogramData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                       <XAxis dataKey="label" stroke="#9CA3AF" fontSize={12} />
-                      <YAxis stroke="#9CA3AF" fontSize={12} />
+                      <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                         labelFormatter={(value) => `Temperature Range: ${value}`}
