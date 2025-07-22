@@ -1,7 +1,10 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemoryDumpDetails, SensorData } from "@/lib/types";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from "recharts";
+import { Download, TrendingUp, Zap, Thermometer, Battery, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DataVisualizationProps {
   memoryDump: {
@@ -16,20 +19,45 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     enabled: memoryDump.status === 'completed',
   });
 
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await fetch(`/api/memory-dumps/${memoryDump.id}/report`, {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `memory-dump-report-${memoryDump.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
+  };
+
   if (isLoading) {
     return (
-      <section className="space-y-6">
-        <h2 className="text-lg font-semibold text-gray-10">Data Visualization & Analysis</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-100 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+            Data Visualization & Analysis
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {[...Array(8)].map((_, i) => (
-            <Card key={i} className="bg-gray-90 border-gray-80">
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-80 rounded w-1/2 mb-4"></div>
-                  <div className="h-64 bg-gray-80 rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
+            <div key={i} className="glass-morphism rounded-xl p-8 animate-pulse">
+              <div className="h-6 bg-dark-600 rounded-lg w-1/2 mb-6"></div>
+              <div className="h-80 bg-dark-600 rounded-lg"></div>
+            </div>
           ))}
         </div>
       </section>
@@ -39,12 +67,12 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   if (!dumpDetails?.sensorData) {
     return (
       <section>
-        <h2 className="text-lg font-semibold text-gray-10 mb-6">Data Visualization & Analysis</h2>
-        <Card className="bg-gray-90 border-gray-80">
-          <CardContent className="p-6 text-center text-gray-40">
-            No sensor data available for visualization
-          </CardContent>
-        </Card>
+        <h2 className="text-2xl font-bold text-slate-100 mb-8 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+          Data Visualization & Analysis
+        </h2>
+        <div className="glass-morphism rounded-xl p-8 text-center">
+          <p className="text-slate-400 text-lg">No sensor data available for visualization</p>
+        </div>
       </section>
     );
   }
@@ -77,251 +105,364 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     surveyAZM: data.surveyAZM,
   }));
 
-  const ChartCard = ({ title, children, bounds }: { title: string; children: React.ReactNode; bounds?: string }) => (
-    <Card className="bg-gray-90 border-gray-80">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-gray-10">{title}</CardTitle>
-          {bounds && (
-            <div className="flex items-center space-x-2 text-xs text-gray-40">
-              <span>{bounds}</span>
+  const ModernTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="glass-morphism rounded-lg p-4 border border-blue-500/30">
+          <p className="text-slate-300 text-sm mb-2">{`Index: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const ChartCard = ({ 
+    title, 
+    children, 
+    bounds, 
+    icon: Icon,
+    gradient = "from-blue-500 to-purple-500"
+  }: { 
+    title: string; 
+    children: React.ReactNode; 
+    bounds?: string;
+    icon?: any;
+    gradient?: string;
+  }) => (
+    <div className="gradient-border chart-enter">
+      <Card className="bg-dark-800/50 backdrop-blur-xl border-0 overflow-hidden">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {Icon && <Icon className="w-5 h-5 text-blue-500" />}
+              <CardTitle className={`text-lg font-semibold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
+                {title}
+              </CardTitle>
             </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="h-64">
-          {children}
-        </div>
-      </CardContent>
-    </Card>
+            {bounds && (
+              <div className="px-3 py-1 bg-dark-700/70 rounded-full">
+                <span className="text-xs text-slate-400">{bounds}</span>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="h-80 relative">
+            {children}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 
   return (
-    <section className="space-y-6">
-      <h2 className="text-lg font-semibold text-gray-10">Data Visualization & Analysis</h2>
+    <section className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent">
+          Data Visualization & Analysis
+        </h2>
+        <Button 
+          onClick={handleDownloadPDF}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download PDF Report
+        </Button>
+      </div>
       
       {/* Primary Metrics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Temperature Chart */}
-        <ChartCard title="Temperature Monitoring" bounds="UB: 130°F | LB: 100°F">
+        <ChartCard 
+          title="Temperature Monitoring" 
+          bounds="UB: 130°F | LB: 100°F"
+          icon={Thermometer}
+          gradient="from-rose-500 to-orange-500"
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(346, 77%, 60%)" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="hsl(346, 77%, 60%)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 28%, 17%)" strokeOpacity={0.3} />
+              <XAxis 
+                dataKey="index" 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <ReferenceLine y={130} stroke="#FA4D56" strokeDasharray="5 5" />
-              <ReferenceLine y={100} stroke="#FA4D56" strokeDasharray="5 5" />
-              <Line 
+              <YAxis 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<ModernTooltip />} />
+              <ReferenceLine y={130} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
+              <ReferenceLine y={100} stroke="hsl(43, 96%, 56%)" strokeDasharray="5 5" strokeWidth={2} />
+              <Area 
                 type="monotone" 
                 dataKey="tempMP" 
-                stroke="#0F62FE" 
-                strokeWidth={2}
+                stroke="hsl(346, 77%, 60%)" 
+                strokeWidth={3}
+                fill="url(#tempGradient)"
                 dot={false}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {/* Battery Voltage Chart */}
-        <ChartCard title="Battery Voltage" bounds="UB: 15.5V | LB: 11.5V">
+        <ChartCard 
+          title="Battery Voltage" 
+          bounds="UB: 15.5V | LB: 11.5V"
+          icon={Battery}
+          gradient="from-emerald-500 to-teal-500"
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="batteryGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 28%, 17%)" strokeOpacity={0.3} />
+              <XAxis 
+                dataKey="index" 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <ReferenceLine y={15.5} stroke="#F1C21B" strokeDasharray="5 5" />
-              <ReferenceLine y={11.5} stroke="#F1C21B" strokeDasharray="5 5" />
-              <Line 
+              <YAxis 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<ModernTooltip />} />
+              <ReferenceLine y={15.5} stroke="hsl(43, 96%, 56%)" strokeDasharray="5 5" strokeWidth={2} />
+              <ReferenceLine y={11.5} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
+              <Area 
                 type="monotone" 
                 dataKey="batteryVoltMP" 
-                stroke="#24A148" 
-                strokeWidth={2}
+                stroke="hsl(142, 71%, 45%)" 
+                strokeWidth={3}
+                fill="url(#batteryGradient)"
                 dot={false}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
 
       {/* Secondary Metrics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Shock Levels */}
-        <ChartCard title="Shock Levels (XYZ)" bounds="Threshold: 6.0g">
+        <ChartCard 
+          title="Shock Levels (XYZ)" 
+          bounds="Threshold: 6.0g"
+          icon={Activity}
+          gradient="from-purple-500 to-indigo-500"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 28%, 17%)" strokeOpacity={0.3} />
+              <XAxis 
+                dataKey="index" 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <ReferenceLine y={6.0} stroke="#FA4D56" strokeDasharray="5 5" />
-              <Line type="monotone" dataKey="shockX" stroke="#0F62FE" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="shockY" stroke="#24A148" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="shockZ" stroke="#F1C21B" strokeWidth={1} dot={false} />
+              <YAxis 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<ModernTooltip />} />
+              <ReferenceLine y={6.0} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
+              <Line 
+                type="monotone" 
+                dataKey="shockX" 
+                stroke="hsl(217, 91%, 60%)" 
+                strokeWidth={2} 
+                dot={false}
+                strokeDasharray="5 5"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="shockY" 
+                stroke="hsl(142, 71%, 45%)" 
+                strokeWidth={2} 
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="shockZ" 
+                stroke="hsl(43, 96%, 56%)" 
+                strokeWidth={2} 
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {/* Motor Current */}
-        <ChartCard title="Motor Current" bounds="Max: 2.0A">
+        <ChartCard 
+          title="Motor Current" 
+          bounds="Max: 2.0A"
+          icon={Zap}
+          gradient="from-amber-500 to-orange-500"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 28%, 17%)" strokeOpacity={0.3} />
+              <XAxis 
+                dataKey="index" 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <ReferenceLine y={2.0} stroke="#FA4D56" strokeDasharray="5 5" />
-              <Line type="monotone" dataKey="motorMin" stroke="#8D8D8D" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="motorAvg" stroke="#0F62FE" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="motorMax" stroke="#FA4D56" strokeWidth={1} dot={false} />
+              <YAxis 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<ModernTooltip />} />
+              <ReferenceLine y={2.0} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
+              <Line 
+                type="monotone" 
+                dataKey="motorMin" 
+                stroke="hsl(215, 20%, 65%)" 
+                strokeWidth={1} 
+                dot={false}
+                strokeOpacity={0.7}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="motorAvg" 
+                stroke="hsl(43, 96%, 56%)" 
+                strokeWidth={3} 
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="motorMax" 
+                stroke="hsl(346, 77%, 60%)" 
+                strokeWidth={2} 
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
 
-      {/* Acceleration and Rotation Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Additional Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Acceleration Data */}
-        <ChartCard title="Acceleration Data" bounds="3σ outlier detection">
+        <ChartCard 
+          title="Acceleration Data" 
+          bounds="3σ outlier detection"
+          icon={TrendingUp}
+          gradient="from-cyan-500 to-blue-500"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 28%, 17%)" strokeOpacity={0.3} />
+              <XAxis 
+                dataKey="index" 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <Line type="monotone" dataKey="accelAX" stroke="#0F62FE" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="accelAY" stroke="#24A148" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="accelAZ" stroke="#F1C21B" strokeWidth={1} dot={false} />
+              <YAxis 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<ModernTooltip />} />
+              <Line 
+                type="monotone" 
+                dataKey="accelAX" 
+                stroke="hsl(187, 85%, 53%)" 
+                strokeWidth={2} 
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="accelAY" 
+                stroke="hsl(142, 71%, 45%)" 
+                strokeWidth={2} 
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="accelAZ" 
+                stroke="hsl(271, 81%, 56%)" 
+                strokeWidth={2} 
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Rotation Speed */}
-        <ChartCard title="Rotation Speed" bounds="120-140 RPM range">
+        {/* Gamma Radiation */}
+        <ChartCard 
+          title="Gamma Radiation" 
+          bounds="Range: 15-45 counts"
+          icon={Activity}
+          gradient="from-violet-500 to-purple-500"
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="gammaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(271, 81%, 56%)" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="hsl(271, 81%, 56%)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 28%, 17%)" strokeOpacity={0.3} />
+              <XAxis 
+                dataKey="index" 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <Line type="monotone" dataKey="rotRpmMin" stroke="#8D8D8D" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="rotRpmAvg" stroke="#0F62FE" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="rotRpmMax" stroke="#24A148" strokeWidth={1} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      {/* Power and Survey Data Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Power Systems */}
-        <ChartCard title="Power System Voltages" bounds="3.3V, 5V, Battery">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+              <YAxis 
+                stroke="hsl(215, 20%, 65%)" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <Line type="monotone" dataKey="v3_3VD" stroke="#0F62FE" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="v5VD" stroke="#24A148" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="vBatt" stroke="#F1C21B" strokeWidth={1} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Survey Data */}
-        <ChartCard title="Survey Data" bounds="INC, AZM Parameters">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
+              <Tooltip content={<ModernTooltip />} />
+              <ReferenceLine y={45} stroke="hsl(43, 96%, 56%)" strokeDasharray="5 5" strokeWidth={2} />
+              <ReferenceLine y={15} stroke="hsl(142, 71%, 45%)" strokeDasharray="5 5" strokeWidth={2} />
+              <Area 
+                type="monotone" 
+                dataKey="gamma" 
+                stroke="hsl(271, 81%, 56%)" 
+                strokeWidth={3}
+                fill="url(#gammaGradient)"
+                dot={false}
               />
-              <Line type="monotone" dataKey="surveyINC" stroke="#0F62FE" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="surveyAZM" stroke="#24A148" strokeWidth={1} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      {/* Gamma Radiation */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Gamma Radiation" bounds="Range: 15-45 counts">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#393939" />
-              <XAxis dataKey="index" stroke="#8D8D8D" fontSize={12} />
-              <YAxis stroke="#8D8D8D" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#262626', 
-                  border: '1px solid #393939', 
-                  borderRadius: '6px',
-                  color: '#F4F4F4'
-                }}
-              />
-              <ReferenceLine y={45} stroke="#F1C21B" strokeDasharray="5 5" />
-              <ReferenceLine y={15} stroke="#F1C21B" strokeDasharray="5 5" />
-              <Line type="monotone" dataKey="gamma" stroke="#0F62FE" strokeWidth={2} dot={false} />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>

@@ -1,67 +1,49 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 98%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
+  --background: hsl(222, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32%, 17%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(222, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 6%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32%, 17%);
+  --input: hsl(217, 32%, 17%);
+  --primary: hsl(217, 91%, 60%);
+  --primary-foreground: hsl(222, 84%, 4.9%);
+  --secondary: hsl(217, 32%, 17%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(217, 32%, 17%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62.8%, 58%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(217, 91%, 60%);
+  --radius: 0.75rem;
 
-  /* IBM Dark Theme Colors */
-  --gray-100: hsl(0, 0%, 8.6%);
-  --gray-90: hsl(0, 0%, 14.9%);
-  --gray-80: hsl(0, 0%, 22.4%);
-  --gray-70: hsl(0, 0%, 32.2%);
-  --gray-60: hsl(0, 0%, 43.5%);
-  --gray-50: hsl(0, 0%, 55.3%);
-  --gray-40: hsl(0, 0%, 65.9%);
-  --gray-30: hsl(0, 0%, 77.6%);
-  --gray-20: hsl(0, 0%, 87.8%);
-  --gray-10: hsl(0, 0%, 95.7%);
-  --ibm-blue: hsl(207, 90%, 54%);
-  --green-50: hsl(142, 64%, 42%);
-  --yellow-30: hsl(45, 100%, 51%);
-  --red-50: hsl(1, 90%, 64%);
-}
-
-.dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(240, 3.7%, 15.9%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
+  /* Premium Dark Theme Colors */
+  --dark-900: hsl(222, 84%, 4.9%);
+  --dark-800: hsl(222, 47%, 11%);
+  --dark-700: hsl(215, 28%, 17%);
+  --dark-600: hsl(215, 16%, 25%);
+  --dark-500: hsl(215, 14%, 34%);
+  --slate-400: hsl(215, 20%, 65%);
+  --slate-300: hsl(213, 31%, 91%);
+  --slate-100: hsl(210, 40%, 98%);
+  
+  /* Accent Colors */
+  --blue-500: hsl(217, 91%, 60%);
+  --blue-600: hsl(221, 83%, 53%);
+  --purple-500: hsl(271, 81%, 56%);
+  --emerald-500: hsl(142, 71%, 45%);
+  --amber-500: hsl(43, 96%, 56%);
+  --rose-500: hsl(346, 77%, 60%);
+  --cyan-500: hsl(187, 85%, 53%);
+  --indigo-500: hsl(239, 84%, 67%);
 }
 
 @layer base {
@@ -71,57 +53,83 @@
 
   body {
     @apply font-sans antialiased;
-    background-color: hsl(var(--gray-100));
-    color: hsl(var(--gray-10));
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: linear-gradient(135deg, hsl(var(--dark-900)) 0%, hsl(var(--dark-800)) 100%);
+    color: hsl(var(--slate-100));
+    font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  .glass-morphism {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .gradient-border {
+    background: linear-gradient(135deg, hsl(var(--blue-500)), hsl(var(--purple-500)));
+    padding: 1px;
+    border-radius: 0.75rem;
+  }
+
+  .gradient-border > * {
+    background: hsl(var(--dark-800));
+    border-radius: calc(0.75rem - 1px);
   }
 }
 
-/* Custom IBM Color Classes */
-.bg-gray-100 { background-color: hsl(var(--gray-100)); }
-.bg-gray-90 { background-color: hsl(var(--gray-90)); }
-.bg-gray-80 { background-color: hsl(var(--gray-80)); }
-.bg-gray-70 { background-color: hsl(var(--gray-70)); }
-.bg-gray-60 { background-color: hsl(var(--gray-60)); }
-.bg-gray-50 { background-color: hsl(var(--gray-50)); }
-.bg-gray-40 { background-color: hsl(var(--gray-40)); }
-.bg-gray-30 { background-color: hsl(var(--gray-30)); }
-.bg-gray-20 { background-color: hsl(var(--gray-20)); }
-.bg-gray-10 { background-color: hsl(var(--gray-10)); }
-.bg-ibm-blue { background-color: hsl(var(--ibm-blue)); }
-.bg-green-50 { background-color: hsl(var(--green-50)); }
-.bg-yellow-30 { background-color: hsl(var(--yellow-30)); }
-.bg-red-50 { background-color: hsl(var(--red-50)); }
+/* Premium Color Classes */
+.bg-dark-900 { background-color: hsl(var(--dark-900)); }
+.bg-dark-800 { background-color: hsl(var(--dark-800)); }
+.bg-dark-700 { background-color: hsl(var(--dark-700)); }
+.bg-dark-600 { background-color: hsl(var(--dark-600)); }
+.bg-dark-500 { background-color: hsl(var(--dark-500)); }
 
-.text-gray-100 { color: hsl(var(--gray-100)); }
-.text-gray-90 { color: hsl(var(--gray-90)); }
-.text-gray-80 { color: hsl(var(--gray-80)); }
-.text-gray-70 { color: hsl(var(--gray-70)); }
-.text-gray-60 { color: hsl(var(--gray-60)); }
-.text-gray-50 { color: hsl(var(--gray-50)); }
-.text-gray-40 { color: hsl(var(--gray-40)); }
-.text-gray-30 { color: hsl(var(--gray-30)); }
-.text-gray-20 { color: hsl(var(--gray-20)); }
-.text-gray-10 { color: hsl(var(--gray-10)); }
-.text-ibm-blue { color: hsl(var(--ibm-blue)); }
-.text-green-50 { color: hsl(var(--green-50)); }
-.text-yellow-30 { color: hsl(var(--yellow-30)); }
-.text-red-50 { color: hsl(var(--red-50)); }
+.text-slate-100 { color: hsl(var(--slate-100)); }
+.text-slate-300 { color: hsl(var(--slate-300)); }
+.text-slate-400 { color: hsl(var(--slate-400)); }
 
-.border-gray-100 { border-color: hsl(var(--gray-100)); }
-.border-gray-90 { border-color: hsl(var(--gray-90)); }
-.border-gray-80 { border-color: hsl(var(--gray-80)); }
-.border-gray-70 { border-color: hsl(var(--gray-70)); }
-.border-gray-60 { border-color: hsl(var(--gray-60)); }
-.border-gray-50 { border-color: hsl(var(--gray-50)); }
-.border-gray-40 { border-color: hsl(var(--gray-40)); }
-.border-gray-30 { border-color: hsl(var(--gray-30)); }
-.border-gray-20 { border-color: hsl(var(--gray-20)); }
-.border-gray-10 { border-color: hsl(var(--gray-10)); }
-.border-ibm-blue { border-color: hsl(var(--ibm-blue)); }
-.border-green-50 { border-color: hsl(var(--green-50)); }
-.border-yellow-30 { border-color: hsl(var(--yellow-30)); }
-.border-red-50 { border-color: hsl(var(--red-50)); }
+.text-blue-500 { color: hsl(var(--blue-500)); }
+.text-purple-500 { color: hsl(var(--purple-500)); }
+.text-emerald-500 { color: hsl(var(--emerald-500)); }
+.text-amber-500 { color: hsl(var(--amber-500)); }
+.text-rose-500 { color: hsl(var(--rose-500)); }
+.text-cyan-500 { color: hsl(var(--cyan-500)); }
+.text-indigo-500 { color: hsl(var(--indigo-500)); }
 
-.hover\:bg-gray-70:hover { background-color: hsl(var(--gray-70)); }
-.hover\:border-ibm-blue:hover { border-color: hsl(var(--ibm-blue)); }
+.border-blue-500 { border-color: hsl(var(--blue-500)); }
+.border-purple-500 { border-color: hsl(var(--purple-500)); }
+.border-emerald-500 { border-color: hsl(var(--emerald-500)); }
+.border-amber-500 { border-color: hsl(var(--amber-500)); }
+.border-rose-500 { border-color: hsl(var(--rose-500)); }
+
+.hover\:bg-dark-700:hover { background-color: hsl(var(--dark-700)); }
+.hover\:border-blue-500:hover { border-color: hsl(var(--blue-500)); }
+
+/* Chart Animations */
+.chart-enter {
+  animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Glow Effects */
+.glow-blue {
+  box-shadow: 0 0 20px hsla(217, 91%, 60%, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px hsla(271, 81%, 56%, 0.3);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px hsla(142, 71%, 45%, 0.3);
+}

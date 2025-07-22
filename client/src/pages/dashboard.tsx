@@ -38,52 +38,52 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-gray-90 border-b border-gray-80 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-ibm-blue rounded-lg flex items-center justify-center">
-              <span className="text-white font-mono text-sm font-bold">ND</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-10">Neural Drill Memory Dump Visualizer</h1>
-              <p className="text-sm text-gray-40">Tool Health Check & Analysis Platform</p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
+      <div className="container mx-auto p-8 space-y-12">
+        <header className="text-center space-y-6 py-8">
+          <div className="space-y-4">
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+              Neural Drill Analytics
+            </h1>
+            <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+            <p className="text-2xl text-slate-300 font-light">Advanced Binary Dump Analysis & Visualization Platform</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-30">
-              <span className="w-2 h-2 bg-green-50 rounded-full"></span>
-              <span>System Status: Operational</span>
-            </div>
-            <span className="text-sm text-gray-40 font-mono">{formatTime(currentTime)}</span>
-          </div>
+        </header>
+
+        <div className="space-y-12">
+          <section className="glass-morphism rounded-2xl p-8">
+            <FileUpload 
+              onUploadComplete={() => {
+                refetchDumps();
+              }}
+              memoryDumps={memoryDumps}
+              onSelectDump={setSelectedDump}
+            />
+          </section>
+
+          <section className="glass-morphism rounded-2xl p-8">
+            <DataTable memoryDump={selectedDump}/>
+          </section>
+
+          {selectedDump && (
+            <section className="space-y-8">
+              <HealthSummary memoryDump={selectedDump} />
+            </section>
+          )}
+
+          {selectedDump && (
+            <section className="space-y-8">
+              <DeviceReport memoryDump={selectedDump} />
+            </section>
+          )}
+
+          {selectedDump && (
+            <section className="space-y-8">
+              <DataVisualization memoryDump={selectedDump} />
+            </section>
+          )}
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* File Upload Section */}
-        <FileUpload 
-          onUploadComplete={() => {
-            refetchDumps();
-          }}
-          memoryDumps={memoryDumps}
-          onSelectDump={setSelectedDump}
-        />
-
-        {/* Tool Health Summary */}
-        {selectedDump && <HealthSummary memoryDump={selectedDump} />}
-
-        {/* Device Report Information */}
-        {selectedDump && <DeviceReport memoryDump={selectedDump} />}
-
-        {/* Data Visualization */}
-        {selectedDump && <DataVisualization memoryDump={selectedDump} />}
-
-        {/* Data Table */}
-        {selectedDump && <DataTable memoryDump={selectedDump} />}
-      </main>
+      </div>
     </div>
   );
 }
