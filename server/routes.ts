@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Ultra-fast processing with optimized chunk size
-    const CHUNK_SIZE = 5000; // Large chunks for maximum throughput
+    // Lightning-fast processing optimized for 30-second target
+    const CHUNK_SIZE = 10000; // Maximum chunk size for ultimate speed
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
@@ -321,10 +321,9 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           global.gc();
         }
         
-        // Progress logging every 10 batches
-        if (batchIndex % 10 === 0) {
-          const currentMemory = process.memoryUsage();
-          console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+        // Minimal logging for maximum speed - only every 20 batches
+        if (batchIndex % 20 === 0) {
+          console.log(`Lightning processing: ${processed} records completed`);
         }
         
         return true;
