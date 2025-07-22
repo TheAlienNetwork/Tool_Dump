@@ -12,7 +12,7 @@ export interface IStorage {
 
   // Sensor Data
   createSensorData(data: InsertSensorData[]): Promise<void>;
-  getSensorDataByDumpId(dumpId: number): Promise<SensorData[]>;
+  getSensorDataByDumpId(dumpId: number, limit?: number): Promise<SensorData[]>;
 
   // Analysis Results
   createAnalysisResults(results: InsertAnalysisResults): Promise<AnalysisResults>;
@@ -146,8 +146,12 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getSensorDataByDumpId(dumpId: number): Promise<SensorData[]> {
-    return this.sensorData.get(dumpId) || [];
+  async getSensorDataByDumpId(dumpId: number, limit?: number): Promise<SensorData[]> {
+    const dumpSensorData = this.sensorData.get(dumpId);
+    if (!dumpSensorData) return [];
+
+    const data = Array.from(this.sensorData.get(dumpId)!.values());
+    return limit ? data.slice(0, limit) : data;
   }
 
   async createAnalysisResults(insertResults: InsertAnalysisResults): Promise<AnalysisResults> {
@@ -200,8 +204,8 @@ export class MemStorage implements IStorage {
   }
 
   // Additional methods needed by routes
-  async getSensorData(dumpId: number): Promise<SensorData[]> {
-    return this.getSensorDataByDumpId(dumpId);
+  async getSensorData(dumpId: number, limit?: number): Promise<SensorData[]> {
+    return this.getSensorDataByDumpId(dumpId, limit);
   }
 
   async getAnalysisResult(dumpId: number): Promise<AnalysisResults | undefined> {
@@ -252,8 +256,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSensorDataByDumpId(dumpId: number): Promise<SensorData[]> {
-    return await db.select().from(sensorData).where(eq(sensorData.dumpId, dumpId));
+  async getSensorDataByDumpId(dumpId: number, limit?: number): Promise<SensorData[]> {
+    const sensorDataResult = await db.select().from(sensorData).where(eq(sensorData.dumpId, dumpId));
+    return limit ? sensorDataResult.slice(0, limit) : sensorDataResult;
   }
 
   async createAnalysisResults(insertResults: InsertAnalysisResults): Promise<AnalysisResults> {
@@ -277,8 +282,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Additional methods needed by routes
-  async getSensorData(dumpId: number): Promise<SensorData[]> {
-    return this.getSensorDataByDumpId(dumpId);
+  async getSensorData(dumpId: number, limit?: number): Promise<SensorData[]> {
+    return this.getSensorDataByDumpId(dumpId, limit);
   }
 
   async getAnalysisResult(dumpId: number): Promise<AnalysisResults | undefined> {

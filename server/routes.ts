@@ -228,69 +228,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Background processing function
+// Background processing function with enhanced memory management
 async function processMemoryDumpAsync(dumpId: number, filePath: string, filename: string, fileType: string) {
+  let buffer: Buffer | null = null;
+  let parsedData: any = null;
+  
   try {
     await storage.updateMemoryDumpStatus(dumpId, 'processing');
 
+    // Check available memory before processing
+    const initialMemory = process.memoryUsage();
+    console.log(`Starting processing for dump ${dumpId}. Initial memory: ${Math.round(initialMemory.heapUsed / 1024 / 1024)}MB`);
+
     // Parse the binary file with memory optimization
-    const parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
+    parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
 
     // Extract device information and store it
-    const buffer = fs.readFileSync(filePath);
+    buffer = fs.readFileSync(filePath);
     const deviceInfo = BinaryParser.extractDeviceInfo(buffer, filename, fileType);
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
+    
+    // Clear buffer from memory immediately
+    buffer = null;
 
     // Convert to sensor data format with smaller batch processing
     const sensorDataArray = BinaryParser.convertToSensorDataArray(parsedData, dumpId);
+    
+    // Clear parsed data from memory
+    parsedData = null;
 
     // Store sensor data in smaller batches to prevent memory issues
-    const batchSize = 500; // Reduced batch size for better memory management
+    const batchSize = 250; // Further reduced batch size
     console.log(`Processing ${sensorDataArray.length} records in batches of ${batchSize}`);
     
     for (let i = 0; i < sensorDataArray.length; i += batchSize) {
-      const batch = sensorDataArray.slice(i, i + batchSize);
-      await storage.createSensorData(batch);
-      
-      // Force garbage collection every few batches
-      if (i % (batchSize * 4) === 0 && global.gc) {
-        global.gc();
-      }
-      
-      // Small delay to prevent overwhelming the system
-      if (i % (batchSize * 2) === 0) {
-        await new Promise(resolve => setTimeout(resolve, 10));
+      try {
+        const batch = sensorDataArray.slice(i, i + batchSize);
+        await storage.createSensorData(batch);
+        
+        // More aggressive garbage collection
+        if (i % (batchSize * 2) === 0) {
+          if (global.gc) {
+            global.gc();
+          }
+          // Longer delay to reduce memory pressure
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          // Check memory usage
+          const currentMemory = process.memoryUsage();
+          console.log(`Processed ${i + batch.length} records. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+          
+          // If memory usage is too high, force a longer pause
+          if (currentMemory.heapUsed > 800 * 1024 * 1024) { // 800MB threshold
+            console.log('High memory usage detected, pausing...');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            if (global.gc) {
+              global.gc();
+            }
+          }
+        }
+      } catch (batchError) {
+        console.error(`Error processing batch starting at ${i}:`, batchError);
+        // Continue with next batch instead of failing completely
+        continue;
       }
     }
 
-    // Get stored sensor data for analysis
-    const storedSensorData = await storage.getSensorDataByDumpId(dumpId);
+    // Final memory cleanup
+    if (global.gc) {
+      global.gc();
+    }
+
+    // Get stored sensor data for analysis (limit to prevent memory issues)
+    const storedSensorData = await storage.getSensorDataByDumpId(dumpId, 10000); // Limit to 10k records for analysis
     
     // Simple analysis without recursion - count issues from real data
     const issues = [];
     const tempData = storedSensorData.filter(d => d.tempMP !== null);
-    const highTemps = tempData.filter(d => d.tempMP! > 130);
-    const lowTemps = tempData.filter(d => d.tempMP! < 100);
     
-    if (highTemps.length > 0) {
-      const maxTemp = highTemps.reduce((max, d) => Math.max(max, d.tempMP!), -Infinity);
-      issues.push({
-        issue: `High temperature detected: ${maxTemp.toFixed(1)}°F`,
-        explanation: "Temperature exceeded safe operating limits",
-        severity: 'critical',
-        count: highTemps.length
-      });
-    }
-    
-    if (lowTemps.length > 0) {
-      const minTemp = lowTemps.reduce((min, d) => Math.min(min, d.tempMP!), Infinity);
-      issues.push({
-        issue: `Low temperature detected: ${minTemp.toFixed(1)}°F`,
-        explanation: "Temperature below normal operating range",
-        severity: 'warning',
-        count: lowTemps.length
-      });
+    if (tempData.length > 0) {
+      const highTemps = tempData.filter(d => d.tempMP! > 130);
+      const lowTemps = tempData.filter(d => d.tempMP! < 100);
+      
+      if (highTemps.length > 0) {
+        const maxTemp = highTemps.reduce((max, d) => Math.max(max, d.tempMP!), -Infinity);
+        issues.push({
+          issue: `High temperature detected: ${maxTemp.toFixed(1)}°F`,
+          explanation: "Temperature exceeded safe operating limits",
+          severity: 'critical',
+          count: highTemps.length
+        });
+      }
+      
+      if (lowTemps.length > 0) {
+        const minTemp = lowTemps.reduce((min, d) => Math.min(min, d.tempMP!), Infinity);
+        issues.push({
+          issue: `Low temperature detected: ${minTemp.toFixed(1)}°F`,
+          explanation: "Temperature below normal operating range",
+          severity: 'warning',
+          count: lowTemps.length
+        });
+      }
     }
     
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
@@ -314,6 +353,10 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
 
     await storage.updateMemoryDumpStatus(dumpId, 'completed');
 
+    // Final cleanup
+    const finalMemory = process.memoryUsage();
+    console.log(`Completed processing for dump ${dumpId}. Final memory: ${Math.round(finalMemory.heapUsed / 1024 / 1024)}MB`);
+
     // Clean up uploaded file
     fs.unlink(filePath, (err) => {
       if (err) console.error('Failed to delete uploaded file:', err);
@@ -327,5 +370,12 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     fs.unlink(filePath, (err) => {
       if (err) console.error('Failed to delete uploaded file:', err);
     });
+  } finally {
+    // Ensure cleanup even if there's an error
+    buffer = null;
+    parsedData = null;
+    if (global.gc) {
+      global.gc();
+    }
   }
 }

@@ -218,10 +218,17 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
                 <div className="w-5 h-5 border-2 border-ibm-blue border-t-transparent rounded-full animate-spin"></div>
                 <div>
                   <p className="text-sm font-medium text-gray-10">Processing binary data...</p>
-                  <p className="text-xs text-gray-40">Extracting structured data from memory dumps</p>
+                  <p className="text-xs text-gray-40">
+                    Large files may take several minutes to process. Please be patient.
+                  </p>
                 </div>
               </div>
               <Progress value={uploadProgress} className="h-2" />
+              <div className="mt-2 text-xs text-gray-50">
+                <span className="bg-blue-500/20 px-2 py-1 rounded">
+                  Processing {uploadingFiles.length} file(s)
+                </span>
+              </div>
             </div>
           )}
 

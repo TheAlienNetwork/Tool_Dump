@@ -133,16 +133,26 @@ export class BinaryParser {
         this.parseMPFile(buffer, data, filename);
       }
       
-      // Trim arrays to actual size
+      // Trim arrays to actual size and clean up memory
       Object.keys(data).forEach(key => {
         const arr = (data as any)[key];
         if (Array.isArray(arr)) {
           const actualLength = arr.findIndex(item => item === undefined);
           if (actualLength > 0) {
             (data as any)[key] = arr.slice(0, actualLength);
+          } else if (actualLength === -1) {
+            // No undefined found, keep the array as is
+          } else {
+            // Empty array
+            (data as any)[key] = [];
           }
         }
       });
+      
+      // Force garbage collection after parsing
+      if (global.gc) {
+        global.gc();
+      }
       
       return data;
     } catch (error: any) {

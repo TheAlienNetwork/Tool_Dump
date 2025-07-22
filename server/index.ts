@@ -26,17 +26,27 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Memory monitoring
+// Memory monitoring with more aggressive cleanup
 setInterval(() => {
   const memUsage = process.memoryUsage();
   console.log(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
   
-  // Force garbage collection if memory usage is high
-  if (memUsage.heapUsed > 512 * 1024 * 1024 && global.gc) { // 512MB threshold
+  // More aggressive memory management
+  if (memUsage.heapUsed > 400 * 1024 * 1024 && global.gc) { // Lower threshold: 400MB
     console.log('High memory usage detected, forcing garbage collection...');
     global.gc();
   }
-}, 30000); // Check every 30 seconds
+  
+  // Critical memory usage - more aggressive cleanup
+  if (memUsage.heapUsed > 700 * 1024 * 1024) { // 700MB critical threshold
+    console.log('Critical memory usage detected, performing aggressive cleanup...');
+    if (global.gc) {
+      global.gc();
+      // Run GC multiple times for better cleanup
+      setTimeout(() => global.gc && global.gc(), 100);
+    }
+  }
+}, 15000); // Check every 15 seconds for faster response
 
 const app = express();
 app.use(express.json());
