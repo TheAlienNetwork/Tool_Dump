@@ -252,12 +252,11 @@ export class DatabaseStorage implements IStorage {
 
   async createSensorData(data: InsertSensorData[]): Promise<void> {
     if (data.length > 0) {
-      // Process in smaller batches to prevent database timeout and memory issues
-      const BATCH_SIZE = 100;
-      for (let i = 0; i < data.length; i += BATCH_SIZE) {
-        const batch = data.slice(i, i + BATCH_SIZE);
-        await db.insert(sensorData).values(batch);
-      }
+      // Use database transaction for atomic bulk insert with maximum performance
+      await db.transaction(async (tx) => {
+        // Single bulk insert - PostgreSQL handles this very efficiently
+        await tx.insert(sensorData).values(data);
+      });
     }
   }
 

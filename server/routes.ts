@@ -44,9 +44,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No files uploaded" });
       }
 
-      const results = [];
-
-      for (const file of files) {
+      // Process all files in parallel for maximum speed
+      const filePromises = files.map(async (file: Express.Multer.File) => {
         try {
           // Determine file type from filename
           const fileType = file.originalname.includes('MDG') ? 'MDG' : 
@@ -63,22 +62,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             processMemoryDumpStreaming(memoryDump.id, file.path, file.originalname, fileType);
           });
 
-          results.push({
+          return {
             id: memoryDump.id,
             filename: file.originalname,
             status: 'processing',
             fileType
-          });
+          };
 
         } catch (error: any) {
           console.error(`Error processing file ${file.originalname}:`, error);
-          results.push({
+          return {
             filename: file.originalname,
             status: 'error',
             error: error?.message
-          });
+          };
         }
-      }
+      });
+
+      // Wait for all files to be registered and started processing
+      const results = await Promise.all(filePromises);
 
       res.json({ results });
     } catch (error: any) {
@@ -250,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Optimized for database storage with controlled memory
-    const CHUNK_SIZE = 500; // Smaller chunks to prevent memory issues with database storage
+    // Ultra-high performance: Large chunks with database transactions
+    const CHUNK_SIZE = 10000; // Maximum chunk size for optimal database performance
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
@@ -309,28 +311,19 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           SurveyCAZM: batch.SurveyCAZM,
         }, dumpId);
 
-        // Store immediately to database and clear from memory
+        // Store immediately with bulk database insert for maximum speed
         await storage.createSensorData(sensorDataBatch);
         processed += sensorDataBatch.length;
 
-        // Clear references to help GC
-        sensorDataBatch.length = 0;
-
-        // More frequent cleanup for database storage
-        if (global.gc && batchIndex % 3 === 0) {
+        // Aggressive cleanup for speed
+        if (global.gc && batchIndex % 2 === 0) {
           global.gc();
         }
         
-        // Regular logging with memory monitoring
-        if (batchIndex % 10 === 0) {
+        // Minimal logging for maximum speed
+        if (batchIndex % 5 === 0) {
           const currentMemory = process.memoryUsage();
           console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
-          
-          // Emergency cleanup if memory gets too high during processing
-          if (currentMemory.heapUsed > 400 * 1024 * 1024 && global.gc) {
-            console.log('Emergency GC during processing...');
-            global.gc();
-          }
         }
         
         return true;
