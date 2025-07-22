@@ -263,8 +263,9 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     const lowTemps = tempData.filter(d => d.tempMP! < 100);
     
     if (highTemps.length > 0) {
+      const maxTemp = highTemps.reduce((max, d) => Math.max(max, d.tempMP!), -Infinity);
       issues.push({
-        issue: `High temperature detected: ${Math.max(...highTemps.map(d => d.tempMP!)).toFixed(1)}°F`,
+        issue: `High temperature detected: ${maxTemp.toFixed(1)}°F`,
         explanation: "Temperature exceeded safe operating limits",
         severity: 'critical',
         count: highTemps.length
@@ -272,8 +273,9 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     }
     
     if (lowTemps.length > 0) {
+      const minTemp = lowTemps.reduce((min, d) => Math.min(min, d.tempMP!), Infinity);
       issues.push({
-        issue: `Low temperature detected: ${Math.min(...lowTemps.map(d => d.tempMP!)).toFixed(1)}°F`,
+        issue: `Low temperature detected: ${minTemp.toFixed(1)}°F`,
         explanation: "Temperature below normal operating range",
         severity: 'warning',
         count: lowTemps.length
