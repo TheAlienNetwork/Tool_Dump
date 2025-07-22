@@ -1,15 +1,36 @@
+
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { storage } from "./storage";
 import { BinaryParser } from "./services/binaryParser";
 import { PDFGenerator } from "./services/pdfGenerator";
 
 interface MulterRequest extends Request {
   files?: Express.Multer.File[];
 }
+
+interface MemoryDump {
+  id: number;
+  filename: string;
+  fileType: string;
+  status: 'processing' | 'completed' | 'error';
+  uploadedAt: Date;
+  processedAt?: Date;
+  errorMessage?: string;
+}
+
+interface ProcessedData {
+  memoryDump: MemoryDump;
+  sensorData: any[];
+  analysisResults: any;
+  deviceReport: any;
+}
+
+// In-memory storage
+const memoryStore = new Map<number, ProcessedData>();
+let currentId = 1;
 
 const upload = multer({ 
   dest: 'uploads/',
@@ -27,14 +48,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all memory dumps
   app.get("/api/memory-dumps", async (req, res) => {
     try {
-      const dumps = await storage.getMemoryDumps();
+      const dumps = Array.from(memoryStore.values())
+        .map(data => data.memoryDump)
+        .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
       res.json(dumps);
     } catch (error: any) {
       res.status(500).json({ message: "Failed to fetch memory dumps", error: error?.message });
     }
   });
 
-  // Upload binary files
+  // Upload and process binary files immediately
   app.post("/api/memory-dumps/upload", upload.array('files'), async (req: any, res) => {
     try {
       const files = req.files;
@@ -43,26 +66,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No files uploaded" });
       }
 
-      // Process all files in parallel for maximum speed
-      const filePromises = files.map(async (file: Express.Multer.File) => {
+      // Process all files immediately
+      const results = await Promise.all(files.map(async (file: Express.Multer.File) => {
         try {
-          // Determine file type from filename
           const fileType = file.originalname.includes('MDG') ? 'MDG' : 
                           file.originalname.includes('MP') ? 'MP' : 'UNKNOWN';
 
-          // Create memory dump record
-          const memoryDump = await storage.createMemoryDump({
+          const id = currentId++;
+          const memoryDump: MemoryDump = {
+            id,
             filename: file.originalname,
-            fileType: fileType
-          });
+            fileType,
+            status: 'processing',
+            uploadedAt: new Date()
+          };
 
-          // Start processing in background with immediate response
-          setImmediate(() => {
-            processMemoryDumpStreaming(memoryDump.id, file.path, file.originalname, fileType);
-          });
+          // Start processing immediately
+          processFileInMemory(id, file.path, file.originalname, fileType);
 
           return {
-            id: memoryDump.id,
+            id,
             filename: file.originalname,
             status: 'processing',
             fileType
@@ -76,10 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: error?.message
           };
         }
-      });
-
-      // Wait for all files to be registered and started processing
-      const results = await Promise.all(filePromises);
+      }));
 
       res.json({ results });
     } catch (error: any) {
@@ -91,21 +111,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/memory-dumps/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const memoryDump = await storage.getMemoryDump(id);
+      const data = memoryStore.get(id);
 
-      if (!memoryDump) {
+      if (!data) {
         return res.status(404).json({ message: "Memory dump not found" });
       }
 
-      const sensorData = await storage.getSensorDataByDumpId(id);
-      const analysisResults = await storage.getAnalysisResultsByDumpId(id);
-      const deviceReport = await storage.getDeviceReportByDumpId(id);
-
       res.json({
-        memoryDump,
-        sensorData,
-        analysisResults,
-        deviceReport
+        memoryDump: data.memoryDump,
+        sensorData: data.sensorData,
+        analysisResults: data.analysisResults,
+        deviceReport: data.deviceReport
       });
     } catch (error: any) {
       res.status(500).json({ message: "Failed to fetch memory dump", error: error?.message });
@@ -116,13 +132,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/memory-dumps/:id/analysis", async (req, res) => {
     try {
       const { id } = req.params;
-      const analysis = await storage.getAnalysisResult(parseInt(id));
+      const data = memoryStore.get(parseInt(id));
 
-      if (!analysis) {
+      if (!data || !data.analysisResults) {
         return res.status(404).json({ error: "Analysis not found" });
       }
 
-      res.json(analysis);
+      res.json(data.analysisResults);
     } catch (error) {
       console.error("Error fetching analysis:", error);
       res.status(500).json({ error: "Failed to fetch analysis" });
@@ -134,53 +150,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const dumpId = parseInt(id);
+      const data = memoryStore.get(dumpId);
 
-      // Get memory dump details
-      const memoryDump = await storage.getMemoryDump(dumpId);
-      if (!memoryDump) {
+      if (!data) {
         return res.status(404).json({ error: "Memory dump not found" });
       }
 
-      // Get analysis results
-      const analysis = await storage.getAnalysisResult(dumpId);
-      if (!analysis) {
-        return res.status(404).json({ error: "Analysis not found" });
-      }
-
-      // Get sensor data (limited)
-      const sensorData = await storage.getSensorData(dumpId, 1000);
-
-      // Get device report
-      const deviceReport = await storage.getDeviceReport(dumpId);
-
       // Prepare report data
       const reportData = {
-        filename: memoryDump.filename,
+        filename: data.memoryDump.filename,
         processedAt: new Date(),
-        overallStatus: analysis.overallStatus,
-        criticalIssues: analysis.criticalIssues,
-        warnings: analysis.warnings,
-        issues: analysis.issues as any,
-        sensorData: sensorData || [],
-        deviceReport: deviceReport ? {
-          mpSerialNumber: deviceReport.mpSerialNumber || undefined,
-          mpFirmwareVersion: deviceReport.mpFirmwareVersion || undefined,
-          mpMaxTempFahrenheit: deviceReport.mpMaxTempFahrenheit || undefined,
-          mpMaxTempCelsius: deviceReport.mpMaxTempCelsius || undefined,
-          circulationHours: deviceReport.circulationHours || undefined,
-          numberOfPulses: deviceReport.numberOfPulses || undefined,
-          motorOnTimeMinutes: deviceReport.motorOnTimeMinutes || undefined,
-          commErrorsTimeMinutes: deviceReport.commErrorsTimeMinutes || undefined,
-          commErrorsPercent: deviceReport.commErrorsPercent || undefined,
-          hallStatusTimeMinutes: deviceReport.hallStatusTimeMinutes || undefined,
-          hallStatusPercent: deviceReport.hallStatusPercent || undefined,
-          mdgSerialNumber: deviceReport.mdgSerialNumber || undefined,
-          mdgFirmwareVersion: deviceReport.mdgFirmwareVersion || undefined,
-          mdgMaxTempFahrenheit: deviceReport.mdgMaxTempFahrenheit || undefined,
-          mdgMaxTempCelsius: deviceReport.mdgMaxTempCelsius || undefined,
-          mdgEdtTotalHours: deviceReport.mdgEdtTotalHours || undefined,
-          mdgExtremeShockIndex: deviceReport.mdgExtremeShockIndex || undefined,
-        } : undefined
+        overallStatus: data.analysisResults?.overallStatus || 'operational',
+        criticalIssues: data.analysisResults?.criticalIssues || 0,
+        warnings: data.analysisResults?.warnings || 0,
+        issues: data.analysisResults?.issues || [],
+        sensorData: data.sensorData.slice(0, 1000), // Limit for PDF
+        deviceReport: data.deviceReport
       };
 
       // Generate PDF
@@ -188,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${memoryDump.filename}_report.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${data.memoryDump.filename}_report.pdf"`);
       res.setHeader('Content-Length', pdfBuffer.length);
 
       // Send PDF
@@ -202,9 +187,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Clear all memory dumps and related data
   app.delete("/api/memory-dumps/clear-all", async (req, res) => {
     try {
-      await storage.clearAllMemoryDumps();
+      memoryStore.clear();
+      currentId = 1;
 
-      // Also clean up uploaded files
+      // Clean up uploaded files
       const uploadsDir = path.join(process.cwd(), 'uploads');
       if (fs.existsSync(uploadsDir)) {
         const files = fs.readdirSync(uploadsDir);
@@ -229,17 +215,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Ultra-fast streaming processing with memory control
-async function processMemoryDumpStreaming(dumpId: number, filePath: string, filename: string, fileType: string) {
-  let processed = 0;
-
+// Fast in-memory processing
+async function processFileInMemory(dumpId: number, filePath: string, filename: string, fileType: string) {
   try {
-    console.log(`Starting ultra-fast processing for dump ${dumpId}: ${filename}`);
-    await storage.updateMemoryDumpStatus(dumpId, 'processing');
-
-    // Check file size
-    const stats = fs.statSync(filePath);
-    console.log(`File size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`🚀 Starting in-memory processing for ${filename}`);
+    
+    // Update status to processing
+    const existingData = memoryStore.get(dumpId);
+    if (existingData) {
+      existingData.memoryDump.status = 'processing';
+      memoryStore.set(dumpId, existingData);
+    }
 
     // Extract device information from header
     const headerBuffer = Buffer.alloc(256);
@@ -248,74 +234,33 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     fs.closeSync(fd);
 
     const deviceInfo = BinaryParser.extractDeviceInfo(headerBuffer, filename, fileType);
-    deviceInfo.dumpId = dumpId;
-    await storage.createDeviceReport(deviceInfo);
 
-    // Smaller chunk size for reliability
-    const CHUNK_SIZE = 5000; // Reduced chunk size to prevent memory/timeout issues
+    // Process file in larger chunks for speed since we're not saving to database
+    const allSensorData: any[] = [];
+    const CHUNK_SIZE = 10000; // Larger chunks for faster processing
+
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
-        console.log(`Processing batch ${batchIndex + 1} with ${batch.RTD.length} records...`);
+        console.log(`📊 Processing batch ${batchIndex + 1} with ${batch.RTD.length} records...`);
         
-        // Direct conversion to database format - use the batch directly
+        // Convert to sensor data format and store in memory
         const sensorDataBatch = BinaryParser.convertToSensorDataArray(batch, dumpId);
-
-        // Store batch with retry logic
-        let retries = 3;
-        while (retries > 0) {
-          try {
-            await storage.createSensorData(sensorDataBatch);
-            break;
-          } catch (dbError) {
-            retries--;
-            console.error(`Database error (${retries} retries left):`, dbError);
-            if (retries === 0) throw dbError;
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-          }
-        }
-        
-        processed += sensorDataBatch.length;
-
-        // Immediate cleanup for consistent performance
-        sensorDataBatch.length = 0;
-        if (global.gc) {
-          global.gc();
-        }
-
-        // More frequent progress updates
-        if (batchIndex % 2 === 0) {
-          console.log(`✅ Successfully processed: ${processed} records | Batch ${batchIndex + 1}`);
-        }
+        allSensorData.push(...sensorDataBatch);
 
         return true;
       } catch (error) {
         console.error(`❌ Error processing batch ${batchIndex}:`, error);
-        // Continue processing even if one batch fails
-        return true;
+        return true; // Continue processing
       }
     });
 
-    console.log(`✅ Completed processing for dump ${dumpId}. Total records: ${processed}`);
+    console.log(`✅ Processed ${allSensorData.length} total records for ${filename}`);
 
-    // Ensure we have some data before analysis
-    if (processed === 0) {
-      throw new Error('No records were processed successfully');
-    }
-
-    // Simple analysis on a sample of the data to avoid memory issues
-    let sampleData;
-    try {
-      sampleData = await storage.getSensorDataByDumpId(dumpId, 1000);
-      console.log(`Retrieved ${sampleData.length} records for analysis`);
-    } catch (error) {
-      console.error('Error retrieving sample data for analysis:', error);
-      sampleData = [];
-    }
-    
+    // Simple analysis on the data
     const issues = [];
-
+    
     // Analyze temperature data
-    const tempData = sampleData.filter(d => d.tempMP !== null);
+    const tempData = allSensorData.filter(d => d.tempMP !== null);
     if (tempData.length > 0) {
       const highTemps = tempData.filter(d => d.tempMP! > 150);
       const lowTemps = tempData.filter(d => d.tempMP! < 50);
@@ -344,44 +289,59 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
     const warningCount = issues.filter(i => i.severity === 'warning').length;
 
-    const analysisResult = {
+    const analysisResults = {
+      id: dumpId,
+      dumpId,
       overallStatus: criticalCount > 0 ? 'critical' as const : warningCount > 0 ? 'warning' as const : 'operational' as const,
       criticalIssues: criticalCount,
       warnings: warningCount,
-      issues
+      issues,
+      generatedAt: new Date()
     };
 
-    // Store analysis results
-    await storage.createAnalysisResults({
-      dumpId,
-      overallStatus: analysisResult.overallStatus,
-      criticalIssues: analysisResult.criticalIssues,
-      warnings: analysisResult.warnings,
-      issues: analysisResult.issues as any
-    });
+    // Store everything in memory
+    const processedData: ProcessedData = {
+      memoryDump: {
+        id: dumpId,
+        filename,
+        fileType,
+        status: 'completed',
+        uploadedAt: new Date(),
+        processedAt: new Date()
+      },
+      sensorData: allSensorData,
+      analysisResults,
+      deviceReport: {
+        id: dumpId,
+        dumpId,
+        generatedAt: new Date(),
+        ...deviceInfo
+      }
+    };
 
-    try {
-      await storage.updateMemoryDumpStatus(dumpId, 'completed');
-      console.log(`🎉 Successfully completed dump ${dumpId} with ${processed} records`);
-      console.log(`📊 Analysis results: ${analysisResult.overallStatus} status with ${analysisResult.criticalIssues} critical issues`);
-    } catch (statusError) {
-      console.error(`Error updating status to completed for dump ${dumpId}:`, statusError);
-    }
+    memoryStore.set(dumpId, processedData);
+
+    console.log(`🎉 Successfully completed processing ${filename} with ${allSensorData.length} records`);
+    console.log(`📊 Analysis: ${analysisResults.overallStatus} status with ${analysisResults.criticalIssues} critical issues`);
 
   } catch (error: any) {
-    console.error(`💥 Critical error in processing dump ${dumpId}:`, error);
-    console.error(`Error details:`, {
-      message: error?.message,
-      stack: error?.stack?.substring(0, 500),
-      processed: processed
-    });
+    console.error(`💥 Error processing ${filename}:`, error);
     
-    try {
-      await storage.updateMemoryDumpStatus(dumpId, 'error', `Processing failed: ${error?.message}`);
-      console.log(`❌ Dump ${dumpId} status updated to: error`);
-    } catch (statusError) {
-      console.error(`Failed to update error status for dump ${dumpId}:`, statusError);
-    }
+    const errorData: ProcessedData = {
+      memoryDump: {
+        id: dumpId,
+        filename,
+        fileType,
+        status: 'error',
+        uploadedAt: new Date(),
+        errorMessage: error?.message
+      },
+      sensorData: [],
+      analysisResults: null,
+      deviceReport: null
+    };
+
+    memoryStore.set(dumpId, errorData);
   } finally {
     // Clean up uploaded file
     try {
@@ -390,7 +350,7 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
       console.warn('Failed to delete uploaded file:', err);
     }
 
-    // Final garbage collection
+    // Force garbage collection
     if (global.gc) {
       global.gc();
     }

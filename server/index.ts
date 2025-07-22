@@ -2,56 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Force garbage collection if available
-  if (global.gc) {
-    global.gc();
-  }
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  // Force garbage collection if available
-  if (global.gc) {
-    global.gc();
-  }
-});
-
-// Monitor memory usage
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, cleaning up...');
-  process.exit(0);
-});
-
-// Memory monitoring with more aggressive cleanup
-setInterval(() => {
-  const memUsage = process.memoryUsage();
-  console.log(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
-  
-  // Memory management for database storage - more relaxed thresholds
-  if (memUsage.heapUsed > 250 * 1024 * 1024 && global.gc) { // 250MB threshold
-    console.log('High memory usage detected, forcing garbage collection...');
-    global.gc();
-  }
-  
-  // Critical memory usage - emergency cleanup  
-  if (memUsage.heapUsed > 500 * 1024 * 1024) { // 500MB critical threshold
-    console.log('Critical memory usage detected, performing emergency cleanup...');
-    if (global.gc) {
-      global.gc();
-      // Run GC multiple times for better cleanup
-      setTimeout(() => global.gc && global.gc(), 50);
-      setTimeout(() => global.gc && global.gc(), 100);
-    }
-  }
-}, 10000); // Check every 10 seconds for faster response
-
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve attached assets statically
 app.use('/attached_assets', express.static('attached_assets'));
@@ -86,6 +39,47 @@ app.use((req, res, next) => {
   next();
 });
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
+});
+
+// Monitor memory usage
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, cleaning up...');
+  process.exit(0);
+});
+
+// Memory monitoring with more aggressive cleanup
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  console.log(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
+  
+  // Critical memory usage - emergency cleanup  
+  if (memUsage.heapUsed > 512 * 1024 * 1024) { // 500MB critical threshold
+    console.log('High memory usage detected, performing emergency cleanup...');
+    if (global.gc) {
+      global.gc();
+      // Run GC multiple times for better cleanup
+      setTimeout(() => global.gc && global.gc(), 50);
+      setTimeout(() => global.gc && global.gc(), 100);
+    }
+  }
+}, 10000); // Check every 10 seconds for faster response
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -97,9 +91,6 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
