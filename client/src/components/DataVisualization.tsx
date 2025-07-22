@@ -78,11 +78,13 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
               <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
                 Data Visualization
               </CardTitle>
+              <p className="text-slate-400 text-sm">Generating interactive charts and analytics...</p>
             </CardHeader>
             <CardContent className="p-8 text-center">
               <div className="glass-morphism rounded-xl p-8">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-400 text-lg">Loading visualization data...</p>
+                <Activity className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">Loading comprehensive visualization data...</p>
+                <p className="text-slate-500 text-sm mt-2">Optimized for fast rendering (5000 data points max)</p>
               </div>
             </CardContent>
           </Card>
@@ -191,7 +193,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   // Temperature histogram data
   const tempHistogramData = mpData.reduce((acc: any[], d) => {
-    if (d.tempMP !== null) {
+    if (d.tempMP !== null && d.tempMP !== undefined) {
       const tempRange = Math.floor(d.tempMP / 10) * 10;
       const existing = acc.find(item => item.range === tempRange);
       if (existing) {

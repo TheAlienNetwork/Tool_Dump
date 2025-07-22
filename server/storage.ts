@@ -272,8 +272,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSensorDataByDumpId(dumpId: number, limit?: number): Promise<SensorData[]> {
-    const sensorDataResult = await db.select().from(sensorData).where(eq(sensorData.dumpId, dumpId));
-    return limit ? sensorDataResult.slice(0, limit) : sensorDataResult;
+    const query = db.select().from(sensorData).where(eq(sensorData.dumpId, dumpId)).orderBy(sensorData.rtd);
+    if (limit) {
+      const sensorDataResult = await query.limit(limit);
+      return sensorDataResult;
+    }
+    // For visualization, limit to 5000 records for performance
+    const sensorDataResult = await query.limit(5000);
+    return sensorDataResult;
   }
 
   async createAnalysisResults(insertResults: InsertAnalysisResults): Promise<AnalysisResults> {

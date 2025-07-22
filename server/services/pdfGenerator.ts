@@ -160,7 +160,7 @@ export class PDFGenerator {
       }
     }
     
-    // Sensor Data Summary (add simple statistics)
+    // Comprehensive Sensor Data Analysis
     if (reportData.sensorData && reportData.sensorData.length > 0) {
       if (yPos > 200) {
         pdf.addPage();
@@ -169,7 +169,7 @@ export class PDFGenerator {
       
       pdf.setFontSize(16);
       pdf.setTextColor(0, 0, 0);
-      pdf.text('Sensor Data Summary', 20, yPos);
+      pdf.text('Comprehensive Sensor Analysis', 20, yPos);
       yPos += 10;
       
       pdf.setFontSize(10);
@@ -184,7 +184,7 @@ export class PDFGenerator {
         const maxTemp = Math.max(...temps);
         const minTemp = Math.min(...temps);
         
-        pdf.text(`Temperature Analysis:`, 20, yPos);
+        pdf.text(`Temperature Analysis (${temps.length} readings):`, 20, yPos);
         yPos += 7;
         pdf.text(`  Average: ${avgTemp.toFixed(1)}°F`, 25, yPos);
         yPos += 6;
@@ -193,6 +193,62 @@ export class PDFGenerator {
         pdf.text(`  Minimum: ${minTemp.toFixed(1)}°F`, 25, yPos);
         yPos += 10;
       }
+
+      // Battery voltage analysis
+      const voltages = reportData.sensorData
+        .map(d => d.batteryVoltMP)
+        .filter(v => v !== null && v !== undefined) as number[];
+      
+      if (voltages.length > 0) {
+        const avgVoltage = voltages.reduce((a, b) => a + b, 0) / voltages.length;
+        const minVoltage = Math.min(...voltages);
+        
+        pdf.text(`Battery Analysis (${voltages.length} readings):`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Average Voltage: ${avgVoltage.toFixed(2)}V`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  Minimum Voltage: ${minVoltage.toFixed(2)}V`, 25, yPos);
+        yPos += 10;
+      }
+
+      // Shock analysis for MDG data
+      const shocks = reportData.sensorData
+        .map(d => d.shockZ)
+        .filter(s => s !== null && s !== undefined) as number[];
+      
+      if (shocks.length > 0) {
+        const avgShock = shocks.reduce((a, b) => a + b, 0) / shocks.length;
+        const maxShock = Math.max(...shocks);
+        
+        pdf.text(`Shock Analysis (${shocks.length} readings):`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Average Shock: ${avgShock.toFixed(2)}g`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  Maximum Shock: ${maxShock.toFixed(2)}g`, 25, yPos);
+        yPos += 10;
+      }
+
+      // Data visualization note
+      if (yPos > 250) {
+        pdf.addPage();
+        yPos = 20;
+      }
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(41, 128, 185);
+      pdf.text('📊 Data Visualizations', 20, yPos);
+      yPos += 8;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Interactive charts and detailed visualizations are available in the web application.', 20, yPos);
+      yPos += 6;
+      pdf.text('This report provides summary statistics. For comprehensive analysis,', 20, yPos);
+      yPos += 6;
+      pdf.text('access the full visualization dashboard with time-series plots,', 20, yPos);
+      yPos += 6;
+      pdf.text('histograms, and real-time data exploration tools.', 20, yPos);
+      yPos += 15;
     }
     
     // Footer
