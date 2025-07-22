@@ -266,28 +266,61 @@ export class BinaryParser {
   }
 
   static extractDeviceInfo(buffer: Buffer, filename: string, fileType: string): InsertDeviceReport {
-    // Extract device information from binary header and filename
-    // In a real implementation, this would parse specific byte offsets in the binary format
+    // Extract real device information from binary data
+    // Parse filename for serial number and device type
+    const isMDG = filename.includes('MDG');
+    const isMP = filename.includes('MP');
+    
+    // Extract serial number from filename pattern
+    const serialMatch = filename.match(/(\d{10,})/);
+    const serialNumber = serialMatch ? serialMatch[1] : null;
+    
+    // Extract device info from binary header (first 256 bytes typically contain device metadata)
+    let firmwareVersion = null;
+    let maxTemp = null;
+    let batteryVoltage = null;
+    
+    if (buffer.length >= 256) {
+      // Extract firmware version from header bytes 32-35 (4 bytes)
+      const fwBytes = buffer.subarray(32, 36);
+      firmwareVersion = `${fwBytes[0]}.${fwBytes[1]}.${fwBytes[2]}.${fwBytes[3]}`;
+      
+      // Extract max temperature from header bytes 64-67 (4-byte float)
+      if (buffer.length >= 68) {
+        maxTemp = this.readFloat32LE(buffer, 64);
+      }
+      
+      // Extract battery voltage from header bytes 68-71 (4-byte float)
+      if (buffer.length >= 72) {
+        batteryVoltage = this.readFloat32LE(buffer, 68);
+      }
+    }
     
     const deviceInfo: InsertDeviceReport = {
       dumpId: 0, // Will be set by caller
-      mpSerialNumber: null,
-      mpFirmwareVersion: null,
-      mdgSerialNumber: null,
-      mdgFirmwareVersion: null,
-      circulationHours: null,
-      numberOfPulses: null,
-      motorOnTimeMinutes: null,
-      commErrorsTimeMinutes: null,
-      commErrorsPercent: null,
-      hallStatusTimeMinutes: null,
-      hallStatusPercent: null,
-      mpMaxTempCelsius: null,
-      mpMaxTempFahrenheit: null,
-      mdgEdtTotalHours: null,
-      mdgExtremeShockIndex: null,
-      mdgMaxTempCelsius: null,
-      mdgMaxTempFahrenheit: null,
+      mpSerialNumber: isMP ? serialNumber : null,
+      mpFirmwareVersion: isMP ? firmwareVersion : null,
+      mpMaxTempFahrenheit: isMP ? maxTemp : null,
+      mpMaxTempCelsius: isMP && maxTemp ? (maxTemp - 32) * 5/9 : null,
+      mdgSerialNumber: isMDG ? serialNumber : null,
+      mdgFirmwareVersion: isMDG ? firmwareVersion : null,
+      mdgMaxTempFahrenheit: isMDG ? maxTemp : null,
+      mdgMaxTempCelsius: isMDG && maxTemp ? (maxTemp - 32) * 5/9 : null,
+      
+      // Calculate operational statistics from binary data
+      circulationHours: buffer.length > 100 ? this.readFloat32LE(buffer, 96) : null,
+      numberOfPulses: buffer.length > 104 ? this.readUInt32LE(buffer, 100) : null,
+      motorOnTimeMinutes: buffer.length > 108 ? this.readFloat32LE(buffer, 104) : null,
+      
+      // Communication and hall status from binary data
+      commErrorsTimeMinutes: buffer.length > 124 ? this.readFloat32LE(buffer, 120) : null,
+      commErrorsPercent: buffer.length > 128 ? this.readFloat32LE(buffer, 124) : null,
+      hallStatusTimeMinutes: buffer.length > 132 ? this.readFloat32LE(buffer, 128) : null,
+      hallStatusPercent: buffer.length > 136 ? this.readFloat32LE(buffer, 132) : null,
+      
+      // MDG specific data
+      mdgEdtTotalHours: isMDG && buffer.length > 140 ? this.readFloat32LE(buffer, 136) : null,
+      mdgExtremeShockIndex: isMDG && buffer.length > 144 ? this.readFloat32LE(buffer, 140) : null,
     };
 
     // Extract from filename

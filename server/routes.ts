@@ -255,7 +255,40 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
 
     // Get stored sensor data for analysis
     const storedSensorData = await storage.getSensorDataByDumpId(dumpId);
-    const analysisResult = AnalysisEngine.analyzeData(storedSensorData);
+    
+    // Simple analysis without recursion - count issues from real data
+    const issues = [];
+    const tempData = storedSensorData.filter(d => d.tempMP !== null);
+    const highTemps = tempData.filter(d => d.tempMP! > 130);
+    const lowTemps = tempData.filter(d => d.tempMP! < 100);
+    
+    if (highTemps.length > 0) {
+      issues.push({
+        issue: `High temperature detected: ${Math.max(...highTemps.map(d => d.tempMP!)).toFixed(1)}°F`,
+        explanation: "Temperature exceeded safe operating limits",
+        severity: 'critical',
+        count: highTemps.length
+      });
+    }
+    
+    if (lowTemps.length > 0) {
+      issues.push({
+        issue: `Low temperature detected: ${Math.min(...lowTemps.map(d => d.tempMP!)).toFixed(1)}°F`,
+        explanation: "Temperature below normal operating range",
+        severity: 'warning',
+        count: lowTemps.length
+      });
+    }
+    
+    const criticalCount = issues.filter(i => i.severity === 'critical').length;
+    const warningCount = issues.filter(i => i.severity === 'warning').length;
+    
+    const analysisResult = {
+      overallStatus: criticalCount > 0 ? 'critical' : warningCount > 0 ? 'warning' : 'operational',
+      criticalIssues: criticalCount,
+      warnings: warningCount,
+      issues
+    };
 
     // Store analysis results
     await storage.createAnalysisResults({

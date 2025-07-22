@@ -19,7 +19,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const { data: memoryDumps = [], refetch: refetchDumps } = useQuery({
+  const { data: memoryDumps = [], refetch: refetchDumps } = useQuery<MemoryDump[]>({
     queryKey: ['/api/memory-dumps'],
     refetchInterval: false,
     refetchOnWindowFocus: false,
