@@ -24,8 +24,8 @@ export class AnalysisEngine {
     // 1. Temperature extremes
     const tempData = data.filter(d => d.tempMP !== null).map(d => ({ value: d.tempMP!, rtd: d.rtd }));
     if (tempData.length > 0) {
-      const tempMax = Math.max(...tempData.map(d => d.value));
-      const tempMin = Math.min(...tempData.map(d => d.value));
+      const tempMax = tempData.reduce((max, d) => Math.max(max, d.value), -Infinity);
+      const tempMin = tempData.reduce((min, d) => Math.min(min, d.value), Infinity);
       
       const highTempData = tempData.filter(d => d.value > 130);
       if (highTempData.length > 0) {
@@ -57,8 +57,8 @@ export class AnalysisEngine {
     // 2. Battery voltage
     const voltageData = data.filter(d => d.batteryVoltMP !== null).map(d => ({ value: d.batteryVoltMP!, rtd: d.rtd }));
     if (voltageData.length > 0) {
-      const vMin = Math.min(...voltageData.map(d => d.value));
-      const vMax = Math.max(...voltageData.map(d => d.value));
+      const vMin = voltageData.reduce((min, d) => Math.min(min, d.value), Infinity);
+      const vMax = voltageData.reduce((max, d) => Math.max(max, d.value), -Infinity);
       
       const lowVoltData = voltageData.filter(d => d.value < 11.5);
       if (lowVoltData.length > 0) {

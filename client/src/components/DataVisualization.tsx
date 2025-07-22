@@ -111,7 +111,13 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     const pumpOnData = chartData.filter(d => d.flowStatus === 'On');
     const totalRuntime = pumpOnData.length;
     const avgMotorCurrent = pumpOnData.reduce((sum, d) => sum + (d.motorAvg || 0), 0) / pumpOnData.length;
-    const maxTemp = Math.max(...pumpOnData.map(d => d.tempMP || 0));
+    
+    // Use reduce to find max temperature instead of Math.max with spread operator
+    const maxTemp = pumpOnData.reduce((max, d) => {
+      const temp = d.tempMP || 0;
+      return temp > max ? temp : max;
+    }, 0);
+    
     const avgActuationTime = pumpOnData.reduce((sum, d) => sum + (d.actuationTime || 0), 0) / pumpOnData.length;
     
     return {

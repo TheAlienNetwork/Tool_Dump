@@ -153,8 +153,8 @@ export class PDFGenerator {
       
       if (tempData.length > 0) {
         const avgTemp = tempData.reduce((a, b) => a + b) / tempData.length;
-        const maxTemp = Math.max(...tempData);
-        const minTemp = Math.min(...tempData);
+        const maxTemp = tempData.reduce((max, temp) => Math.max(max, temp), -Infinity);
+        const minTemp = tempData.reduce((min, temp) => Math.min(min, temp), Infinity);
         lines.push('');
         lines.push('🌡️  Temperature Analysis:');
         lines.push(`   • Range: ${minTemp.toFixed(1)}°F - ${maxTemp.toFixed(1)}°F`);
@@ -164,8 +164,8 @@ export class PDFGenerator {
       
       if (voltageData.length > 0) {
         const avgVoltage = voltageData.reduce((a, b) => a + b) / voltageData.length;
-        const maxVoltage = Math.max(...voltageData);
-        const minVoltage = Math.min(...voltageData);
+        const maxVoltage = voltageData.reduce((max, volt) => Math.max(max, volt), -Infinity);
+        const minVoltage = voltageData.reduce((min, volt) => Math.min(min, volt), Infinity);
         lines.push('');
         lines.push('🔋 Battery Voltage Analysis:');
         lines.push(`   • Range: ${minVoltage.toFixed(2)}V - ${maxVoltage.toFixed(2)}V`);
@@ -175,7 +175,7 @@ export class PDFGenerator {
       
       if (shockData.length > 0) {
         const avgShock = shockData.reduce((a, b) => a + b) / shockData.length;
-        const maxShock = Math.max(...shockData);
+        const maxShock = shockData.reduce((max, shock) => Math.max(max, shock), -Infinity);
         lines.push('');
         lines.push('💥 Shock Level Analysis:');
         lines.push(`   • Maximum: ${maxShock.toFixed(1)}g`);
@@ -185,7 +185,7 @@ export class PDFGenerator {
       
       if (motorData.length > 0) {
         const avgMotor = motorData.reduce((a, b) => a + b) / motorData.length;
-        const maxMotor = Math.max(...motorData);
+        const maxMotor = motorData.reduce((max, motor) => Math.max(max, motor), -Infinity);
         lines.push('');
         lines.push('⚙️  Motor Current Analysis:');
         lines.push(`   • Maximum: ${maxMotor.toFixed(2)}A`);
@@ -195,8 +195,8 @@ export class PDFGenerator {
       
       if (gammaData.length > 0) {
         const avgGamma = gammaData.reduce((a, b) => a + b) / gammaData.length;
-        const maxGamma = Math.max(...gammaData);
-        const minGamma = Math.min(...gammaData);
+        const maxGamma = gammaData.reduce((max, gamma) => Math.max(max, gamma), -Infinity);
+        const minGamma = gammaData.reduce((min, gamma) => Math.min(min, gamma), Infinity);
         lines.push('');
         lines.push('☢️  Gamma Radiation Analysis:');
         lines.push(`   • Range: ${minGamma.toFixed(1)} - ${maxGamma.toFixed(1)} counts`);
