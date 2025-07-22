@@ -233,26 +233,35 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
   try {
     await storage.updateMemoryDumpStatus(dumpId, 'processing');
 
-    // Parse the binary file
+    // Parse the binary file with memory optimization
     const parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
 
     // Extract device information and store it
-    const deviceInfo = BinaryParser.extractDeviceInfo(
-      fs.readFileSync(filePath), 
-      filename, 
-      fileType
-    );
+    const buffer = fs.readFileSync(filePath);
+    const deviceInfo = BinaryParser.extractDeviceInfo(buffer, filename, fileType);
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Convert to sensor data format
+    // Convert to sensor data format with smaller batch processing
     const sensorDataArray = BinaryParser.convertToSensorDataArray(parsedData, dumpId);
 
-    // Store sensor data in batches for large datasets (optimization for speed)
-    const batchSize = 1000; // Process 1000 records at a time
+    // Store sensor data in smaller batches to prevent memory issues
+    const batchSize = 500; // Reduced batch size for better memory management
+    console.log(`Processing ${sensorDataArray.length} records in batches of ${batchSize}`);
+    
     for (let i = 0; i < sensorDataArray.length; i += batchSize) {
       const batch = sensorDataArray.slice(i, i + batchSize);
       await storage.createSensorData(batch);
+      
+      // Force garbage collection every few batches
+      if (i % (batchSize * 4) === 0 && global.gc) {
+        global.gc();
+      }
+      
+      // Small delay to prevent overwhelming the system
+      if (i % (batchSize * 2) === 0) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
     }
 
     // Get stored sensor data for analysis

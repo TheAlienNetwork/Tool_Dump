@@ -58,23 +58,72 @@ export interface ParsedData {
 export class BinaryParser {
   static async parseMemoryDump(filePath: string, filename: string, fileType: string): Promise<ParsedData> {
     try {
+      // Check file size before processing
+      const stats = fs.statSync(filePath);
+      if (stats.size > 100 * 1024 * 1024) { // 100MB limit
+        throw new Error(`File too large: ${stats.size} bytes. Maximum allowed: 100MB`);
+      }
+
       const buffer = fs.readFileSync(filePath);
       console.log(`Parsing ${fileType} file: ${filename} (${buffer.length} bytes)`);
       
-      // Initialize data structure
+      // Initialize data structure with pre-allocated arrays for memory efficiency
+      const estimatedRecords = fileType === 'MDG' ? 
+        Math.floor((buffer.length - 256) / 128) : 
+        Math.floor((buffer.length - 256) / 64);
+      
       const data: ParsedData = {
-        RTD: [], TempMP: [], ResetMP: [], BatteryCurrMP: [], BatteryVoltMP: [], FlowStatus: [],
-        MaxX: [], MaxY: [], MaxZ: [], Threshold: [],
-        MotorMin: [], MotorAvg: [], MotorMax: [], MotorHall: [], ActuationTime: [],
-        AccelAX: [], AccelAY: [], AccelAZ: [],
-        ShockZ: [], ShockX: [], ShockY: [],
-        ShockCountAxial50: [], ShockCountAxial100: [], ShockCountLat50: [], ShockCountLat100: [],
-        RotRpmMax: [], RotRpmAvg: [], RotRpmMin: [],
-        V3_3VA_DI: [], V5VD: [], V3_3VD: [], V1_9VD: [], V1_5VD: [], V1_8VA: [], V3_3VA: [], VBatt: [],
-        I5VD: [], I3_3VD: [], IBatt: [],
-        Gamma: [],
-        AccelStabX: [], AccelStabY: [], AccelStabZ: [], AccelStabZH: [],
-        SurveyTGF: [], SurveyTMF: [], SurveyDipA: [], SurveyINC: [], SurveyCINC: [], SurveyAZM: [], SurveyCAZM: []
+        RTD: new Array(estimatedRecords), 
+        TempMP: new Array(estimatedRecords), 
+        ResetMP: new Array(estimatedRecords), 
+        BatteryCurrMP: new Array(estimatedRecords), 
+        BatteryVoltMP: new Array(estimatedRecords), 
+        FlowStatus: new Array(estimatedRecords),
+        MaxX: new Array(estimatedRecords), 
+        MaxY: new Array(estimatedRecords), 
+        MaxZ: new Array(estimatedRecords), 
+        Threshold: new Array(estimatedRecords),
+        MotorMin: new Array(estimatedRecords), 
+        MotorAvg: new Array(estimatedRecords), 
+        MotorMax: new Array(estimatedRecords), 
+        MotorHall: new Array(estimatedRecords), 
+        ActuationTime: new Array(estimatedRecords),
+        AccelAX: new Array(estimatedRecords), 
+        AccelAY: new Array(estimatedRecords), 
+        AccelAZ: new Array(estimatedRecords),
+        ShockZ: new Array(estimatedRecords), 
+        ShockX: new Array(estimatedRecords), 
+        ShockY: new Array(estimatedRecords),
+        ShockCountAxial50: new Array(estimatedRecords), 
+        ShockCountAxial100: new Array(estimatedRecords), 
+        ShockCountLat50: new Array(estimatedRecords), 
+        ShockCountLat100: new Array(estimatedRecords),
+        RotRpmMax: new Array(estimatedRecords), 
+        RotRpmAvg: new Array(estimatedRecords), 
+        RotRpmMin: new Array(estimatedRecords),
+        V3_3VA_DI: new Array(estimatedRecords), 
+        V5VD: new Array(estimatedRecords), 
+        V3_3VD: new Array(estimatedRecords), 
+        V1_9VD: new Array(estimatedRecords), 
+        V1_5VD: new Array(estimatedRecords), 
+        V1_8VA: new Array(estimatedRecords), 
+        V3_3VA: new Array(estimatedRecords), 
+        VBatt: new Array(estimatedRecords),
+        I5VD: new Array(estimatedRecords), 
+        I3_3VD: new Array(estimatedRecords), 
+        IBatt: new Array(estimatedRecords),
+        Gamma: new Array(estimatedRecords),
+        AccelStabX: new Array(estimatedRecords), 
+        AccelStabY: new Array(estimatedRecords), 
+        AccelStabZ: new Array(estimatedRecords), 
+        AccelStabZH: new Array(estimatedRecords),
+        SurveyTGF: new Array(estimatedRecords), 
+        SurveyTMF: new Array(estimatedRecords), 
+        SurveyDipA: new Array(estimatedRecords), 
+        SurveyINC: new Array(estimatedRecords), 
+        SurveyCINC: new Array(estimatedRecords), 
+        SurveyAZM: new Array(estimatedRecords), 
+        SurveyCAZM: new Array(estimatedRecords)
       };
 
       // Parse based on device type
@@ -84,8 +133,20 @@ export class BinaryParser {
         this.parseMPFile(buffer, data, filename);
       }
       
+      // Trim arrays to actual size
+      Object.keys(data).forEach(key => {
+        const arr = (data as any)[key];
+        if (Array.isArray(arr)) {
+          const actualLength = arr.findIndex(item => item === undefined);
+          if (actualLength > 0) {
+            (data as any)[key] = arr.slice(0, actualLength);
+          }
+        }
+      });
+      
       return data;
     } catch (error: any) {
+      console.error(`Error parsing binary file ${filename}:`, error);
       throw new Error(`Failed to parse binary file ${filename}: ${error.message}`);
     }
   }

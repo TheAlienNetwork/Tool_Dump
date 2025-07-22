@@ -5,14 +5,38 @@ import { setupVite, serveStatic, log } from "./vite";
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit the process, just log the error
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  // Don't exit the process, just log the error
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
 });
+
+// Monitor memory usage
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, cleaning up...');
+  process.exit(0);
+});
+
+// Memory monitoring
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  console.log(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
+  
+  // Force garbage collection if memory usage is high
+  if (memUsage.heapUsed > 512 * 1024 * 1024 && global.gc) { // 512MB threshold
+    console.log('High memory usage detected, forcing garbage collection...');
+    global.gc();
+  }
+}, 30000); // Check every 30 seconds
 
 const app = express();
 app.use(express.json());
