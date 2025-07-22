@@ -117,13 +117,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Memory dump not found" });
       }
 
+      // For large datasets, limit sensor data to prevent timeout
+      const maxRecords = 10000; // Limit to 10k records for visualization
+      let sensorData = data.sensorData;
+      
+      if (sensorData.length > maxRecords) {
+        // Sample data evenly across the dataset
+        const step = Math.floor(sensorData.length / maxRecords);
+        sensorData = sensorData.filter((_, index) => index % step === 0);
+        console.log(`Sampled ${sensorData.length} records from ${data.sensorData.length} total records for visualization`);
+      }
+
       res.json({
         memoryDump: data.memoryDump,
-        sensorData: data.sensorData,
+        sensorData: sensorData,
         analysisResults: data.analysisResults,
         deviceReport: data.deviceReport
       });
     } catch (error: any) {
+      console.error("Error fetching memory dump details:", error);
       res.status(500).json({ message: "Failed to fetch memory dump", error: error?.message });
     }
   });

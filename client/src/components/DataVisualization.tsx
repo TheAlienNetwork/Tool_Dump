@@ -25,11 +25,19 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   // Move all hooks to the top - this must be called on every render
   const chartData = useMemo(() => {
-    if (!dumpDetails?.sensorData) return [];
+    if (!dumpDetails?.sensorData || dumpDetails.sensorData.length === 0) {
+      return [];
+    }
 
     const sensorData = dumpDetails.sensorData;
+    console.log(`Processing ${sensorData.length} sensor records for visualization`);
+    
+    // Optimize sampling for large datasets
+    const maxPoints = 1000;
+    const step = Math.max(1, Math.floor(sensorData.length / maxPoints));
+    
     return sensorData
-      .filter((_, index) => index % Math.max(1, Math.floor(sensorData.length / 1000)) === 0)
+      .filter((_, index) => index % step === 0)
       .map(item => ({
         time: new Date(item.rtd).toLocaleTimeString(),
 
@@ -182,7 +190,33 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     );
   }
 
-  if (error || !dumpDetails?.sensorData || dumpDetails.sensorData.length === 0) {
+  if (error) {
+    console.error("Visualization error:", error);
+    return (
+      <section>
+        <div className="gradient-border">
+          <Card className="bg-dark-800/50 backdrop-blur-xl border-0">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                Data Visualization
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 text-center">
+              <div className="glass-morphism rounded-xl p-8">
+                <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">Error loading visualization data</p>
+                <p className="text-slate-500 text-sm mt-2">
+                  {error instanceof Error ? error.message : 'Unknown error occurred'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    );
+  }
+
+  if (!dumpDetails?.sensorData || dumpDetails.sensorData.length === 0) {
     return (
       <section>
         <div className="gradient-border">
@@ -196,9 +230,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
               <div className="glass-morphism rounded-xl p-8">
                 <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
                 <p className="text-slate-400 text-lg">No visualization data available</p>
-                <p className="text-slate-500 text-sm mt-2">
-                  {error ? 'Error loading data' : 'No sensor data found for this dump'}
-                </p>
+                <p className="text-slate-500 text-sm mt-2">No sensor data found for this dump</p>
               </div>
             </CardContent>
           </Card>
@@ -756,9 +788,14 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
               {mpData.length > 0 && (
                 <div className="glass-morphism rounded-xl p-6 text-center">
                   <div className="text-3xl font-bold text-red-400">
-                    {Math.max(...mpData.filter(d => d.tempMP !== null).map(d => d.tempMP!)).toFixed(1)}°F
+                    {(() => {
+                      const validTemps = mpData.filter(d => d.tempMP !== null && d.tempMP !== undefined && !isNaN(d.tempMP));
+                      if (validTemps.length === 0) return "No Data";
+                      const maxTemp = Math.max(...validTemps.map(d => d.tempMP!));
+                      return `${maxTemp.toFixed(1)}°F`;
+                    })()}
                   </div>
-                  <div className="text-slate-400 text-sm">Max Temperature</div>
+                  <div className="text-slate-400 text-sm">Max Temperature (MP)</div>
                 </div>
               )}
               {mdgData.length > 0 && (
