@@ -1042,7 +1042,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-2xl font-bold text-red-400">
                         {mdgData.filter(d => d.shockZ && Math.abs(d.shockZ) > 6).length}
                       </div>
-                      <div className="text-red-300 text-sm">>6g events</div>
+                      <div className="text-red-300 text-sm">&gt;6g events</div>
                     </div>
                     
                     {/* RPM Stats */}
