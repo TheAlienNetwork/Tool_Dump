@@ -15,7 +15,7 @@ interface MulterRequest extends Request {
 const upload = multer({ 
   dest: 'uploads/',
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     if (file.originalname.toLowerCase().endsWith('.bin')) {
       cb(null, true);
     } else {
@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload binary files
-  app.post("/api/memory-dumps/upload", upload.array('files'), async (req: MulterRequest, res) => {
+  app.post("/api/memory-dumps/upload", upload.array('files'), async (req: any, res) => {
     try {
       const files = req.files;
 
@@ -157,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         overallStatus: analysis.overallStatus,
         criticalIssues: analysis.criticalIssues,
         warnings: analysis.warnings,
-        issues: analysis.issues,
+        issues: analysis.issues as any,
         sensorData: sensorData || [],
         deviceReport: deviceReport || undefined
       };
@@ -202,11 +202,16 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     // Convert to sensor data format
     const sensorDataArray = BinaryParser.convertToSensorDataArray(parsedData, dumpId);
 
-    // Store sensor data
-    await storage.createSensorData(sensorDataArray);
+    // Store sensor data in batches for large datasets (optimization for speed)
+    const batchSize = 1000; // Process 1000 records at a time
+    for (let i = 0; i < sensorDataArray.length; i += batchSize) {
+      const batch = sensorDataArray.slice(i, i + batchSize);
+      await storage.createSensorData(batch);
+    }
 
-    // Analyze the data
-    const analysisResult = AnalysisEngine.analyzeData(sensorDataArray);
+    // Get stored sensor data for analysis
+    const storedSensorData = await storage.getSensorDataByDumpId(dumpId);
+    const analysisResult = AnalysisEngine.analyzeData(storedSensorData);
 
     // Store analysis results
     await storage.createAnalysisResults({
