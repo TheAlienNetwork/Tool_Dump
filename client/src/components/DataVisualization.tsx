@@ -20,7 +20,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     enabled: memoryDump?.status === 'completed',
   });
 
-  // Always call hooks at the top level - move all useMemo calls here
+  // All useMemo hooks must be at the top level - before any conditional returns
   const chartData = useMemo(() => {
     const sensorData = dumpDetails?.sensorData;
     if (!sensorData) return [];
@@ -134,6 +134,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     }
   };
 
+  // Now conditional returns can happen after all hooks
   if (!memoryDump) {
     return (
       <section className="space-y-8">
@@ -182,8 +183,6 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     );
   }
 
-  
-
   return (
     <section className="space-y-8">
       <div className="flex items-center justify-between">
@@ -230,7 +229,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ModernTooltip />} />
+              <Tooltip content={ModernTooltip} />
               <ReferenceLine y={130} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
               <ReferenceLine y={100} stroke="hsl(43, 96%, 56%)" strokeDasharray="5 5" strokeWidth={2} />
               <Area 
@@ -274,7 +273,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ModernTooltip />} />
+              <Tooltip content={ModernTooltip} />
               <ReferenceLine y={15.5} stroke="hsl(43, 96%, 56%)" strokeDasharray="5 5" strokeWidth={2} />
               <ReferenceLine y={11.5} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
               <Area 
@@ -315,7 +314,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ModernTooltip />} />
+              <Tooltip content={ModernTooltip} />
               <ReferenceLine y={6.0} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
               <Line 
                 type="monotone" 
@@ -366,7 +365,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ModernTooltip />} />
+              <Tooltip content={ModernTooltip} />
               <ReferenceLine y={2.0} stroke="hsl(346, 77%, 60%)" strokeDasharray="5 5" strokeWidth={2} />
               <Line 
                 type="monotone" 
@@ -420,7 +419,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ModernTooltip />} />
+              <Tooltip content={ModernTooltip} />
               <Line 
                 type="monotone" 
                 dataKey="accelAX" 
@@ -475,7 +474,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<ModernTooltip />} />
+              <Tooltip content={ModernTooltip} />
               <ReferenceLine y={45} stroke="hsl(43, 96%, 56%)" strokeDasharray="5 5" strokeWidth={2} />
               <ReferenceLine y={15} stroke="hsl(142, 71%, 45%)" strokeDasharray="5 5" strokeWidth={2} />
               <Area 
