@@ -1,10 +1,19 @@
-
 import { useQuery } from "@tanstack/react-query";
 import type { DeviceReport as DeviceReportType, MemoryDump } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Cpu, HardDrive, Thermometer, Clock, Zap, Wrench, AlertTriangle, Microchip } from "lucide-react";
+import { 
+  Activity, 
+  Battery, 
+  Thermometer, 
+  Zap, 
+  Clock, 
+  MapPin, 
+  Gauge,
+  Cpu,
+  HardDrive
+} from "lucide-react";
 
 interface DeviceReportProps {
   memoryDump: MemoryDump;
@@ -93,11 +102,11 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg">
-                  <Microchip className="h-5 w-5 text-blue-500" />
+                  <Cpu className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-100">MP Device</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-8">
                 {deviceReport.mpSerialNumber && (
                   <div className="space-y-2">
@@ -116,7 +125,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
                   </div>
                 )}
               </div>
-              
+
               {/* MP Temperature */}
               {deviceReport.mpMaxTempFahrenheit && (
                 <div className="pl-8 space-y-3">
@@ -222,11 +231,11 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-lg">
-                  <Microchip className="h-5 w-5 text-purple-400" />
+                  <Cpu className="h-5 w-5 text-purple-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-100">MDG Device</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-8">
                 {deviceReport.mdgSerialNumber && (
                   <div className="space-y-2">

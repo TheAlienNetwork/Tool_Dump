@@ -1,5 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemoryDumpDetails, SensorData } from "@/lib/types";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from "recharts";
@@ -79,47 +80,51 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   const sensorData = dumpDetails.sensorData;
 
-  // Prepare data for charts
-  const chartData = sensorData.map((data, index) => ({
-    index,
-    timestamp: new Date(data.rtd).toLocaleTimeString(),
-    tempMP: data.tempMP,
-    batteryVoltMP: data.batteryVoltMP,
-    shockZ: data.shockZ,
-    shockX: data.shockX,
-    shockY: data.shockY,
-    motorMin: data.motorMin,
-    motorAvg: data.motorAvg,
-    motorMax: data.motorMax,
-    accelAX: data.accelAX,
-    accelAY: data.accelAY,
-    accelAZ: data.accelAZ,
-    rotRpmMin: data.rotRpmMin,
-    rotRpmAvg: data.rotRpmAvg,
-    rotRpmMax: data.rotRpmMax,
-    gamma: data.gamma,
-    v3_3VD: data.v3_3VD,
-    v5VD: data.v5VD,
-    vBatt: data.vBatt,
-    surveyINC: data.surveyINC,
-    surveyAZM: data.surveyAZM,
-  }));
+  // Prepare data for charts - memoized to prevent constant re-computation
+  const chartData = useMemo(() => {
+    return sensorData.map((data, index) => ({
+      index,
+      timestamp: new Date(data.rtd).toLocaleTimeString(),
+      tempMP: data.tempMP,
+      batteryVoltMP: data.batteryVoltMP,
+      shockZ: data.shockZ,
+      shockX: data.shockX,
+      shockY: data.shockY,
+      motorMin: data.motorMin,
+      motorAvg: data.motorAvg,
+      motorMax: data.motorMax,
+      accelAX: data.accelAX,
+      accelAY: data.accelAY,
+      accelAZ: data.accelAZ,
+      rotRpmMin: data.rotRpmMin,
+      rotRpmAvg: data.rotRpmAvg,
+      rotRpmMax: data.rotRpmMax,
+      gamma: data.gamma,
+      v3_3VD: data.v3_3VD,
+      v5VD: data.v5VD,
+      vBatt: data.vBatt,
+      surveyINC: data.surveyINC,
+      surveyAZM: data.surveyAZM,
+    }));
+  }, [sensorData]);
 
-  const ModernTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="glass-morphism rounded-lg p-4 border border-blue-500/30">
-          <p className="text-slate-300 text-sm mb-2">{`Index: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+  const ModernTooltip = useMemo(() => {
+    return ({ active, payload, label }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="glass-morphism rounded-lg p-4 border border-blue-500/30">
+            <p className="text-slate-300 text-sm mb-2">{`Index: ${label}`}</p>
+            {payload.map((entry: any, index: number) => (
+              <p key={index} className="text-sm" style={{ color: entry.color }}>
+                {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
+              </p>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    };
+  }, []);
 
   const ChartCard = ({ 
     title, 
