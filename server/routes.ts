@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // MAXIMUM SPEED: Ultra-large chunks with COPY command
-    const CHUNK_SIZE = 25000; // Massive chunks for PostgreSQL COPY optimization
+    // MAXIMUM SPEED: Large chunks with optimized batching
+    const CHUNK_SIZE = 15000; // Large chunks for maximum throughput
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
@@ -321,9 +321,9 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           global.gc();
         }
         
-        // Minimal logging for maximum speed - only every 20 batches
-        if (batchIndex % 20 === 0) {
-          console.log(`Lightning processing: ${processed} records completed`);
+        // Progress tracking for speed monitoring
+        if (batchIndex % 5 === 0) {
+          console.log(`⚡ Speed processing: ${processed} records | Batch ${batchIndex + 1}`);
         }
         
         return true;
