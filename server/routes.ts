@@ -222,8 +222,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Process in very small streaming chunks to prevent memory issues
-    const CHUNK_SIZE = 50; // Process only 50 records at a time
+    // Process in larger chunks for speed optimization
+    const CHUNK_SIZE = 1000; // Increased batch size for faster processing
     const data = await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Convert batch to sensor data format
@@ -286,17 +286,14 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
         
         processed += sensorDataBatch.length;
         
-        // Force garbage collection every few batches
-        if (batchIndex % 10 === 0) {
+        // Reduced logging frequency and removed delays
+        if (batchIndex % 50 === 0) {
           if (global.gc) {
             global.gc();
           }
           
           const currentMemory = process.memoryUsage();
           console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
-          
-          // Small delay to prevent overwhelming the system
-          await new Promise(resolve => setTimeout(resolve, 50));
         }
         
         return true; // Continue processing
