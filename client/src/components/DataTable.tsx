@@ -24,8 +24,8 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    staleTime: Infinity, // Never consider data stale
-    gcTime: Infinity, // Keep data in cache forever
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   if (!memoryDump) {

@@ -22,8 +22,8 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    staleTime: Infinity, // Never consider data stale
-    gcTime: Infinity, // Keep data in cache forever
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Process data for charts - using actual sensor data
