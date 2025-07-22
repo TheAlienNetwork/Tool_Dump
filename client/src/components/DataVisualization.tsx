@@ -933,11 +933,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* Temperature Stats */}
-                    <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20">
+                    <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20 overflow-hidden">
                       <div className="text-red-400 text-xs uppercase font-medium mb-2">Max Temperature</div>
-                      <div className="text-2xl font-bold text-red-400">
+                      <div className="text-2xl font-bold text-red-400 truncate">
                         {(() => {
-                          const validTemps = mpData.filter(d => d.tempMP !== null && d.tempMP !== undefined && !isNaN(d.tempMP));
+                          const validTemps = mpData.filter(d => 
+                            d.tempMP !== null && 
+                            d.tempMP !== undefined && 
+                            !isNaN(d.tempMP) && 
+                            isFinite(d.tempMP) && 
+                            d.tempMP > -200 && 
+                            d.tempMP < 500 // Reasonable temperature range
+                          );
                           if (validTemps.length === 0) return "N/A";
                           const maxTemp = Math.max(...validTemps.map(d => d.tempMP!));
                           return `${maxTemp.toFixed(1)}°F`;
@@ -947,11 +954,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* Battery Stats */}
-                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20">
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20 overflow-hidden">
                       <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Avg Battery V</div>
-                      <div className="text-2xl font-bold text-yellow-400">
+                      <div className="text-2xl font-bold text-yellow-400 truncate">
                         {(() => {
-                          const validVolts = mpData.filter(d => d.batteryVoltMP !== null && d.batteryVoltMP !== undefined && !isNaN(d.batteryVoltMP));
+                          const validVolts = mpData.filter(d => 
+                            d.batteryVoltMP !== null && 
+                            d.batteryVoltMP !== undefined && 
+                            !isNaN(d.batteryVoltMP) && 
+                            isFinite(d.batteryVoltMP) && 
+                            d.batteryVoltMP > 0 && 
+                            d.batteryVoltMP < 50 // Reasonable voltage range
+                          );
                           if (validVolts.length === 0) return "N/A";
                           const avgVolt = validVolts.reduce((sum, d) => sum + d.batteryVoltMP!, 0) / validVolts.length;
                           return `${avgVolt.toFixed(1)}V`;
@@ -964,11 +978,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   {/* Second row for MP stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                     {/* Motor Current Stats */}
-                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20 overflow-hidden">
                       <div className="text-purple-400 text-xs uppercase font-medium mb-2">Peak Motor Current</div>
-                      <div className="text-2xl font-bold text-purple-400">
+                      <div className="text-2xl font-bold text-purple-400 truncate">
                         {(() => {
-                          const validCurrent = mpData.filter(d => d.motorMax !== null && d.motorMax !== undefined && !isNaN(d.motorMax));
+                          const validCurrent = mpData.filter(d => 
+                            d.motorMax !== null && 
+                            d.motorMax !== undefined && 
+                            !isNaN(d.motorMax) && 
+                            isFinite(d.motorMax) && 
+                            d.motorMax >= 0 && 
+                            d.motorMax < 100 // Reasonable current range
+                          );
                           if (validCurrent.length === 0) return "N/A";
                           const maxCurrent = Math.max(...validCurrent.map(d => d.motorMax!));
                           return `${maxCurrent.toFixed(1)}A`;
@@ -978,13 +999,19 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* Vibration Stats */}
-                    <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20">
+                    <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20 overflow-hidden">
                       <div className="text-cyan-400 text-xs uppercase font-medium mb-2">Max Vibration</div>
-                      <div className="text-2xl font-bold text-cyan-400">
+                      <div className="text-2xl font-bold text-cyan-400 truncate">
                         {(() => {
-                          const validVibes = mpData.filter(d => d.maxZ !== null && d.maxZ !== undefined && !isNaN(d.maxZ));
+                          const validVibes = mpData.filter(d => 
+                            d.maxZ !== null && 
+                            d.maxZ !== undefined && 
+                            !isNaN(d.maxZ) && 
+                            isFinite(d.maxZ) && 
+                            Math.abs(d.maxZ) < 1000 // Reasonable vibration range
+                          );
                           if (validVibes.length === 0) return "N/A";
-                          const maxVibe = Math.max(...validVibes.map(d => d.maxZ!));
+                          const maxVibe = Math.max(...validVibes.map(d => Math.abs(d.maxZ!)));
                           return `${maxVibe.toFixed(2)}g`;
                         })()}
                       </div>
@@ -992,11 +1019,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* Actuation Time Stats */}
-                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20">
+                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20 overflow-hidden">
                       <div className="text-orange-400 text-xs uppercase font-medium mb-2">Avg Actuation</div>
-                      <div className="text-2xl font-bold text-orange-400">
+                      <div className="text-2xl font-bold text-orange-400 truncate">
                         {(() => {
-                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime));
+                          const validActuation = mpData.filter(d => 
+                            d.actuationTime !== null && 
+                            d.actuationTime !== undefined && 
+                            !isNaN(d.actuationTime) && 
+                            isFinite(d.actuationTime) && 
+                            d.actuationTime >= 0 && 
+                            d.actuationTime < 3600 // Reasonable time range (0-1 hour)
+                          );
                           if (validActuation.length === 0) return "N/A";
                           const avgActuation = validActuation.reduce((sum, d) => sum + d.actuationTime!, 0) / validActuation.length;
                           return `${avgActuation.toFixed(1)}s`;
@@ -1023,11 +1057,17 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {/* Acceleration Stats */}
-                    <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg p-4 border border-blue-500/20">
+                    <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg p-4 border border-blue-500/20 overflow-hidden">
                       <div className="text-blue-400 text-xs uppercase font-medium mb-2">Max Acceleration</div>
-                      <div className="text-2xl font-bold text-blue-400">
+                      <div className="text-2xl font-bold text-blue-400 truncate">
                         {(() => {
-                          const validAccel = mdgData.filter(d => d.accelAZ !== null && d.accelAZ !== undefined && !isNaN(d.accelAZ));
+                          const validAccel = mdgData.filter(d => 
+                            d.accelAZ !== null && 
+                            d.accelAZ !== undefined && 
+                            !isNaN(d.accelAZ) && 
+                            isFinite(d.accelAZ) && 
+                            Math.abs(d.accelAZ) < 1000 // Reasonable acceleration range
+                          );
                           if (validAccel.length === 0) return "N/A";
                           const maxAccel = Math.max(...validAccel.map(d => Math.abs(d.accelAZ!)));
                           return `${maxAccel.toFixed(2)}g`;
@@ -1046,11 +1086,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* RPM Stats */}
-                    <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20">
+                    <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20 overflow-hidden">
                       <div className="text-cyan-400 text-xs uppercase font-medium mb-2">Max RPM</div>
-                      <div className="text-2xl font-bold text-cyan-400">
+                      <div className="text-2xl font-bold text-cyan-400 truncate">
                         {(() => {
-                          const validRPM = mdgData.filter(d => d.rotRpmMax !== null && d.rotRpmMax !== undefined && !isNaN(d.rotRpmMax));
+                          const validRPM = mdgData.filter(d => 
+                            d.rotRpmMax !== null && 
+                            d.rotRpmMax !== undefined && 
+                            !isNaN(d.rotRpmMax) && 
+                            isFinite(d.rotRpmMax) && 
+                            d.rotRpmMax >= 0 && 
+                            d.rotRpmMax < 100000 // Reasonable RPM range
+                          );
                           if (validRPM.length === 0) return "N/A";
                           const maxRPM = Math.max(...validRPM.map(d => d.rotRpmMax!));
                           return maxRPM.toLocaleString();
@@ -1060,11 +1107,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* Battery Voltage */}
-                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20 overflow-hidden">
                       <div className="text-green-400 text-xs uppercase font-medium mb-2">Avg Battery V</div>
-                      <div className="text-2xl font-bold text-green-400">
+                      <div className="text-2xl font-bold text-green-400 truncate">
                         {(() => {
-                          const validBatt = mdgData.filter(d => d.vBatt !== null && d.vBatt !== undefined && !isNaN(d.vBatt));
+                          const validBatt = mdgData.filter(d => 
+                            d.vBatt !== null && 
+                            d.vBatt !== undefined && 
+                            !isNaN(d.vBatt) && 
+                            isFinite(d.vBatt) && 
+                            d.vBatt > 0 && 
+                            d.vBatt < 50 // Reasonable battery voltage range
+                          );
                           if (validBatt.length === 0) return "N/A";
                           const avgBatt = validBatt.reduce((sum, d) => sum + d.vBatt!, 0) / validBatt.length;
                           return `${avgBatt.toFixed(1)}V`;
@@ -1074,11 +1128,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                     
                     {/* Gamma Radiation */}
-                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20">
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20 overflow-hidden">
                       <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Peak Gamma</div>
-                      <div className="text-2xl font-bold text-yellow-400">
+                      <div className="text-2xl font-bold text-yellow-400 truncate">
                         {(() => {
-                          const validGamma = mdgData.filter(d => d.gamma !== null && d.gamma !== undefined && !isNaN(d.gamma));
+                          const validGamma = mdgData.filter(d => 
+                            d.gamma !== null && 
+                            d.gamma !== undefined && 
+                            !isNaN(d.gamma) && 
+                            isFinite(d.gamma) && 
+                            d.gamma >= 0 && 
+                            d.gamma < 10000 // Reasonable gamma range
+                          );
                           if (validGamma.length === 0) return "N/A";
                           const maxGamma = Math.max(...validGamma.map(d => d.gamma!));
                           return `${maxGamma.toFixed(1)}`;
