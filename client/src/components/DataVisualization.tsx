@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemoryDumpDetails, SensorData } from "@/lib/types";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area, BarChart, Bar, ScatterPlot, Scatter } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area, BarChart, Bar } from "recharts";
 import { Download, TrendingUp, Zap, Thermometer, Battery, Activity, Gauge, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,10 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   const { data: dumpDetails, isLoading } = useQuery<MemoryDumpDetails>({
     queryKey: ['/api/memory-dumps', memoryDump?.id],
     enabled: memoryDump?.status === 'completed',
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
   });
 
   // Process data for charts - using actual sensor data

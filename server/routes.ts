@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get device report
       const deviceReport = await storage.getDeviceReport(dumpId);
 
-      // Prepare report data
+      // Prepare report data with proper type conversions
       const reportData = {
         filename: memoryDump.filename,
         processedAt: new Date(),
@@ -159,7 +159,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         warnings: analysis.warnings,
         issues: analysis.issues as any,
         sensorData: sensorData || [],
-        deviceReport: deviceReport || undefined
+        deviceReport: deviceReport ? {
+          mpSerialNumber: deviceReport.mpSerialNumber || undefined,
+          mpFirmwareVersion: deviceReport.mpFirmwareVersion || undefined,
+          mpMaxTempFahrenheit: deviceReport.mpMaxTempFahrenheit || undefined,
+          mpMaxTempCelsius: deviceReport.mpMaxTempCelsius || undefined,
+          circulationHours: deviceReport.circulationHours || undefined,
+          numberOfPulses: deviceReport.numberOfPulses || undefined,
+          motorOnTimeMinutes: deviceReport.motorOnTimeMinutes || undefined,
+          commErrorsTimeMinutes: deviceReport.commErrorsTimeMinutes || undefined,
+          commErrorsPercent: deviceReport.commErrorsPercent || undefined,
+          hallStatusTimeMinutes: deviceReport.hallStatusTimeMinutes || undefined,
+          hallStatusPercent: deviceReport.hallStatusPercent || undefined,
+          mdgSerialNumber: deviceReport.mdgSerialNumber || undefined,
+          mdgFirmwareVersion: deviceReport.mdgFirmwareVersion || undefined,
+          mdgMaxTempFahrenheit: deviceReport.mdgMaxTempFahrenheit || undefined,
+          mdgMaxTempCelsius: deviceReport.mdgMaxTempCelsius || undefined,
+          mdgEdtTotalHours: deviceReport.mdgEdtTotalHours || undefined,
+          mdgExtremeShockIndex: deviceReport.mdgExtremeShockIndex || undefined,
+        } : undefined
       };
 
       // Generate PDF

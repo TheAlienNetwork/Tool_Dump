@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MemoryDump, AnalysisResults } from "@/lib/types";
-import { Download, Wrench, AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { Download, Wrench, AlertTriangle, AlertCircle, Info, Shield, Clock, Zap } from "lucide-react";
 
 interface HealthSummaryProps {
   memoryDump: MemoryDump;
@@ -13,6 +13,9 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
   const { data: analysisResults, isLoading } = useQuery<AnalysisResults>({
     queryKey: ['/api/memory-dumps', memoryDump.id, 'analysis'],
     enabled: memoryDump.status === 'completed',
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
   });
 
   const handleDownloadReport = async () => {
@@ -109,114 +112,150 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
   }
 
   return (
-    <section>
-      <Card className="bg-gray-90 border-gray-80">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-gray-10 flex items-center">
-              <Wrench className="w-6 h-6 mr-2 text-green-50" />
-              Tool Health Check Summary
-            </CardTitle>
-            <Button 
-              onClick={handleDownloadReport}
-              className="bg-ibm-blue hover:bg-blue-600 text-white"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Generate PDF Report
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Health Status Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Overall Status */}
-            <div className="bg-gray-80 rounded-lg p-4">
-              <div className="flex items-center justify-between">
+    <section className="space-y-8">
+      <div className="gradient-border">
+        <Card className="bg-dark-800/50 backdrop-blur-xl border-0 overflow-hidden">
+          <CardHeader className="pb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl backdrop-blur-sm border border-blue-500/30">
+                  <Shield className="w-6 h-6 text-blue-400" />
+                </div>
                 <div>
-                  <p className="text-xs text-gray-40 uppercase tracking-wide">Overall Status</p>
-                  <p className={`text-lg font-semibold capitalize ${getStatusColor(analysisResults.overallStatus)}`}>
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                    Tool Health Analysis
+                  </CardTitle>
+                  <p className="text-slate-400 text-sm mt-1">Binary Memory Dump Analysis Report</p>
+                </div>
+              </div>
+              <Button 
+                onClick={handleDownloadReport}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Generate Report
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {/* Modern Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Overall Status */}
+              <div className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-gradient-to-br from-emerald-500/20 to-green-400/20 rounded-lg">
+                    <Shield className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div className={`w-3 h-3 rounded-full ${
+                    analysisResults.overallStatus === 'operational' ? 'bg-emerald-400 shadow-lg shadow-emerald-500/50' :
+                    analysisResults.overallStatus === 'warning' ? 'bg-amber-400 shadow-lg shadow-amber-500/50' : 'bg-rose-400 shadow-lg shadow-rose-500/50'
+                  }`}></div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">System Status</p>
+                  <p className={`text-xl font-bold capitalize mt-1 ${
+                    analysisResults.overallStatus === 'operational' ? 'text-emerald-400' :
+                    analysisResults.overallStatus === 'warning' ? 'text-amber-400' : 'text-rose-400'
+                  }`}>
                     {analysisResults.overallStatus}
                   </p>
                 </div>
-                <div className={`w-3 h-3 rounded-full ${
-                  analysisResults.overallStatus === 'operational' ? 'bg-green-50' :
-                  analysisResults.overallStatus === 'warning' ? 'bg-yellow-30' : 'bg-red-50'
-                }`}></div>
               </div>
-            </div>
 
-            {/* Critical Issues */}
-            <div className="bg-gray-80 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-40 uppercase tracking-wide">Critical Issues</p>
-                  <p className="text-lg font-semibold text-red-50">{analysisResults.criticalIssues}</p>
+              {/* Critical Issues */}
+              <div className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-gradient-to-br from-rose-500/20 to-red-400/20 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <div className="w-3 h-3 bg-rose-400 rounded-full shadow-lg shadow-rose-500/50"></div>
                 </div>
-                <div className="w-3 h-3 bg-red-50 rounded-full"></div>
-              </div>
-            </div>
-
-            {/* Warnings */}
-            <div className="bg-gray-80 rounded-lg p-4">
-              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-40 uppercase tracking-wide">Warnings</p>
-                  <p className="text-lg font-semibold text-yellow-30">{analysisResults.warnings}</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Critical Issues</p>
+                  <p className="text-xl font-bold text-rose-400 mt-1">{analysisResults.criticalIssues}</p>
                 </div>
-                <div className="w-3 h-3 bg-yellow-30 rounded-full"></div>
+              </div>
+
+              {/* Warnings */}
+              <div className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-gradient-to-br from-amber-500/20 to-yellow-400/20 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div className="w-3 h-3 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50"></div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Warnings</p>
+                  <p className="text-xl font-bold text-amber-400 mt-1">{analysisResults.warnings}</p>
+                </div>
+              </div>
+
+              {/* Analysis Time */}
+              <div className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-gradient-to-br from-blue-500/20 to-cyan-400/20 rounded-lg">
+                    <Clock className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="w-3 h-3 bg-blue-400 rounded-full shadow-lg shadow-blue-500/50"></div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Analysis Time</p>
+                  <p className="text-sm font-semibold text-slate-300 mt-1">
+                    {new Date(analysisResults.generatedAt).toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Last Update */}
-            <div className="bg-gray-80 rounded-lg p-4">
-              <div>
-                <p className="text-xs text-gray-40 uppercase tracking-wide">Last Update</p>
-                <p className="text-sm font-medium text-gray-10">
-                  {new Date(analysisResults.generatedAt).toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-50">{memoryDump.fileType} Dump Processed</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Issues List */}
-          {analysisResults.issues.length > 0 ? (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-10 uppercase tracking-wide">
-                Detected Issues
-              </h3>
-              
-              {analysisResults.issues.map((issue, index) => (
-                <div key={index} className={`bg-gray-80 rounded-lg p-4 border-l-4 ${getSeverityColor(issue.severity)}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        {getSeverityBadge(issue.severity)}
-                        <span className="text-sm font-medium text-gray-10">{issue.issue}</span>
-                      </div>
-                      <p className="text-sm text-gray-30 mb-2">{issue.explanation}</p>
-                      <div className="flex items-center space-x-4 text-xs text-gray-40">
-                        <span>Occurrences: {issue.count}</span>
-                        {issue.firstTime && <span>First: {new Date(issue.firstTime).toLocaleTimeString()}</span>}
-                        {issue.lastTime && <span>Last: {new Date(issue.lastTime).toLocaleTimeString()}</span>}
+            {/* Issues List */}
+            {analysisResults.issues.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Detected Issues
+                </h3>
+                
+                {analysisResults.issues.map((issue, index) => (
+                  <div key={index} className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-3">
+                          {getSeverityIcon(issue.severity)}
+                          <span className="text-lg font-semibold text-slate-100">{issue.issue}</span>
+                          {getSeverityBadge(issue.severity)}
+                        </div>
+                        <p className="text-slate-300 mb-4 leading-relaxed">{issue.explanation}</p>
+                        <div className="flex items-center space-x-6 text-sm text-slate-400">
+                          <span className="bg-dark-700/50 px-3 py-1 rounded-full">
+                            Occurrences: <span className="text-slate-200 font-medium">{issue.count}</span>
+                          </span>
+                          {issue.firstTime && (
+                            <span className="bg-dark-700/50 px-3 py-1 rounded-full">
+                              First: <span className="text-slate-200 font-medium">{new Date(issue.firstTime).toLocaleTimeString()}</span>
+                            </span>
+                          )}
+                          {issue.lastTime && (
+                            <span className="bg-dark-700/50 px-3 py-1 rounded-full">
+                              Last: <span className="text-slate-200 font-medium">{new Date(issue.lastTime).toLocaleTimeString()}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    {getSeverityIcon(issue.severity)}
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-gray-80 rounded-lg p-6 text-center">
-              <div className="w-12 h-12 mx-auto bg-green-50/20 rounded-full flex items-center justify-center mb-3">
-                <Wrench className="w-6 h-6 text-green-50" />
+                ))}
               </div>
-              <h3 className="text-lg font-semibold text-gray-10 mb-2">All Systems Operational</h3>
-              <p className="text-gray-40">No issues detected in this memory dump analysis.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="glass-morphism rounded-xl p-8 text-center">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-emerald-500/20 to-green-400/20 rounded-2xl flex items-center justify-center mb-4">
+                  <Shield className="w-8 h-8 text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-100 mb-2">All Systems Operational</h3>
+                <p className="text-slate-400">No issues detected in this memory dump analysis.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </section>
   );
 }

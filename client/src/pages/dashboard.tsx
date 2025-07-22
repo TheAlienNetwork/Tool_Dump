@@ -61,8 +61,10 @@ export default function Dashboard() {
             />
           </section>
 
-          <section className="glass-morphism rounded-2xl p-8">
-            <DataTable memoryDump={selectedDump}/>
+          <section className="gradient-border">
+            <div className="bg-dark-800/50 backdrop-blur-xl rounded-2xl p-8">
+              <DataTable memoryDump={selectedDump}/>
+            </div>
           </section>
 
           {selectedDump && (

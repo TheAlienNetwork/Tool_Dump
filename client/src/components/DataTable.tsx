@@ -20,19 +20,29 @@ export default function DataTable({ memoryDump }: DataTableProps) {
   const { data: dumpDetails, isLoading } = useQuery<MemoryDumpDetails>({
     queryKey: ['/api/memory-dumps', memoryDump?.id],
     enabled: memoryDump?.status === 'completed',
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
   });
 
   if (!memoryDump) {
     return (
       <section>
-        <Card className="bg-gray-90 border-gray-80">
-          <CardHeader>
-            <CardTitle className="text-gray-10">Raw Data View</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 text-center text-gray-40">
-            Select a memory dump to view data
-          </CardContent>
-        </Card>
+        <div className="gradient-border">
+          <Card className="bg-dark-800/50 backdrop-blur-xl border-0">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                Binary Memory Dump Analysis
+              </CardTitle>
+              <p className="text-slate-400 text-sm">Raw sensor data and measurements</p>
+            </CardHeader>
+            <CardContent className="p-8 text-center">
+              <div className="glass-morphism rounded-xl p-8">
+                <p className="text-slate-400 text-lg">Select a memory dump to view detailed analysis</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     );
   }
@@ -73,18 +83,25 @@ export default function DataTable({ memoryDump }: DataTableProps) {
   if (isLoading) {
     return (
       <section>
-        <Card className="bg-gray-90 border-gray-80">
-          <CardContent className="p-6">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-80 rounded w-1/4 mb-4"></div>
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-80 rounded"></div>
-                ))}
+        <div className="gradient-border">
+          <Card className="bg-dark-800/50 backdrop-blur-xl border-0">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                Binary Memory Dump Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-6 bg-dark-600 rounded-lg w-1/4"></div>
+                <div className="space-y-3">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="h-16 bg-dark-600 rounded-lg"></div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     );
   }
@@ -92,14 +109,20 @@ export default function DataTable({ memoryDump }: DataTableProps) {
   if (!dumpDetails?.sensorData) {
     return (
       <section>
-        <Card className="bg-gray-90 border-gray-80">
-          <CardHeader>
-            <CardTitle className="text-gray-10">Raw Data View</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 text-center text-gray-40">
-            No sensor data available
-          </CardContent>
-        </Card>
+        <div className="gradient-border">
+          <Card className="bg-dark-800/50 backdrop-blur-xl border-0">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                Binary Memory Dump Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 text-center">
+              <div className="glass-morphism rounded-xl p-8">
+                <p className="text-slate-400 text-lg">No sensor data available for this dump</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     );
   }
@@ -123,32 +146,35 @@ export default function DataTable({ memoryDump }: DataTableProps) {
 
   return (
     <section>
-      <Card className="bg-gray-90 border-gray-80">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-gray-10">Raw Data View</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleExportCSV}
-                className="bg-gray-80 border-gray-70 text-gray-10 hover:bg-gray-70"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="bg-gray-80 border-gray-70 text-gray-10 hover:bg-gray-70"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+      <div className="gradient-border">
+        <Card className="bg-dark-800/50 backdrop-blur-xl border-0 overflow-hidden">
+          <CardHeader className="pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                  Binary Memory Dump Analysis
+                </CardTitle>
+                <p className="text-slate-400 text-sm mt-1">Raw sensor data extracted from binary dump ({sensorData.length.toLocaleString()} records)</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Button 
+                  onClick={handleExportCSV}
+                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700/50 backdrop-blur-sm"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filter
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+          <CardContent className="p-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -225,8 +251,9 @@ export default function DataTable({ memoryDump }: DataTableProps) {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </section>
   );
 }
