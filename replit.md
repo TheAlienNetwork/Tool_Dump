@@ -40,6 +40,8 @@ Preferred communication style: Simple, everyday language.
 ✓ **Enhanced PDF Reports**: User-friendly device information with operational status, temperature warnings, and comprehensive analysis
 ✓ **Cache Invalidation Fixed**: Resolved stale data issue - React Query caches now clear on new uploads ensuring fresh device S/N, analysis, and AI detections
 ✓ **Fresh Data Guarantee**: Added logging and cache clearing to ensure NO dummy data or old bin file information shows for new uploads
+✓ **Latest Upload Prioritization**: Enhanced auto-selection logic to always display data from most recently uploaded binary files
+✓ **Multi-File Support**: System correctly handles multiple different bin file uploads and prioritizes newest uploads for visualization
 
 ## System Architecture
 

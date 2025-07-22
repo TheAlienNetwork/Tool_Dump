@@ -29,24 +29,29 @@ export default function Dashboard() {
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Auto-select the most recent completed dump (always update to newest)
+  // Auto-select the most recent completed dump (ALWAYS use latest uploads)
   useEffect(() => {
     if (memoryDumps.length > 0) {
       const completedDumps = memoryDumps.filter((dump: MemoryDump) => dump.status === 'completed');
       if (completedDumps.length > 0) {
-        // Sort by upload time and select the most recent
+        // Sort by upload time and select the most recent - FORCE refresh for different files
         const mostRecentDump = completedDumps.sort((a, b) => 
           new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
         )[0];
         
-        // Only update if it's different from current selection
-        if (!selectedDump || selectedDump.id !== mostRecentDump.id) {
+        // ALWAYS update to newest dump, even if same ID, in case data changed
+        const shouldUpdate = !selectedDump || 
+                            selectedDump.id !== mostRecentDump.id ||
+                            selectedDump.filename !== mostRecentDump.filename ||
+                            new Date(selectedDump.uploadedAt).getTime() !== new Date(mostRecentDump.uploadedAt).getTime();
+        
+        if (shouldUpdate) {
           setSelectedDump(mostRecentDump);
-          console.log(`Auto-selected most recent dump: ${mostRecentDump.filename} (ID: ${mostRecentDump.id})`);
+          console.log(`Auto-selected most recent dump: ${mostRecentDump.filename} (ID: ${mostRecentDump.id}) uploaded at ${mostRecentDump.uploadedAt}`);
         }
       }
     }
-  }, [memoryDumps]);
+  }, [memoryDumps, selectedDump]);
 
   const formatTime = (date: Date) => {
     return date.toISOString().replace('T', ' ').substr(0, 19) + ' UTC';

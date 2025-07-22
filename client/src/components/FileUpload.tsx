@@ -99,6 +99,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
             clearInterval(pollInterval);
             // Clear cache again when processing is complete to show fresh device info
             queryClient.clear();
+            console.log('🔄 Processing complete - cache cleared for fresh data display');
             onUploadComplete(); // Final refresh when all done
           }
         } catch (error) {

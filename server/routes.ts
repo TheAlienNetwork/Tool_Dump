@@ -28,7 +28,7 @@ interface ProcessedData {
   deviceReport: any;
 }
 
-// In-memory storage
+// In-memory storage - ensures latest uploads are prioritized
 const memoryStore = new Map<number, ProcessedData>();
 let currentId = 1;
 
@@ -73,13 +73,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           file.originalname.includes('MP') ? 'MP' : 'UNKNOWN';
 
           const id = currentId++;
+          const timestamp = new Date();
           const memoryDump: MemoryDump = {
             id,
             filename: file.originalname,
             fileType,
             status: 'processing',
-            uploadedAt: new Date()
+            uploadedAt: timestamp
           };
+
+          // Store initial entry immediately to ensure proper ordering
+          const initialData: ProcessedData = {
+            memoryDump,
+            sensorData: [],
+            analysisResults: null,
+            deviceReport: null
+          };
+          memoryStore.set(id, initialData);
+
+          console.log(`📥 NEW UPLOAD: ${file.originalname} assigned ID ${id} at ${timestamp.toISOString()}`);
 
           // Start processing immediately
           processFileInMemory(id, file.path, file.originalname, fileType);
@@ -357,14 +369,17 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       generatedAt: new Date()
     };
 
-    // Store everything in memory
+    // Store everything in memory - preserve original upload time
+    const existingEntry = memoryStore.get(dumpId);
+    const originalUploadTime = existingEntry?.memoryDump.uploadedAt || new Date();
+    
     const processedData: ProcessedData = {
       memoryDump: {
         id: dumpId,
         filename,
         fileType,
         status: 'completed',
-        uploadedAt: new Date(),
+        uploadedAt: originalUploadTime,
         processedAt: new Date()
       },
       sensorData: allSensorData,
