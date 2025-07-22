@@ -357,7 +357,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  
+
                   {/* Vibration Statistics */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                     <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg p-4 border border-blue-500/20">
@@ -494,7 +494,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                  
+
                   {/* Flow Status Statistics */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                     <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-lg p-4 border border-emerald-500/20">
@@ -559,7 +559,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
                         <Legend />
                         <Line yAxisId="left" type="monotone" dataKey="motorAvg" stroke="#10B981" strokeWidth={2} name="Avg Motor Current (A)" dot={false} />
-                        <Line yAxisId="right" type="monotone" dataKey="actuationTime" stroke="#F59E0B" strokeWidth={2} name="Actuation Time (s)" dot={false} />
+                        <Line yAxisId="right" type="monotone" dataKeyactuationTime" stroke="#F59E0B" strokeWidth={2} name="Actuation Time (s)" dot={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
@@ -973,7 +973,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     <div className="text-2xl font-bold text-green-400">{mdgData.length.toLocaleString()}</div>
                     <div className="text-green-300 text-sm">sensor data</div>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                  <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/20 rounded-lg p-4 border border-purple-500/20">
                     <div className="text-purple-400 text-xs uppercase font-medium mb-2">Data Coverage</div>
                     <div className="text-2xl font-bold text-purple-400">
                       {((mpData.length + mdgData.length) / sensorData.length * 100).toFixed(1)}%
@@ -1007,7 +1007,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-2xl font-bold text-blue-400">{pumpOnPercent.toFixed(1)}%</div>
                       <div className="text-blue-300 text-sm">efficiency</div>
                     </div>
-                    
+
                     {/* Temperature Stats */}
                     <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20 overflow-hidden">
                       <div className="text-red-400 text-xs uppercase font-medium mb-2">Max Temperature</div>
@@ -1028,7 +1028,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-red-300 text-sm">peak temp</div>
                     </div>
-                    
+
                     {/* Battery Stats */}
                     <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20 overflow-hidden">
                       <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Avg Battery V</div>
@@ -1050,7 +1050,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-yellow-300 text-sm">average</div>
                     </div>
                   </div>
-                  
+
                   {/* Second row for MP stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                     {/* Motor Current Stats */}
@@ -1073,7 +1073,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-purple-300 text-sm">maximum</div>
                     </div>
-                    
+
                     {/* Vibration Stats */}
                     <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20 overflow-hidden">
                       <div className="text-cyan-400 text-xs uppercase font-medium mb-2">Max Vibration</div>
@@ -1093,7 +1093,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-cyan-300 text-sm">Z-axis peak</div>
                     </div>
-                    
+
                     {/* Actuation Time Stats */}
                     <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20 overflow-hidden">
                       <div className="text-orange-400 text-xs uppercase font-medium mb-2">Avg Actuation</div>
@@ -1114,7 +1114,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-orange-300 text-sm">average time</div>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-lg p-4 border border-pink-500/20">
                       <div className="text-pink-400 text-xs uppercase font-medium mb-2">Total MP Records</div>
                       <div className="text-2xl font-bold text-pink-400">{mpData.length.toLocaleString()}</div>
@@ -1151,7 +1151,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-blue-300 text-sm">peak AZ</div>
                     </div>
-                    
+
                     {/* Shock Events */}
                     <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg p-4 border border-red-500/20">
                       <div className="text-red-400 text-xs uppercase font-medium mb-2">High Shock Events</div>
@@ -1160,7 +1160,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-red-300 text-sm">&gt;6g events</div>
                     </div>
-                    
+
                     {/* RPM Stats */}
                     <div className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-lg p-4 border border-cyan-500/20 overflow-hidden">
                       <div className="text-cyan-400 text-xs uppercase font-medium mb-2">Max RPM</div>
@@ -1181,7 +1181,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-cyan-300 text-sm">peak rotation</div>
                     </div>
-                    
+
                     {/* Battery Voltage */}
                     <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20 overflow-hidden">
                       <div className="text-green-400 text-xs uppercase font-medium mb-2">Avg Battery V</div>
@@ -1202,7 +1202,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-green-300 text-sm">average</div>
                     </div>
-                    
+
                     {/* Gamma Radiation */}
                     <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20 overflow-hidden">
                       <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Peak Gamma</div>
@@ -1224,7 +1224,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-yellow-300 text-sm">cps max</div>
                     </div>
                   </div>
-                  
+
                   {/* Second row for MDG stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                     {/* Survey Stats */}
@@ -1240,7 +1240,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-purple-300 text-sm">maximum</div>
                     </div>
-                    
+
                     {/* Power Consumption */}
                     <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20">
                       <div className="text-orange-400 text-xs uppercase font-medium mb-2">Peak Current</div>
@@ -1254,7 +1254,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-orange-300 text-sm">battery draw</div>
                     </div>
-                    
+
                     {/* Shock Count Total */}
                     <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 rounded-lg p-4 border border-rose-500/20">
                       <div className="text-rose-400 text-xs uppercase font-medium mb-2">Total Shock Count</div>
@@ -1272,7 +1272,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                       <div className="text-rose-300 text-sm">all events</div>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-lg p-4 border border-emerald-500/20">
                       <div className="text-emerald-400 text-xs uppercase font-medium mb-2">Total MDG Records</div>
                       <div className="text-2xl font-bold text-emerald-400">{mdgData.length.toLocaleString()}</div>
