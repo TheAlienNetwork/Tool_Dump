@@ -9,14 +9,16 @@ interface DataVisualizationProps {
   memoryDump: {
     id: number;
     status: string;
+    filename?: string;
+    uploadedAt?: string;
   } | null;
 }
 
 export default function DataVisualization({ memoryDump }: DataVisualizationProps) {
   const { data: dumpDetails, isLoading, error } = useQuery<MemoryDumpDetails>({
-    queryKey: ['/api/memory-dumps', memoryDump?.id, memoryDump?.filename, memoryDump?.uploadedAt],
+    queryKey: ['/api/memory-dumps', memoryDump?.id],
     enabled: memoryDump?.status === 'completed',
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
     staleTime: 0, // Always fetch fresh data for new dumps
@@ -244,7 +246,10 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   // Helper function to check if data field has valid values
   const hasValidData = (field: string) => {
-    return chartData.some(d => d[field] !== null && d[field] !== undefined && !isNaN(d[field] as number));
+    return chartData.some(d => {
+      const value = (d as any)[field];
+      return value !== null && value !== undefined && !isNaN(value as number);
+    });
   };
 
   // Filter data by type and enhance flow status for visualization
