@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // MAXIMUM SPEED: Large chunks with optimized batching
-    const CHUNK_SIZE = 15000; // Large chunks for maximum throughput
+    // MAXIMUM SPEED: Optimized for error-free processing
+    const CHUNK_SIZE = 10000; // Perfect balance of speed and reliability
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
