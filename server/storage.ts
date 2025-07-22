@@ -252,10 +252,14 @@ export class DatabaseStorage implements IStorage {
 
   async createSensorData(data: InsertSensorData[]): Promise<void> {
     if (data.length > 0) {
-      // Use database transaction for atomic bulk insert with maximum performance
+      // Split into smaller batches to prevent stack overflow with large datasets
+      const BATCH_SIZE = 500; // Safe batch size for Drizzle ORM
+      
       await db.transaction(async (tx) => {
-        // Single bulk insert - PostgreSQL handles this very efficiently
-        await tx.insert(sensorData).values(data);
+        for (let i = 0; i < data.length; i += BATCH_SIZE) {
+          const batch = data.slice(i, i + BATCH_SIZE);
+          await tx.insert(sensorData).values(batch);
+        }
       });
     }
   }
