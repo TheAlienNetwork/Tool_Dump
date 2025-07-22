@@ -260,15 +260,20 @@ export class DatabaseStorage implements IStorage {
   async createSensorData(data: InsertSensorData[]): Promise<void> {
     if (data.length === 0) return;
     
-    // Optimized bulk insert with ORM - split into manageable chunks for max performance
-    const BATCH_SIZE = 1000; // Optimal batch size for performance without stack overflow
-    
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < data.length; i += BATCH_SIZE) {
-        const batch = data.slice(i, i + BATCH_SIZE);
-        await tx.insert(sensorData).values(batch);
-      }
-    });
+    // Ultra-fast single transaction insert for maximum database performance
+    try {
+      await db.insert(sensorData).values(data);
+    } catch (error) {
+      console.error('Database insert error:', error);
+      // Fallback to smaller batches if bulk insert fails
+      const BATCH_SIZE = 500;
+      await db.transaction(async (tx) => {
+        for (let i = 0; i < data.length; i += BATCH_SIZE) {
+          const batch = data.slice(i, i + BATCH_SIZE);
+          await tx.insert(sensorData).values(batch);
+        }
+      });
+    }
   }
 
   async getSensorDataByDumpId(dumpId: number, limit?: number): Promise<SensorData[]> {

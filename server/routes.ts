@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Fast processing optimized for Drizzle ORM bulk operations
-    const CHUNK_SIZE = 2000; // Balanced chunk size for ORM performance
+    // Ultra-fast processing with optimized chunk size
+    const CHUNK_SIZE = 5000; // Large chunks for maximum throughput
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
@@ -311,17 +311,18 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           SurveyCAZM: batch.SurveyCAZM,
         }, dumpId);
 
-        // Store immediately with bulk database insert for maximum speed
+        // Store batch immediately and clear memory references
         await storage.createSensorData(sensorDataBatch);
         processed += sensorDataBatch.length;
 
-        // Aggressive cleanup for speed
-        if (global.gc && batchIndex % 2 === 0) {
+        // Immediate cleanup for consistent performance
+        sensorDataBatch.length = 0;
+        if (global.gc) {
           global.gc();
         }
         
-        // Minimal logging for maximum speed
-        if (batchIndex % 5 === 0) {
+        // Progress logging every 10 batches
+        if (batchIndex % 10 === 0) {
           const currentMemory = process.memoryUsage();
           console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
         }
