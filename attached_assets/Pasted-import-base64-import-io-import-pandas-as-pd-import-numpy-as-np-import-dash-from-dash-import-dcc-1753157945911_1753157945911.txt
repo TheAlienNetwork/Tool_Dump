@@ -1,0 +1,354 @@
+import base64
+import io
+import pandas as pd
+import numpy as np
+import dash
+from dash import dcc, html, dash_table, Input, Output, State
+import dash_bootstrap_components as dbc
+import plotly.graph_objects as go
+import plotly.io as pio
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+import tempfile
+import os
+from datetime import datetime
+import uuid
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app.title = "Neural Drill Binary Dump Visualizer (Tool Health Check)"
+
+def parse_memory_dump(content, filename):
+    """Placeholder parser for binary files — replace with real logic."""
+    decoded = base64.b64decode(content.split(',')[1])
+    np.random.seed(int.from_bytes(decoded[:2], "little"))
+    df = pd.DataFrame({
+        'RTD': pd.date_range(start='2025-01-01', periods=100, freq='T'),
+        'TempMP': np.random.normal(120, 3, 100),
+        'ResetMP': np.random.randint(0, 2, 100),
+        'BatteryCurrMP': np.random.uniform(1.5, 3.5, 100),
+        'BatteryVoltMP': np.random.uniform(12, 15, 100),
+        'FlowStatus': np.random.choice(['On', 'Off'], 100),
+        'MaxX': np.random.normal(0, 0.5, 100),
+        'MaxY': np.random.normal(0, 0.5, 100),
+        'MaxZ': np.random.normal(1, 0.5, 100),
+        'Threshold': 1.5,
+        'MotorMin': np.random.normal(0.5, 0.1, 100),
+        'MotorAvg': np.random.normal(1.0, 0.1, 100),
+        'MotorMax': np.random.normal(1.5, 0.1, 100),
+        'MotorHall': np.random.normal(0.8, 0.05, 100),
+        'ActuationTime': np.random.uniform(1, 10, 100),
+        'AccelAX': np.random.normal(0, 1, 100),
+        'AccelAY': np.random.normal(0, 1, 100),
+        'AccelAZ': np.random.normal(1, 1, 100),
+        'ShockZ': np.random.normal(4, 0.5, 100),
+        'ShockX': np.random.normal(3, 0.5, 100),
+        'ShockY': np.random.normal(2, 0.5, 100),
+        'ShockCountAxial50': np.random.randint(0, 10, 100),
+        'ShockCountAxial100': np.random.randint(0, 5, 100),
+        'ShockCountLat50': np.random.randint(0, 10, 100),
+        'ShockCountLat100': np.random.randint(0, 5, 100),
+        'RotRpmMax': np.random.uniform(120, 140, 100),
+        'RotRpmAvg': np.random.uniform(100, 120, 100),
+        'RotRpmMin': np.random.uniform(80, 100, 100),
+        'V3_3VA_DI': np.random.normal(3.3, 0.1, 100),
+        'V5VD': np.random.normal(5.0, 0.1, 100),
+        'V3_3VD': np.random.normal(3.3, 0.1, 100),
+        'V1_9VD': np.random.normal(1.9, 0.05, 100),
+        'V1_5VD': np.random.normal(1.5, 0.05, 100),
+        'V1_8VA': np.random.normal(1.8, 0.05, 100),
+        'V3_3VA': np.random.normal(3.3, 0.1, 100),
+        'VBatt': np.random.normal(14, 0.5, 100),
+        'I5VD': np.random.normal(0.3, 0.05, 100),
+        'I3_3VD': np.random.normal(0.2, 0.05, 100),
+        'IBatt': np.random.normal(0.5, 0.05, 100),
+        'Gamma': np.random.randint(10, 50, 100),
+        'AccelStabX': np.random.normal(0, 0.2, 100),
+        'AccelStabY': np.random.normal(0, 0.2, 100),
+        'AccelStabZ': np.random.normal(1, 0.2, 100),
+        'AccelStabZH': np.random.normal(1.1, 0.2, 100),
+        'SurveyTGF': np.random.normal(1, 0.1, 100),
+        'SurveyTMF': np.random.normal(50, 5, 100),
+        'SurveyDipA': np.random.uniform(0, 90, 100),
+        'SurveyINC': np.random.uniform(0, 90, 100),
+        'SurveyCINC': np.random.uniform(0, 90, 100),
+        'SurveyAZM': np.random.uniform(0, 360, 100),
+        'SurveyCAZM': np.random.uniform(0, 360, 100)
+    })
+    return df
+
+def analyze_issues(df):
+    """Analyze dataframe for issues and return list of dict with 'issue', 'explanation', and timestamps."""
+    issues = []
+    # 1. Temperature extremes
+    temp_max, temp_min = df["TempMP"].max(), df["TempMP"].min()
+    if temp_max > 130:
+        issues.append({"issue": f"High temperature spike: {temp_max:.1f}°F",
+                       "explanation": "Overheating risk or sensor fault.",
+                       "times": df[df["TempMP"]>130]["RTD"]})
+    if temp_min < 100:
+        issues.append({"issue": f"Low temperature dip: {temp_min:.1f}°F",
+                       "explanation": "Unusual cooling or sensor error.",
+                       "times": df[df["TempMP"]<100]["RTD"]})
+    # 2. Battery voltage
+    vmin, vmax = df["BatteryVoltMP"].min(), df["BatteryVoltMP"].max()
+    if vmin < 11.5:
+        issues.append({"issue": f"Low battery voltage: {vmin:.2f}V",
+                       "explanation": "Risk of shutdown or instability.",
+                       "times": df[df["BatteryVoltMP"]<11.5]["RTD"]})
+    if vmax > 15.5:
+        issues.append({"issue": f"High battery voltage: {vmax:.2f}V",
+                       "explanation": "Possible charging fault or damage risk.",
+                       "times": df[df["BatteryVoltMP"]>15.5]["RTD"]})
+    # 3. Resets
+    resets = df["ResetMP"].sum()
+    if resets/len(df) > 0.1:
+        issues.append({"issue": f"High reset freq: {resets} resets",
+                       "explanation": "Firmware instability detected.",
+                       "times": df[df["ResetMP"]==1]["RTD"]})
+    # 4. Shocks
+    thr=6.0
+    hs = df[(df["ShockZ"]>thr)|(df["ShockX"]>thr)|(df["ShockY"]>thr)]
+    if not hs.empty:
+        issues.append({"issue": f"{len(hs)} high shock events (> {thr}g)",
+                       "explanation": "Mechanical impact risk.",
+                       "times": hs["RTD"]})
+    # 5. Motor spikes
+    spikes = df[df["MotorMax"]>2.0]
+    if not spikes.empty:
+        issues.append({"issue": f"{len(spikes)} motor-current spikes",
+                       "explanation": "Overcurrent risk.",
+                       "times": spikes["RTD"]})
+    # 6. Gamma anomalies
+    gl,gh= df[df["Gamma"]<15], df[df["Gamma"]>45]
+    if not gl.empty:
+        issues.append({"issue": f"{len(gl)} low gamma counts",
+                       "explanation": "Calibration/shielding issue.",
+                       "times": gl["RTD"]})
+    if not gh.empty:
+        issues.append({"issue": f"{len(gh)} high gamma counts",
+                       "explanation": "Contamination or unexpected formation.",
+                       "times": gh["RTD"]})
+    # 7. Pump off but high motor
+    pm = df[(df["FlowStatus"]=="Off")&(df["MotorAvg"]>1.2)]
+    if not pm.empty:
+        issues.append({"issue": f"{len(pm)} pump-off high motor events",
+                       "explanation": "Electrical/sensor fault.",
+                       "times": pm["RTD"]})
+    # 8. Accel spikes
+    for axis in ["AccelAX","AccelAY","AccelAZ"]:
+        m,s=df[axis].mean(),df[axis].std()
+        out=df[np.abs(df[axis]-m)>3*s]
+        if not out.empty:
+            issues.append({"issue": f"{len(out)} accel spikes on {axis}",
+                           "explanation": "Shock or noise detected.",
+                           "times": out["RTD"]})
+    # 9. Missing data
+    if df.isnull().values.any():
+        issues.append({"issue":"Missing data detected",
+                       "explanation":"NaNs may affect analysis.","times":pd.Series(dtype='datetime64[ns]')})
+    # 10. Sudden voltage jumps
+    vd = df["BatteryVoltMP"].diff().abs()
+    lj = vd[vd>1.0]
+    if not lj.empty:
+        issues.append({"issue":f"{len(lj)} sudden voltage jumps",
+                       "explanation":"Power instability detected.",
+                       "times": df.loc[lj.index,"RTD"]})
+    # unique
+    seen=set(); uniq=[]
+    for i in issues:
+        if i["issue"] not in seen:
+            uniq.append(i); seen.add(i["issue"])
+    return uniq
+
+def add_bounds_and_issues_to_fig(fig, df, y, name, upper=None, lower=None, issue_times=None):
+    # bounds
+    if upper is not None:
+        fig.add_trace(go.Scatter(x=df["RTD"],y=[upper]*len(df),
+            mode="lines",line=dict(color="orange",dash="dash"),
+            name=f"{name} UB"))
+    if lower is not None:
+        fig.add_trace(go.Scatter(x=df["RTD"],y=[lower]*len(df),
+            mode="lines",line=dict(color="orange",dash="dash"),
+            name=f"{name} LB"))
+    # main
+    fig.add_trace(go.Scatter(x=df["RTD"],y=y,mode="lines",name=name))
+    # issues: rects + red dots
+    if issue_times is not None and not issue_times.empty:
+        # rects
+        for t in issue_times:
+            fig.add_vrect(x0=t,x1=t,fillcolor="red",opacity=0.15,layer="below",line_width=0)
+        # dots
+        y_pts = y[df["RTD"].isin(issue_times)]
+        fig.add_trace(go.Scatter(x=issue_times,y=y_pts,
+            mode="markers",marker=dict(color="red",size=8),
+            name=f"{name} issues"))
+    return fig
+
+def generate_plot_with_bounds_and_issues(title, df, col, upper=None, lower=None, issue_times=None):
+    fig=go.Figure()
+    fig=add_bounds_and_issues_to_fig(fig,df,df[col],col,upper,lower,issue_times)
+    fig.update_layout(title=title,template="plotly_dark",margin=dict(t=40))
+    return dcc.Graph(figure=fig)
+
+def generate_plot(title, x, ydict):
+    fig=go.Figure()
+    for lbl,series in ydict.items():
+        fig.add_trace(go.Scatter(x=x,y=series,mode="lines",name=lbl))
+    fig.update_layout(title=title,template="plotly_dark",margin=dict(t=40))
+    return dcc.Graph(figure=fig)
+
+def create_pdf_report(issues, figures):
+    """Create PDF report with issues and figures, return base64 data URI."""
+    temp_pdf_path = f"./report_{uuid.uuid4().hex[:6]}.pdf"
+    c = canvas.Canvas(temp_pdf_path, pagesize=letter)
+    width, height = letter
+    y = height - 40
+
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(40, y, "Neural Drill Binary Dump Report")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    c.drawString(40, y, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    y -= 40
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(40, y, "Tool Health Summary:")
+    y -= 20
+
+    for i in issues:
+        if y < 120:
+            c.showPage()
+            y = height - 60
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, f"Issue: {i['issue']}")
+        y -= 15
+        c.setFont("Helvetica-Oblique", 10)
+        c.drawString(60, y, f"{i['explanation']} (Occurrences: {len(i['times'])})")
+        y -= 20
+
+    # Add figures, one per page
+    for fig in figures:
+        img_bytes = io.BytesIO()
+        pio.write_image(fig, img_bytes, format='png', scale=1.5)
+        img_bytes.seek(0)
+        img = ImageReader(img_bytes)
+        c.showPage()
+        # Fit width 520, maintain aspect ratio
+        c.drawImage(img, 40, 150, width=520, preserveAspectRatio=True, mask='auto')
+
+    c.save()
+    with open(temp_pdf_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    os.remove(temp_pdf_path)
+    return f"data:application/pdf;base64,{encoded}"
+
+app.layout = dbc.Container([
+    html.H2("Neural Drill Memory Dump Visualizer"),
+    dcc.Upload(
+        id='upload-data',
+        children=html.Div(['Drag and Drop or ', html.A('Select Binary Files')]),
+        style={'width':'100%','height':'80px','lineHeight':'80px',
+               'borderWidth':'2px','borderStyle':'dashed','borderRadius':'10px',
+               'textAlign':'center','margin':'10px','cursor':'pointer'},
+        multiple=True
+    ),
+    html.Div(id='output-graphs'),
+    html.H3("🔧 Tool Health Check Summary", style={'marginTop':'30px'}),
+    html.Div(id='flagged-issues'),
+    html.Div(id='download-div')  # For PDF download button/link
+], fluid=True)
+
+@app.callback(
+    Output('output-graphs','children'),
+    Output('flagged-issues','children'),
+    Output('download-div','children'),
+    Input('upload-data','contents'),
+    State('upload-data','filename')
+)
+def update_output(contents, names):
+    if not contents:
+        return [], "", ""
+    dfs=[parse_memory_dump(c,n) for c,n in zip(contents,names)]
+    df=pd.concat(dfs).sort_values("RTD")
+    issues=analyze_issues(df)
+
+    def get_times(keywords):
+        lst=[]
+        for i in issues:
+            for kw in keywords:
+                if kw.lower() in i["issue"].lower():
+                    lst.append(i["times"])
+        return pd.concat(lst).drop_duplicates() if lst else pd.Series(dtype='datetime64[ns]')
+
+    figures = []
+    graphs = [
+        generate_plot_with_bounds_and_issues("Temperature (MP)",df,"TempMP",130,100,get_times(["temperature"])),
+        generate_plot_with_bounds_and_issues("Battery Voltage (MP)",df,"BatteryVoltMP",15.5,11.5,get_times(["battery voltage"])),
+        generate_plot_with_bounds_and_issues("Reset Events",df,"ResetMP",1,0,get_times(["reset"])),
+        generate_plot_with_bounds_and_issues("Shock Levels",df,"ShockZ",6.0,0,get_times(["shock"])),
+        generate_plot_with_bounds_and_issues("Motor Max Current",df,"MotorMax",2.0,0,get_times(["motor"])),
+        generate_plot_with_bounds_and_issues("Gamma Counts",df,"Gamma",45,15,get_times(["gamma"])),
+        generate_plot("Flow Status (Max X/Y/Z)",df["RTD"],{"Max X":df["MaxX"],"Max Y":df["MaxY"],"Max Z":df["MaxZ"]}),
+        generate_plot("Motor Avg Current",df["RTD"],{"Avg":df["MotorAvg"]}),
+        generate_plot("Actuation Time vs Avg Motor",df["RTD"],{"Act Time":df["ActuationTime"],"Avg Motor":df["MotorAvg"]}),
+        generate_plot("Accel AX, AY, AZ",df["RTD"],{"AX":df["AccelAX"],"AY":df["AccelAY"],"AZ":df["AccelAZ"]}),
+        generate_plot("Shock Peak X/Y",df["RTD"],{"X":df["ShockX"],"Y":df["ShockY"]}),
+        generate_plot("Axial Shock Count",df["RTD"],{"50g":df["ShockCountAxial50"],"100g":df["ShockCountAxial100"]}),
+        generate_plot("Lateral Shock Count",df["RTD"],{"50g":df["ShockCountLat50"],"100g":df["ShockCountLat100"]}),
+        generate_plot("RPM Min/Avg/Max",df["RTD"],{"Min":df["RotRpmMin"],"Avg":df["RotRpmAvg"],"Max":df["RotRpmMax"]}),
+        generate_plot("Voltage Measurements",df["RTD"],{
+            "3.3 VA DI":df["V3_3VA_DI"],"5 VD":df["V5VD"],"3.3 VD":df["V3_3VD"],
+            "1.9 VD":df["V1_9VD"],"1.5 VD":df["V1_5VD"],"1.8 VA":df["V1_8VA"],
+            "3.3 VA":df["V3_3VA"],"Bat V":df["VBatt"]
+        }),
+        generate_plot("Current Measurements",df["RTD"],{"5 VD":df["I5VD"],"3.3 VD":df["I3_3VD"],"Bat I":df["IBatt"]}),
+        generate_plot("Accel Stability",df["RTD"],{"X":df["AccelStabX"],"Y":df["AccelStabY"],
+                                                  "Z":df["AccelStabZ"],"ZH":df["AccelStabZH"]}),
+        generate_plot("Survey Data",df["RTD"],{"TGF":df["SurveyTGF"],"TMF":df["SurveyTMF"],
+                                              "Dip":df["SurveyDipA"],"Inc":df["SurveyINC"],
+                                              "CInc":df["SurveyCINC"],"Az":df["SurveyAZM"],
+                                              "CAz":df["SurveyCAZM"]})
+    ]
+
+    # Extract the Plotly figure objects for PDF generation (from dcc.Graph)
+    for g in graphs:
+        if hasattr(g, 'figure'):
+            figures.append(g.figure)
+        else:
+            figures.append(None)
+
+    flagged_divs=[]
+    for i in issues:
+        flagged_divs.append(html.Div([
+            html.Strong(i["issue"]), html.Br(),
+            html.I(i["explanation"]), html.Br(),
+            html.Small(f"Occurrences: {len(i['times'])}")
+        ], style={'marginBottom':'10px','padding':'5px','border':'1px solid #f00','borderRadius':'5px'}))
+
+    # Create PDF download link/button if issues and figures exist
+    if issues and figures:
+        pdf_data_uri = create_pdf_report(issues, [fig for fig in figures if fig is not None])
+        download_button = html.A(
+            "📄 Download Tool Health Report (PDF)",
+            href=pdf_data_uri,
+            download="NeuralDrill_ToolHealthReport.pdf",
+            style={
+                'color': 'white',
+                'backgroundColor': '#007bff',
+                'padding': '10px 20px',
+                'borderRadius': '5px',
+                'textDecoration': 'none',
+                'fontWeight': 'bold',
+                'display': 'inline-block',
+                'marginTop': '20px',
+                'cursor': 'pointer',
+            }
+        )
+    else:
+        download_button = ""
+
+    return graphs, flagged_divs, download_button
+
+if __name__ == '__main__':
+    app.run(host='localhost', port=8055, debug=True)
