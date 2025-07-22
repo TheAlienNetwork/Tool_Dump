@@ -16,11 +16,11 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   const { data: dumpDetails, isLoading, error } = useQuery<MemoryDumpDetails>({
     queryKey: ['/api/memory-dumps', memoryDump?.id],
     enabled: memoryDump?.status === 'completed',
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 0, // Always fetch fresh data for new dumps
+    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes only
   });
 
   // Move all hooks to the top - this must be called on every render

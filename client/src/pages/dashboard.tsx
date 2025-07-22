@@ -29,15 +29,24 @@ export default function Dashboard() {
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Auto-select the most recent completed dump
+  // Auto-select the most recent completed dump (always update to newest)
   useEffect(() => {
-    if (memoryDumps.length > 0 && !selectedDump) {
-      const completedDump = memoryDumps.find((dump: MemoryDump) => dump.status === 'completed');
-      if (completedDump) {
-        setSelectedDump(completedDump);
+    if (memoryDumps.length > 0) {
+      const completedDumps = memoryDumps.filter((dump: MemoryDump) => dump.status === 'completed');
+      if (completedDumps.length > 0) {
+        // Sort by upload time and select the most recent
+        const mostRecentDump = completedDumps.sort((a, b) => 
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        )[0];
+        
+        // Only update if it's different from current selection
+        if (!selectedDump || selectedDump.id !== mostRecentDump.id) {
+          setSelectedDump(mostRecentDump);
+          console.log(`Auto-selected most recent dump: ${mostRecentDump.filename} (ID: ${mostRecentDump.id})`);
+        }
       }
     }
-  }, [memoryDumps, selectedDump]);
+  }, [memoryDumps]);
 
   const formatTime = (date: Date) => {
     return date.toISOString().replace('T', ' ').substr(0, 19) + ' UTC';
