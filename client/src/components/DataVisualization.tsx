@@ -23,6 +23,95 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     gcTime: 10 * 60 * 1000,
   });
 
+  // Move all hooks to the top - this must be called on every render
+  const chartData = useMemo(() => {
+    if (!dumpDetails?.sensorData) return [];
+
+    const sensorData = dumpDetails.sensorData;
+    return sensorData
+      .filter((_, index) => index % Math.max(1, Math.floor(sensorData.length / 1000)) === 0)
+      .map(item => ({
+        time: new Date(item.rtd).toLocaleTimeString(),
+
+        // Acceleration data (MDG)
+        accelAX: item.accelAX,
+        accelAY: item.accelAY,
+        accelAZ: item.accelAZ,
+
+        // Shock data (MDG)
+        shockX: item.shockX,
+        shockY: item.shockY,
+        shockZ: item.shockZ,
+
+        // Shock counters (MDG)
+        shockCountAxial50: item.shockCountAxial50,
+        shockCountAxial100: item.shockCountAxial100,
+        shockCountLat50: item.shockCountLat50,
+        shockCountLat100: item.shockCountLat100,
+
+        // RPM data (MDG)
+        rotRpmMax: item.rotRpmMax,
+        rotRpmAvg: item.rotRpmAvg,
+        rotRpmMin: item.rotRpmMin,
+
+        // Power rails (MDG)
+        vBatt: item.vBatt,
+        v5VD: item.v5VD,
+        v3_3VD: item.v3_3VD,
+        v3_3VA: item.v3_3VA,
+        v1_8VA: item.v1_8VA,
+        v1_9VD: item.v1_9VD,
+        v1_5VD: item.v1_5VD,
+        v3_3VA_DI: item.v3_3VA_DI,
+
+        // Current monitoring (MDG)
+        iBatt: item.iBatt,
+        i5VD: item.i5VD,
+        i3_3VD: item.i3_3VD,
+
+        // Environmental (MDG)
+        gamma: item.gamma,
+
+        // Stability (MDG)
+        accelStabX: item.accelStabX,
+        accelStabY: item.accelStabY,
+        accelStabZ: item.accelStabZ,
+        accelStabZH: item.accelStabZH,
+
+        // Survey data (MDG)
+        surveyTGF: item.surveyTGF,
+        surveyTMF: item.surveyTMF,
+        surveyDipA: item.surveyDipA,
+        surveyINC: item.surveyINC,
+        surveyCINC: item.surveyCINC,
+        surveyAZM: item.surveyAZM,
+        surveyCAZM: item.surveyCAZM,
+
+        // Battery data (MP)
+        batteryVoltMP: item.batteryVoltMP,
+        batteryCurrMP: item.batteryCurrMP,
+
+        // Temperature (MP)
+        tempMP: item.tempMP,
+
+        // Motor performance (MP)
+        motorMin: item.motorMin,
+        motorAvg: item.motorAvg,
+        motorMax: item.motorMax,
+        motorHall: item.motorHall,
+
+        // Actuation (MP)
+        actuationTime: item.actuationTime,
+
+        // Vibration data (MP)
+        maxX: item.maxX,
+        maxY: item.maxY,
+        maxZ: item.maxZ,
+        threshold: item.threshold,
+      }));
+  }, [dumpDetails?.sensorData]);
+
+  // Now handle the conditional rendering after all hooks are defined
   if (!memoryDump) {
     return (
       <section>
@@ -119,93 +208,6 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   }
 
   const sensorData = dumpDetails.sensorData;
-
-  // Sample data for charts (take every 20th record to reduce chart load but maintain detail)
-  const chartData = useMemo(() => {
-    if (!sensorData) return [];
-
-    return sensorData
-      .filter((_, index) => index % Math.max(1, Math.floor(sensorData.length / 1000)) === 0)
-      .map(item => ({
-        time: new Date(item.rtd).toLocaleTimeString(),
-
-        // Acceleration data (MDG)
-        accelAX: item.accelAX,
-        accelAY: item.accelAY,
-        accelAZ: item.accelAZ,
-
-        // Shock data (MDG)
-        shockX: item.shockX,
-        shockY: item.shockY,
-        shockZ: item.shockZ,
-
-        // Shock counters (MDG)
-        shockCountAxial50: item.shockCountAxial50,
-        shockCountAxial100: item.shockCountAxial100,
-        shockCountLat50: item.shockCountLat50,
-        shockCountLat100: item.shockCountLat100,
-
-        // RPM data (MDG)
-        rotRpmMax: item.rotRpmMax,
-        rotRpmAvg: item.rotRpmAvg,
-        rotRpmMin: item.rotRpmMin,
-
-        // Power rails (MDG)
-        vBatt: item.vBatt,
-        v5VD: item.v5VD,
-        v3_3VD: item.v3_3VD,
-        v3_3VA: item.v3_3VA,
-        v1_8VA: item.v1_8VA,
-        v1_9VD: item.v1_9VD,
-        v1_5VD: item.v1_5VD,
-        v3_3VA_DI: item.v3_3VA_DI,
-
-        // Current monitoring (MDG)
-        iBatt: item.iBatt,
-        i5VD: item.i5VD,
-        i3_3VD: item.i3_3VD,
-
-        // Environmental (MDG)
-        gamma: item.gamma,
-
-        // Stability (MDG)
-        accelStabX: item.accelStabX,
-        accelStabY: item.accelStabY,
-        accelStabZ: item.accelStabZ,
-        accelStabZH: item.accelStabZH,
-
-        // Survey data (MDG)
-        surveyTGF: item.surveyTGF,
-        surveyTMF: item.surveyTMF,
-        surveyDipA: item.surveyDipA,
-        surveyINC: item.surveyINC,
-        surveyCINC: item.surveyCINC,
-        surveyAZM: item.surveyAZM,
-        surveyCAZM: item.surveyCAZM,
-
-        // Battery data (MP)
-        batteryVoltMP: item.batteryVoltMP,
-        batteryCurrMP: item.batteryCurrMP,
-
-        // Temperature (MP)
-        tempMP: item.tempMP,
-
-        // Motor performance (MP)
-        motorMin: item.motorMin,
-        motorAvg: item.motorAvg,
-        motorMax: item.motorMax,
-        motorHall: item.motorHall,
-
-        // Actuation (MP)
-        actuationTime: item.actuationTime,
-
-        // Vibration data (MP)
-        maxX: item.maxX,
-        maxY: item.maxY,
-        maxZ: item.maxZ,
-        threshold: item.threshold,
-      }));
-  }, [sensorData]);
 
   // Filter data by type
   const mpData = chartData.filter(d => d.tempMP !== null);
