@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, ComposedChart, Area, AreaChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemoryDumpDetails } from "@/lib/types";
-import { Activity, Thermometer, Zap, AlertTriangle, Battery, Gauge, RotateCw, Cpu, Compass } from "lucide-react";
+import { Activity, Thermometer, Zap, AlertTriangle, Battery, Gauge, RotateCw, RotateCcw, Cpu, Compass, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 
 interface DataVisualizationProps {
@@ -698,13 +698,199 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                   </div>
                 </div>
+                {/* 7. System Voltages Analysis (MP) */}
+                <div className="glass-morphism rounded-xl p-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Zap className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-lg font-semibold text-slate-200">System Voltages Analysis (MP)</h3>
+                  </div>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={mpData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <Legend />
+                        <Line type="monotone" dataKey="vBatt" stroke="#EF4444" strokeWidth={2} name="Battery Voltage" dot={false} />
+                        <Line type="monotone" dataKey="v5VD" stroke="#10B981" strokeWidth={2} name="5V Digital" dot={false} />
+                        <Line type="monotone" dataKey="v3_3VD" stroke="#3B82F6" strokeWidth={2} name="3.3V Digital" dot={false} />
+                        <Line type="monotone" dataKey="v1_8VA" stroke="#8B5CF6" strokeWidth={2} name="1.8V Analog" dot={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Voltage Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Battery Status</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const validBatt = mpData.filter(d => 
+                            d.vBatt !== null && 
+                            d.vBatt !== undefined && 
+                            !isNaN(d.vBatt) && 
+                            isFinite(d.vBatt) &&
+                            d.vBatt > 0 && d.vBatt < 50
+                          );
+                          if (validBatt.length === 0) return "N/A";
+                          const avgVBatt = validBatt.reduce((sum, d) => sum + d.vBatt!, 0) / validBatt.length;
+                          return `${avgVBatt.toFixed(2)}V`;
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">5V Digital</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const valid5V = mpData.filter(d => 
+                            d.v5VD !== null && 
+                            d.v5VD !== undefined && 
+                            !isNaN(d.v5VD) && 
+                            isFinite(d.v5VD) &&
+                            d.v5VD > 0 && d.v5VD < 10
+                          );
+                          if (valid5V.length === 0) return "N/A";
+                          const avg5V = valid5V.reduce((sum, d) => sum + d.v5VD!, 0) / valid5V.length;
+                          return `${avg5V.toFixed(2)}V`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">3.3V Digital</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const valid33V = mpData.filter(d => 
+                            d.v3_3VD !== null && 
+                            d.v3_3VD !== undefined && 
+                            !isNaN(d.v3_3VD) && 
+                            isFinite(d.v3_3VD) &&
+                            d.v3_3VD > 0 && d.v3_3VD < 10
+                          );
+                          if (valid33V.length === 0) return "N/A";
+                          const avg33V = valid33V.reduce((sum, d) => sum + d.v3_3VD!, 0) / valid33V.length;
+                          return `${avg33V.toFixed(2)}V`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Power Stability</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const stableReadings = mpData.filter(d => 
+                            d.vBatt !== null && d.vBatt !== undefined && !isNaN(d.vBatt) && isFinite(d.vBatt) && d.vBatt > 10 &&
+                            d.v5VD !== null && d.v5VD !== undefined && !isNaN(d.v5VD) && isFinite(d.v5VD) && d.v5VD > 4.5 &&
+                            d.v3_3VD !== null && d.v3_3VD !== undefined && !isNaN(d.v3_3VD) && isFinite(d.v3_3VD) && d.v3_3VD > 3.0
+                          );
+                          const stability = stableReadings.length / Math.max(mpData.length, 1) * 100;
+                          return `${stability.toFixed(1)}%`;
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">stable</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 8. Rotation Speed Analysis (MP) */}
+                <div className="glass-morphism rounded-xl p-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <RotateCcw className="w-5 h-5 text-orange-400" />
+                    <h3 className="text-lg font-semibold text-slate-200">Rotation Speed Analysis (MP)</h3>
+                  </div>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={mpData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'RPM', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <Legend />
+                        <Area type="monotone" dataKey="rotRpmMax" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={1} name="Max RPM" />
+                        <Area type="monotone" dataKey="rotRpmAvg" stroke="#10B981" fill="#10B981" fillOpacity={0.3} strokeWidth={3} name="Avg RPM" />
+                        <Area type="monotone" dataKey="rotRpmMin" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.1} strokeWidth={1} name="Min RPM" />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* RPM Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Peak RPM</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const validRpm = mpData.filter(d => 
+                            d.rotRpmMax !== null && 
+                            d.rotRpmMax !== undefined && 
+                            !isNaN(d.rotRpmMax) && 
+                            isFinite(d.rotRpmMax) &&
+                            d.rotRpmMax > 0 && d.rotRpmMax < 10000
+                          );
+                          if (validRpm.length === 0) return "N/A";
+                          const maxRpm = Math.max(...validRpm.map(d => d.rotRpmMax!));
+                          return `${maxRpm.toFixed(0)}`;
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Avg RPM</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validRpm = mpData.filter(d => 
+                            d.rotRpmAvg !== null && 
+                            d.rotRpmAvg !== undefined && 
+                            !isNaN(d.rotRpmAvg) && 
+                            isFinite(d.rotRpmAvg) &&
+                            d.rotRpmAvg > 0 && d.rotRpmAvg < 10000
+                          );
+                          if (validRpm.length === 0) return "N/A";
+                          const avgRpm = validRpm.reduce((sum, d) => sum + d.rotRpmAvg!, 0) / validRpm.length;
+                          return `${avgRpm.toFixed(0)}`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">RPM Variation</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validRpm = mpData.filter(d => 
+                            d.rotRpmMax !== null && d.rotRpmMax !== undefined && !isNaN(d.rotRpmMax) && isFinite(d.rotRpmMax) && d.rotRpmMax > 0 &&
+                            d.rotRpmMin !== null && d.rotRpmMin !== undefined && !isNaN(d.rotRpmMin) && isFinite(d.rotRpmMin) && d.rotRpmMin >= 0 &&
+                            d.rotRpmMax < 10000 && d.rotRpmMin < 10000
+                          );
+                          if (validRpm.length === 0) return "N/A";
+                          const avgVariation = validRpm.reduce((sum, d) => sum + (d.rotRpmMax! - d.rotRpmMin!), 0) / validRpm.length;
+                          return `${avgVariation.toFixed(0)}`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">spread</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Active Rotation</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const activeRotation = mpData.filter(d => 
+                            d.rotRpmAvg !== null && d.rotRpmAvg !== undefined && !isNaN(d.rotRpmAvg) && isFinite(d.rotRpmAvg) && d.rotRpmAvg > 10
+                          );
+                          const percentage = activeRotation.length / Math.max(mpData.length, 1) * 100;
+                          return `${percentage.toFixed(1)}%`;
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">time active</div>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
             {/* MDG Charts */}
             {mdgData.length > 0 && (
               <>
-                {/* 7. Acceleration Temperature (MDG) AX, AY, AZ, RTD, Reset */}
+                {/* 9. Acceleration Temperature (MDG) AX, AY, AZ, RTD, Reset */}
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Activity className="w-5 h-5 text-blue-400" />

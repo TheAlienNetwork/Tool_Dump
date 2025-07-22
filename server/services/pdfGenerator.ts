@@ -244,6 +244,10 @@ export class PDFGenerator {
       yPos += 10;
       
       pdf.setFontSize(10);
+      const validSensorData = reportData.sensorData.filter(d => d && typeof d === 'object');
+      
+      pdf.text(`Total Data Records: ${validSensorData.length.toLocaleString()}`, 20, yPos);
+      yPos += 7;
       
       // Temperature analysis
       const temps = reportData.sensorData
@@ -262,6 +266,118 @@ export class PDFGenerator {
         pdf.text(`  Maximum: ${maxTemp.toFixed(1)}°F`, 25, yPos);
         yPos += 6;
         pdf.text(`  Minimum: ${minTemp.toFixed(1)}°F`, 25, yPos);
+        yPos += 10;
+      }
+
+      // Shock Analysis
+      const shockData = validSensorData.filter(d => 
+        (d.shockZ !== null && !isNaN(d.shockZ as number) && isFinite(d.shockZ as number)) ||
+        (d.shockX !== null && !isNaN(d.shockX as number) && isFinite(d.shockX as number)) ||
+        (d.shockY !== null && !isNaN(d.shockY as number) && isFinite(d.shockY as number))
+      );
+      if (shockData.length > 0) {
+        const shockZData = shockData.filter(d => d.shockZ !== null).map(d => Math.abs(d.shockZ as number));
+        const shockXData = shockData.filter(d => d.shockX !== null).map(d => Math.abs(d.shockX as number));
+        const shockYData = shockData.filter(d => d.shockY !== null).map(d => Math.abs(d.shockY as number));
+        
+        pdf.text(`Shock Analysis:`, 20, yPos);
+        yPos += 7;
+        if (shockZData.length > 0) {
+          pdf.text(`  Axial Shock (Z): Max ${Math.max(...shockZData).toFixed(2)}g`, 25, yPos);
+          yPos += 6;
+        }
+        if (shockXData.length > 0) {
+          pdf.text(`  Lateral Shock (X): Max ${Math.max(...shockXData).toFixed(2)}g`, 25, yPos);
+          yPos += 6;
+        }
+        if (shockYData.length > 0) {
+          pdf.text(`  Lateral Shock (Y): Max ${Math.max(...shockYData).toFixed(2)}g`, 25, yPos);
+          yPos += 6;
+        }
+        yPos += 4;
+      }
+
+      // RPM Analysis
+      const rpmData = validSensorData.filter(d => 
+        d.rotRpmAvg !== null && !isNaN(d.rotRpmAvg as number) && isFinite(d.rotRpmAvg as number) && (d.rotRpmAvg as number) > 0
+      );
+      if (rpmData.length > 0) {
+        const avgRpm = rpmData.reduce((sum, d) => sum + (d.rotRpmAvg as number), 0) / rpmData.length;
+        const maxRpm = Math.max(...rpmData.map(d => (d.rotRpmMax as number) || (d.rotRpmAvg as number)));
+        pdf.text(`Rotation Analysis:`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Average RPM: ${avgRpm.toFixed(0)}`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  Maximum RPM: ${maxRpm.toFixed(0)}`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  Active Rotation: ${((rpmData.length / validSensorData.length) * 100).toFixed(1)}%`, 25, yPos);
+        yPos += 10;
+      }
+
+      // Survey Data Analysis (MDG)
+      const surveyData = validSensorData.filter(d => 
+        d.surveyINC !== null && !isNaN(d.surveyINC as number) && isFinite(d.surveyINC as number)
+      );
+      if (surveyData.length > 0) {
+        const avgInclination = surveyData.reduce((sum, d) => sum + (d.surveyINC as number), 0) / surveyData.length;
+        const azmData = surveyData.filter(d => d.surveyAZM !== null && !isNaN(d.surveyAZM as number) && isFinite(d.surveyAZM as number));
+        const avgAzimuth = azmData.length > 0 ? azmData.reduce((sum, d) => sum + (d.surveyAZM as number), 0) / azmData.length : 0;
+        
+        pdf.text(`Survey Data Analysis:`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Average Inclination: ${avgInclination.toFixed(1)}°`, 25, yPos);
+        yPos += 6;
+        if (azmData.length > 0) {
+          pdf.text(`  Average Azimuth: ${avgAzimuth.toFixed(1)}°`, 25, yPos);
+          yPos += 6;
+        }
+        yPos += 4;
+      }
+
+      // Environmental Data
+      const gammaData = validSensorData.filter(d => 
+        d.gamma !== null && !isNaN(d.gamma as number) && isFinite(d.gamma as number) && (d.gamma as number) > 0
+      );
+      if (gammaData.length > 0) {
+        const avgGamma = gammaData.reduce((sum, d) => sum + (d.gamma as number), 0) / gammaData.length;
+        const maxGamma = Math.max(...gammaData.map(d => d.gamma as number));
+        pdf.text(`Environmental Analysis:`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Gamma Radiation: Avg ${avgGamma.toFixed(2)} cps, Max ${maxGamma.toFixed(2)} cps`, 25, yPos);
+        yPos += 10;
+      }
+
+      // Shock Count Analysis
+      const shockCountData = validSensorData.filter(d => 
+        (d.shockCountAxial50 !== null && !isNaN(d.shockCountAxial50 as number)) ||
+        (d.shockCountAxial100 !== null && !isNaN(d.shockCountAxial100 as number))
+      );
+      if (shockCountData.length > 0) {
+        const total50g = shockCountData.reduce((sum, d) => sum + ((d.shockCountAxial50 as number) || 0), 0);
+        const total100g = shockCountData.reduce((sum, d) => sum + ((d.shockCountAxial100 as number) || 0), 0);
+        pdf.text(`Shock Events Analysis:`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  50g Axial Shock Events: ${total50g.toLocaleString()}`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  100g Severe Shock Events: ${total100g.toLocaleString()}`, 25, yPos);
+        yPos += 10;
+      }
+
+      // Voltage Analysis
+      const voltageData = validSensorData.filter(d => 
+        d.vBatt !== null && !isNaN(d.vBatt as number) && isFinite(d.vBatt as number) && (d.vBatt as number) > 0 && (d.vBatt as number) < 50
+      );
+      if (voltageData.length > 0) {
+        const avgVoltage = voltageData.reduce((sum, d) => sum + (d.vBatt as number), 0) / voltageData.length;
+        const minVoltage = Math.min(...voltageData.map(d => d.vBatt as number));
+        pdf.text(`Power System Analysis:`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Battery Voltage: Avg ${avgVoltage.toFixed(2)}V, Min ${minVoltage.toFixed(2)}V`, 25, yPos);
+        yPos += 6;
+        
+        const stableReadings = voltageData.filter(d => (d.vBatt as number) > 10);
+        const stability = (stableReadings.length / voltageData.length) * 100;
+        pdf.text(`  Power Stability: ${stability.toFixed(1)}% readings above 10V`, 25, yPos);
         yPos += 10;
       }
 
