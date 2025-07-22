@@ -201,16 +201,25 @@ export class BinaryParser {
         recordIndex += currentBatchSize;
         batchIndex++;
 
-        // More frequent garbage collection for memory management
-        if (batchIndex % 5 === 0 && global.gc) {
-          global.gc();
-        }
-        
-        // Clear batch data immediately after processing to free memory
-        if (batch) {
-          for (const key in batch) {
-            (batch as any)[key].length = 0; // Clear arrays
+        // Immediate cleanup after each batch for memory efficiency
+        batch.RTD.length = 0;
+        batch.TempMP.length = 0;
+        batch.ResetMP.length = 0;
+        batch.BatteryCurrMP.length = 0;
+        batch.BatteryVoltMP.length = 0;
+        batch.FlowStatus.length = 0;
+        batch.MaxX.length = 0;
+        batch.MaxY.length = 0;
+        batch.MaxZ.length = 0;
+        // Clear all other arrays to free memory immediately
+        Object.keys(batch).forEach(key => {
+          if (Array.isArray((batch as any)[key])) {
+            (batch as any)[key].length = 0;
           }
+        });
+        
+        if (global.gc) {
+          global.gc();
         }
       }
     } finally {
@@ -331,16 +340,25 @@ export class BinaryParser {
         recordIndex += currentBatchSize;
         batchIndex++;
 
-        // More frequent garbage collection for memory management  
-        if (batchIndex % 5 === 0 && global.gc) {
-          global.gc();
-        }
-        
-        // Clear batch data immediately after processing to free memory
-        if (batch) {
-          for (const key in batch) {
-            (batch as any)[key].length = 0; // Clear arrays
+        // Immediate cleanup after each batch for memory efficiency  
+        batch.RTD.length = 0;
+        batch.TempMP.length = 0;
+        batch.ResetMP.length = 0;
+        batch.BatteryCurrMP.length = 0;
+        batch.BatteryVoltMP.length = 0;
+        batch.FlowStatus.length = 0;
+        batch.MaxX.length = 0;
+        batch.MaxY.length = 0;
+        batch.MaxZ.length = 0;
+        // Clear all other arrays to free memory immediately
+        Object.keys(batch).forEach(key => {
+          if (Array.isArray((batch as any)[key])) {
+            (batch as any)[key].length = 0;
           }
+        });
+        
+        if (global.gc) {
+          global.gc();
         }
       }
     } finally {

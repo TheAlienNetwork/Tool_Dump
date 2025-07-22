@@ -200,12 +200,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Streaming processing function to handle large datasets
+// Ultra-fast streaming processing with memory control
 async function processMemoryDumpStreaming(dumpId: number, filePath: string, filename: string, fileType: string) {
   let processed = 0;
   
   try {
-    console.log(`Starting streaming processing for dump ${dumpId}: ${filename}`);
+    console.log(`Starting ultra-fast processing for dump ${dumpId}: ${filename}`);
     await storage.updateMemoryDumpStatus(dumpId, 'processing');
 
     // Check file size
@@ -222,11 +222,11 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Process in very small chunks for maximum memory efficiency  
-    const CHUNK_SIZE = 100; // Minimal batch size to prevent memory issues
-    const data = await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
+    // Optimized for maximum speed with controlled memory
+    const CHUNK_SIZE = 2000; // Much larger chunks for maximum processing speed
+    await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
-        // Convert batch to sensor data format
+        // Direct conversion to database format - no intermediate objects
         const sensorDataBatch = BinaryParser.convertToSensorDataArray({
           RTD: batch.RTD,
           TempMP: batch.TempMP,
@@ -281,43 +281,29 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           SurveyCAZM: batch.SurveyCAZM,
         }, dumpId);
 
-        // Store batch immediately
+        // Store immediately and clear
         await storage.createSensorData(sensorDataBatch);
-        
         processed += sensorDataBatch.length;
-        
-        // Clear the batch data immediately after storage to free memory
-        sensorDataBatch.length = 0;
-        
-        // More frequent garbage collection for memory management
-        if (batchIndex % 5 === 0) {
-          if (global.gc) {
-            global.gc();
-          }
-          
-          const currentMemory = process.memoryUsage();
-          if (batchIndex % 25 === 0) { // Log every 25 batches
-            console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
-          }
-          
-          // Stop processing if memory gets too high to prevent crashes
-          if (currentMemory.heapUsed > 250 * 1024 * 1024) { // Even lower 250MB limit
-            // Force multiple GC cycles and wait longer
-            for (let i = 0; i < 3; i++) {
-              if (global.gc) global.gc();
-              await new Promise(resolve => setTimeout(resolve, 50));
-            }
-          }
+
+        // Controlled cleanup for speed vs memory balance
+        if (global.gc && batchIndex % 5 === 0) {
+          global.gc();
         }
         
-        return true; // Continue processing
+        // Minimal logging for maximum speed
+        if (batchIndex % 20 === 0) {
+          const currentMemory = process.memoryUsage();
+          console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+        }
+        
+        return true;
       } catch (error) {
         console.error(`Error processing batch ${batchIndex}:`, error);
-        return false; // Stop processing on error
+        return false;
       }
     });
 
-    console.log(`Completed streaming processing for dump ${dumpId}. Total records: ${processed}`);
+    console.log(`Completed ultra-fast processing for dump ${dumpId}. Total records: ${processed}`);
 
     // Simple analysis on a sample of the data to avoid memory issues
     const sampleData = await storage.getSensorDataByDumpId(dumpId, 1000);
