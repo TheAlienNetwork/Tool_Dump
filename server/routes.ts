@@ -207,6 +207,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deviceReport: data.deviceReport
       };
 
+      // Debug log the device report data being sent to PDF
+      console.log('📄 PDF Generation - Device Report Data:', JSON.stringify(data.deviceReport, null, 2));
+      
       // Generate PDF
       const pdfBuffer = await PDFGenerator.generateReport(reportData);
 
@@ -401,7 +404,7 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       analysisResults,
       deviceReport: {
         id: dumpId,
-        dumpId,
+        dumpId: dumpId,
         generatedAt: new Date(),
         ...deviceInfo
       }

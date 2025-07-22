@@ -299,9 +299,19 @@ export class BinaryParser {
           batch.ShockCountLat50.push(null);
           batch.ShockCountLat100.push(null);
           // Extract rotation data from MP files - these ARE available in MP
-          batch.RotRpmMax.push(this.readFloat32LE(buffer, bufferOffset + 96));
-          batch.RotRpmAvg.push(this.readFloat32LE(buffer, bufferOffset + 100));
-          batch.RotRpmMin.push(this.readFloat32LE(buffer, bufferOffset + 104));
+          const rpmMax = this.readFloat32LE(buffer, bufferOffset + 96);
+          const rpmAvg = this.readFloat32LE(buffer, bufferOffset + 100);
+          const rpmMin = this.readFloat32LE(buffer, bufferOffset + 104);
+          
+          // Validate rotation data before adding to ensure meaningful values
+          batch.RotRpmMax.push((rpmMax > 0 && rpmMax < 10000) ? rpmMax : null);
+          batch.RotRpmAvg.push((rpmAvg > 0 && rpmAvg < 10000) ? rpmAvg : null);
+          batch.RotRpmMin.push((rpmMin > 0 && rpmMin < 10000) ? rpmMin : null);
+          
+          // Log first valid rotation values for debugging
+          if (recordIndex < 5 && (rpmMax > 0 || rpmAvg > 0 || rpmMin > 0)) {
+            console.log(`🔄 MP Rotation data at record ${recordIndex}: Max=${rpmMax}, Avg=${rpmAvg}, Min=${rpmMin}`);
+          }
           
           // Extract voltage data from MP files - these ARE available in MP
           batch.V3_3VA_DI.push(this.readFloat32LE(buffer, bufferOffset + 52));
