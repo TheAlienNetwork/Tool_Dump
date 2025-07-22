@@ -23,36 +23,41 @@ export class AnalysisEngine {
 
     console.log(`Starting advanced AI analysis on ${data.length} sensor records...`);
 
-    // Advanced AI Health Analysis
+    // Advanced AI Health Analysis - REALISTIC THRESHOLDS for fresh data
     // 1. Temperature extremes and trends
-    const tempData = data.filter(d => d.tempMP !== null).map(d => ({ value: d.tempMP!, rtd: d.rtd }));
+    const tempData = data.filter(d => d.tempMP !== null && d.tempMP > 0).map(d => ({ value: d.tempMP!, rtd: d.rtd }));
     if (tempData.length > 0) {
       const tempMax = tempData.reduce((max, d) => Math.max(max, d.value), -Infinity);
       const tempMin = tempData.reduce((min, d) => Math.min(min, d.value), Infinity);
+      const tempAvg = tempData.reduce((sum, d) => sum + d.value, 0) / tempData.length;
       
-      const highTempData = tempData.filter(d => d.value > 130);
-      if (highTempData.length > 0) {
+      console.log(`🌡️ Temperature analysis: Min=${tempMin.toFixed(1)}°F, Max=${tempMax.toFixed(1)}°F, Avg=${tempAvg.toFixed(1)}°F`);
+      
+      // Only flag temperatures that are actually dangerous (realistic thresholds)
+      const highTempData = tempData.filter(d => d.value > 220); // 220°F = 104°C (realistic danger threshold)
+      if (highTempData.length > tempData.length * 0.05) { // Only if >5% of readings are dangerous
         issues.push({
-          issue: `High temperature spike: ${tempMax.toFixed(1)}°F`,
-          explanation: "Overheating risk or sensor fault detected.",
+          issue: `High temperature detected: ${tempMax.toFixed(1)}°F`,
+          explanation: "Temperature exceeded safe operating limits",
           severity: 'critical',
           count: highTempData.length,
           firstTime: highTempData[0].rtd,
           lastTime: highTempData[highTempData.length - 1].rtd,
-          times: highTempData.map(d => d.rtd)
+          times: highTempData.slice(0, 100).map(d => d.rtd) // Limit to first 100 occurrences
         });
       }
       
-      const lowTempData = tempData.filter(d => d.value < 100);
-      if (lowTempData.length > 0) {
+      // Only flag if temperature is unusually low for extended periods
+      const lowTempData = tempData.filter(d => d.value < 32); // Below freezing
+      if (lowTempData.length > tempData.length * 0.1) { // Only if >10% of readings are below freezing
         issues.push({
-          issue: `Low temperature dip: ${tempMin.toFixed(1)}°F`,
-          explanation: "Unusual cooling or sensor error detected.",
+          issue: `Low temperature detected: ${tempMin.toFixed(1)}°F`,
+          explanation: "Temperature below normal operating range",
           severity: 'warning',
           count: lowTempData.length,
           firstTime: lowTempData[0].rtd,
           lastTime: lowTempData[lowTempData.length - 1].rtd,
-          times: lowTempData.map(d => d.rtd)
+          times: lowTempData.slice(0, 100).map(d => d.rtd) // Limit to first 100 occurrences
         });
       }
     }

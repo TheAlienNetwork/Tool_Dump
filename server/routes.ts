@@ -32,6 +32,13 @@ interface ProcessedData {
 const memoryStore = new Map<number, ProcessedData>();
 let currentId = 1;
 
+// Clear stale cache data function
+const clearStaleCache = () => {
+  console.log('🔄 Clearing stale cache to ensure fresh data display');
+  memoryStore.clear();
+  currentId = 1;
+};
+
 const upload = multer({ 
   dest: 'uploads/',
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
@@ -65,6 +72,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!files || files.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
       }
+
+      // Clear stale cache for fresh data from new uploads
+      clearStaleCache();
+      console.log('🔄 Processing complete - cache cleared for fresh data display');
 
       // Process all files immediately
       const results = await Promise.all(files.map(async (file: Express.Multer.File) => {
