@@ -181,14 +181,15 @@ export class BinaryParser {
           batch.AccelStabZ.push(this.readFloat32LE(buffer, bufferOffset + 104));
           batch.AccelStabZH.push(this.readFloat32LE(buffer, bufferOffset + 108));
 
-          // Survey data
+          // Survey data - adjust offsets to fit within 128-byte record
           batch.SurveyTGF.push(this.readFloat32LE(buffer, bufferOffset + 112));
           batch.SurveyTMF.push(this.readFloat32LE(buffer, bufferOffset + 116));
           batch.SurveyDipA.push(this.readFloat32LE(buffer, bufferOffset + 120));
           batch.SurveyINC.push(this.readFloat32LE(buffer, bufferOffset + 124));
-          batch.SurveyCINC.push(this.readFloat32LE(buffer, bufferOffset + 128));
-          batch.SurveyAZM.push(this.readFloat32LE(buffer, bufferOffset + 132));
-          batch.SurveyCAZM.push(this.readFloat32LE(buffer, bufferOffset + 136));
+          // Remaining survey fields not available in current record format
+          batch.SurveyCINC.push(null);
+          batch.SurveyAZM.push(null);
+          batch.SurveyCAZM.push(null);
         }
 
         // Process batch through callback
