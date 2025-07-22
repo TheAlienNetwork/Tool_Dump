@@ -52,7 +52,7 @@ export default function Dashboard() {
               <img 
                 src="/attached_assets/ChatGPT Image Jul 22, 2025, 02_49_56 AM_1753170653088.png" 
                 alt="The Tool Dump Logo" 
-                className="h-16 w-16 object-contain"
+                className="h-16 w-17 object-contain"
                 onError={(e) => {
                   // Fallback to SVG icon if image fails to load
                   const target = e.target as HTMLImageElement;
