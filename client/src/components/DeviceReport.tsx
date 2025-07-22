@@ -12,7 +12,9 @@ import {
   MapPin, 
   Gauge,
   Cpu,
-  HardDrive
+  HardDrive,
+  Wrench,
+  AlertTriangle
 } from "lucide-react";
 
 interface DeviceReportProps {
