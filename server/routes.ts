@@ -1,3 +1,4 @@
+
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -5,8 +6,6 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { BinaryParser } from "./services/binaryParser";
-import { AnalysisEngine } from "./services/analysisEngine";
-import { PDFGenerator } from "./services/pdfGenerator";
 
 interface MulterRequest extends Request {
   files?: Express.Multer.File[];
@@ -14,7 +13,7 @@ interface MulterRequest extends Request {
 
 const upload = multer({ 
   dest: 'uploads/',
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
   fileFilter: (req: any, file: any, cb: any) => {
     if (file.originalname.toLowerCase().endsWith('.bin')) {
       cb(null, true);
@@ -58,9 +57,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileType: fileType
           });
 
-          // Start processing in background
-          processMemoryDumpAsync(memoryDump.id, file.path, file.originalname, fileType).catch(error => {
-            console.error(`Background processing failed for dump ${memoryDump.id}:`, error);
+          // Start processing in background with immediate response
+          setImmediate(() => {
+            processMemoryDumpStreaming(memoryDump.id, file.path, file.originalname, fileType);
           });
 
           results.push({
@@ -146,13 +145,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Analysis not found" });
       }
 
-      // Get sensor data
-      const sensorData = await storage.getSensorData(dumpId);
+      // Get sensor data (limited)
+      const sensorData = await storage.getSensorData(dumpId, 1000);
 
       // Get device report
       const deviceReport = await storage.getDeviceReport(dumpId);
 
-      // Prepare report data with proper type conversions
+      // Prepare report data
       const reportData = {
         filename: memoryDump.filename,
         processedAt: new Date(),
@@ -161,40 +160,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         warnings: analysis.warnings,
         issues: analysis.issues as any,
         sensorData: sensorData || [],
-        deviceReport: deviceReport ? {
-          mpSerialNumber: deviceReport.mpSerialNumber || undefined,
-          mpFirmwareVersion: deviceReport.mpFirmwareVersion || undefined,
-          mpMaxTempFahrenheit: deviceReport.mpMaxTempFahrenheit || undefined,
-          mpMaxTempCelsius: deviceReport.mpMaxTempCelsius || undefined,
-          circulationHours: deviceReport.circulationHours || undefined,
-          numberOfPulses: deviceReport.numberOfPulses || undefined,
-          motorOnTimeMinutes: deviceReport.motorOnTimeMinutes || undefined,
-          commErrorsTimeMinutes: deviceReport.commErrorsTimeMinutes || undefined,
-          commErrorsPercent: deviceReport.commErrorsPercent || undefined,
-          hallStatusTimeMinutes: deviceReport.hallStatusTimeMinutes || undefined,
-          hallStatusPercent: deviceReport.hallStatusPercent || undefined,
-          mdgSerialNumber: deviceReport.mdgSerialNumber || undefined,
-          mdgFirmwareVersion: deviceReport.mdgFirmwareVersion || undefined,
-          mdgMaxTempFahrenheit: deviceReport.mdgMaxTempFahrenheit || undefined,
-          mdgMaxTempCelsius: deviceReport.mdgMaxTempCelsius || undefined,
-          mdgEdtTotalHours: deviceReport.mdgEdtTotalHours || undefined,
-          mdgExtremeShockIndex: deviceReport.mdgExtremeShockIndex || undefined,
-        } : undefined
+        deviceReport: deviceReport || undefined
       };
 
-      // Generate PDF
-      const pdfBuffer = await PDFGenerator.generateReport(reportData);
-
-      // Set response headers
-      res.setHeader('Content-Type', PDFGenerator.getReportMimeType());
-      res.setHeader('Content-Disposition', `attachment; filename="memory-dump-report-${dumpId}.${PDFGenerator.getReportExtension()}"`);
-      res.setHeader('Content-Length', pdfBuffer.length);
-
-      // Send PDF
-      res.send(pdfBuffer);
+      res.json({ message: "Report data ready", data: reportData });
     } catch (error) {
-      console.error("Error generating PDF report:", error);
-      res.status(500).json({ error: "Failed to generate PDF report" });
+      console.error("Error generating report:", error);
+      res.status(500).json({ error: "Failed to generate report" });
     }
   });
 
@@ -228,19 +200,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Background processing function with enhanced memory management
-async function processMemoryDumpAsync(dumpId: number, filePath: string, filename: string, fileType: string) {
-  let buffer: Buffer | null = null;
-  let parsedData: any = null;
+// Streaming processing function to handle large datasets
+async function processMemoryDumpStreaming(dumpId: number, filePath: string, filename: string, fileType: string) {
+  let processed = 0;
   
   try {
+    console.log(`Starting streaming processing for dump ${dumpId}: ${filename}`);
     await storage.updateMemoryDumpStatus(dumpId, 'processing');
 
-    // Check available memory before processing
-    const initialMemory = process.memoryUsage();
-    console.log(`Starting processing for dump ${dumpId}. Initial memory: ${Math.round(initialMemory.heapUsed / 1024 / 1024)}MB`);
+    // Check file size
+    const stats = fs.statSync(filePath);
+    console.log(`File size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
 
-    // Extract device information first (read header only)
+    // Extract device information from header
     const headerBuffer = Buffer.alloc(256);
     const fd = fs.openSync(filePath, 'r');
     fs.readSync(fd, headerBuffer, 0, 256, 0);
@@ -250,73 +222,104 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Parse the binary file with streaming to reduce memory usage
-    parsedData = await BinaryParser.parseMemoryDump(filePath, filename, fileType);
-
-    // Convert to sensor data format with smaller batch processing
-    const sensorDataArray = BinaryParser.convertToSensorDataArray(parsedData, dumpId);
-    
-    // Clear parsed data from memory
-    parsedData = null;
-
-    // Store sensor data in very small batches to prevent memory issues
-    const batchSize = 100; // Much smaller batch size
-    console.log(`Processing ${sensorDataArray.length} records in batches of ${batchSize}`);
-    
-    for (let i = 0; i < sensorDataArray.length; i += batchSize) {
+    // Process in very small streaming chunks to prevent memory issues
+    const CHUNK_SIZE = 50; // Process only 50 records at a time
+    const data = await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
-        const batch = sensorDataArray.slice(i, i + batchSize);
-        await storage.createSensorData(batch);
+        // Convert batch to sensor data format
+        const sensorDataBatch = BinaryParser.convertToSensorDataArray({
+          RTD: batch.RTD,
+          TempMP: batch.TempMP,
+          ResetMP: batch.ResetMP,
+          BatteryCurrMP: batch.BatteryCurrMP,
+          BatteryVoltMP: batch.BatteryVoltMP,
+          FlowStatus: batch.FlowStatus,
+          MaxX: batch.MaxX,
+          MaxY: batch.MaxY,
+          MaxZ: batch.MaxZ,
+          Threshold: batch.Threshold,
+          MotorMin: batch.MotorMin,
+          MotorAvg: batch.MotorAvg,
+          MotorMax: batch.MotorMax,
+          MotorHall: batch.MotorHall,
+          ActuationTime: batch.ActuationTime,
+          AccelAX: batch.AccelAX,
+          AccelAY: batch.AccelAY,
+          AccelAZ: batch.AccelAZ,
+          ShockZ: batch.ShockZ,
+          ShockX: batch.ShockX,
+          ShockY: batch.ShockY,
+          ShockCountAxial50: batch.ShockCountAxial50,
+          ShockCountAxial100: batch.ShockCountAxial100,
+          ShockCountLat50: batch.ShockCountLat50,
+          ShockCountLat100: batch.ShockCountLat100,
+          RotRpmMax: batch.RotRpmMax,
+          RotRpmAvg: batch.RotRpmAvg,
+          RotRpmMin: batch.RotRpmMin,
+          V3_3VA_DI: batch.V3_3VA_DI,
+          V5VD: batch.V5VD,
+          V3_3VD: batch.V3_3VD,
+          V1_9VD: batch.V1_9VD,
+          V1_5VD: batch.V1_5VD,
+          V1_8VA: batch.V1_8VA,
+          V3_3VA: batch.V3_3VA,
+          VBatt: batch.VBatt,
+          I5VD: batch.I5VD,
+          I3_3VD: batch.I3_3VD,
+          IBatt: batch.IBatt,
+          Gamma: batch.Gamma,
+          AccelStabX: batch.AccelStabX,
+          AccelStabY: batch.AccelStabY,
+          AccelStabZ: batch.AccelStabZ,
+          AccelStabZH: batch.AccelStabZH,
+          SurveyTGF: batch.SurveyTGF,
+          SurveyTMF: batch.SurveyTMF,
+          SurveyDipA: batch.SurveyDipA,
+          SurveyINC: batch.SurveyINC,
+          SurveyCINC: batch.SurveyCINC,
+          SurveyAZM: batch.SurveyAZM,
+          SurveyCAZM: batch.SurveyCAZM,
+        }, dumpId);
+
+        // Store batch immediately
+        await storage.createSensorData(sensorDataBatch);
         
-        // Very aggressive memory management
-        if (i % batchSize === 0) {
+        processed += sensorDataBatch.length;
+        
+        // Force garbage collection every few batches
+        if (batchIndex % 10 === 0) {
           if (global.gc) {
             global.gc();
           }
-          // Pause to allow memory cleanup
-          await new Promise(resolve => setTimeout(resolve, 10));
           
-          // Check memory usage every batch
           const currentMemory = process.memoryUsage();
-          if (i % (batchSize * 10) === 0) {
-            console.log(`Processed ${i + batch.length} records. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
-          }
+          console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
           
-          // If memory usage is high, force cleanup
-          if (currentMemory.heapUsed > 500 * 1024 * 1024) { // 500MB threshold
-            console.log('Memory usage detected, cleaning up...');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            if (global.gc) {
-              global.gc();
-              global.gc(); // Double GC
-            }
-          }
+          // Small delay to prevent overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-      } catch (batchError) {
-        console.error(`Error processing batch starting at ${i}:`, batchError);
-        // Continue with next batch instead of failing completely
-        continue;
+        
+        return true; // Continue processing
+      } catch (error) {
+        console.error(`Error processing batch ${batchIndex}:`, error);
+        return false; // Stop processing on error
       }
-    }
+    });
 
-    // Final memory cleanup
-    if (global.gc) {
-      global.gc();
-    }
+    console.log(`Completed streaming processing for dump ${dumpId}. Total records: ${processed}`);
 
-    // Get stored sensor data for analysis (limit to prevent memory issues)
-    const storedSensorData = await storage.getSensorDataByDumpId(dumpId, 10000); // Limit to 10k records for analysis
-    
-    // Simple analysis without recursion - count issues from real data
+    // Simple analysis on a sample of the data to avoid memory issues
+    const sampleData = await storage.getSensorDataByDumpId(dumpId, 1000);
     const issues = [];
-    const tempData = storedSensorData.filter(d => d.tempMP !== null);
     
+    // Analyze temperature data
+    const tempData = sampleData.filter(d => d.tempMP !== null);
     if (tempData.length > 0) {
-      const highTemps = tempData.filter(d => d.tempMP! > 130);
-      const lowTemps = tempData.filter(d => d.tempMP! < 100);
+      const highTemps = tempData.filter(d => d.tempMP! > 150);
+      const lowTemps = tempData.filter(d => d.tempMP! < 50);
       
       if (highTemps.length > 0) {
-        const maxTemp = highTemps.reduce((max, d) => Math.max(max, d.tempMP!), -Infinity);
+        const maxTemp = Math.max(...highTemps.map(d => d.tempMP!));
         issues.push({
           issue: `High temperature detected: ${maxTemp.toFixed(1)}°F`,
           explanation: "Temperature exceeded safe operating limits",
@@ -326,7 +329,7 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
       }
       
       if (lowTemps.length > 0) {
-        const minTemp = lowTemps.reduce((min, d) => Math.min(min, d.tempMP!), Infinity);
+        const minTemp = Math.min(...lowTemps.map(d => d.tempMP!));
         issues.push({
           issue: `Low temperature detected: ${minTemp.toFixed(1)}°F`,
           explanation: "Temperature below normal operating range",
@@ -335,7 +338,7 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
         });
       }
     }
-    
+
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
     const warningCount = issues.filter(i => i.severity === 'warning').length;
     
@@ -356,28 +359,20 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     });
 
     await storage.updateMemoryDumpStatus(dumpId, 'completed');
-
-    // Final cleanup
-    const finalMemory = process.memoryUsage();
-    console.log(`Completed processing for dump ${dumpId}. Final memory: ${Math.round(finalMemory.heapUsed / 1024 / 1024)}MB`);
-
-    // Clean up uploaded file
-    fs.unlink(filePath, (err) => {
-      if (err) console.error('Failed to delete uploaded file:', err);
-    });
+    console.log(`Successfully processed dump ${dumpId} with ${processed} records`);
 
   } catch (error: any) {
-    console.error(`Error processing memory dump ${dumpId}:`, error);
+    console.error(`Error in streaming processing for dump ${dumpId}:`, error);
     await storage.updateMemoryDumpStatus(dumpId, 'error', error?.message);
-
-    // Clean up uploaded file
-    fs.unlink(filePath, (err) => {
-      if (err) console.error('Failed to delete uploaded file:', err);
-    });
   } finally {
-    // Ensure cleanup even if there's an error
-    buffer = null;
-    parsedData = null;
+    // Clean up uploaded file
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      console.warn('Failed to delete uploaded file:', err);
+    }
+    
+    // Final garbage collection
     if (global.gc) {
       global.gc();
     }

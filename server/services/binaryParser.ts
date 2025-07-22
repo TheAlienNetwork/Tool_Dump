@@ -1,3 +1,4 @@
+
 import fs from 'fs';
 import { InsertDeviceReport, InsertSensorData } from '@shared/schema';
 
@@ -56,330 +57,305 @@ export interface ParsedData {
 }
 
 export class BinaryParser {
-  static async parseMemoryDump(filePath: string, filename: string, fileType: string): Promise<ParsedData> {
+  // New streaming parser for large datasets
+  static async parseMemoryDumpStream(
+    filePath: string, 
+    filename: string, 
+    fileType: string, 
+    batchSize: number,
+    batchCallback: (batch: ParsedData, batchIndex: number) => Promise<boolean>
+  ): Promise<void> {
     try {
-      // Check file size before processing
       const stats = fs.statSync(filePath);
-      if (stats.size > 50 * 1024 * 1024) { // Reduced to 50MB limit
-        throw new Error(`File too large: ${stats.size} bytes. Maximum allowed: 50MB`);
-      }
-
-      console.log(`Starting to parse ${fileType} file: ${filename} (${stats.size} bytes)`);
+      console.log(`Starting streaming parse of ${fileType} file: ${filename} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
       
-      // Initialize data structure with limited initial capacity
-      const data: ParsedData = {
-        RTD: [], 
-        TempMP: [], 
-        ResetMP: [], 
-        BatteryCurrMP: [], 
-        BatteryVoltMP: [], 
-        FlowStatus: [],
-        MaxX: [], 
-        MaxY: [], 
-        MaxZ: [], 
-        Threshold: [],
-        MotorMin: [], 
-        MotorAvg: [], 
-        MotorMax: [], 
-        MotorHall: [], 
-        ActuationTime: [],
-        AccelAX: [], 
-        AccelAY: [], 
-        AccelAZ: [],
-        ShockZ: [], 
-        ShockX: [], 
-        ShockY: [],
-        ShockCountAxial50: [], 
-        ShockCountAxial100: [], 
-        ShockCountLat50: [], 
-        ShockCountLat100: [],
-        RotRpmMax: [], 
-        RotRpmAvg: [], 
-        RotRpmMin: [],
-        V3_3VA_DI: [], 
-        V5VD: [], 
-        V3_3VD: [], 
-        V1_9VD: [], 
-        V1_5VD: [], 
-        V1_8VA: [], 
-        V3_3VA: [], 
-        VBatt: [],
-        I5VD: [], 
-        I3_3VD: [], 
-        IBatt: [],
-        Gamma: [],
-        AccelStabX: [], 
-        AccelStabY: [], 
-        AccelStabZ: [], 
-        AccelStabZH: [],
-        SurveyTGF: [], 
-        SurveyTMF: [], 
-        SurveyDipA: [], 
-        SurveyINC: [], 
-        SurveyCINC: [], 
-        SurveyAZM: [], 
-        SurveyCAZM: []
-      };
-
-      // Parse based on device type with streaming approach
       if (fileType === 'MDG') {
-        await this.parseMDGFileStreaming(filePath, data, filename);
+        await this.parseMDGFileInBatches(filePath, filename, batchSize, batchCallback);
       } else if (fileType === 'MP') {
-        await this.parseMPFileStreaming(filePath, data, filename);
+        await this.parseMPFileInBatches(filePath, filename, batchSize, batchCallback);
       }
       
-      // Force garbage collection after parsing
-      if (global.gc) {
-        global.gc();
-      }
-      
-      console.log(`Completed parsing ${fileType} file: ${data.RTD.length} records`);
-      return data;
+      console.log(`Completed streaming parse of ${fileType} file: ${filename}`);
     } catch (error: any) {
-      console.error(`Error parsing binary file ${filename}:`, error);
-      throw new Error(`Failed to parse binary file ${filename}: ${error.message}`);
+      console.error(`Error in streaming parse of ${filename}:`, error);
+      throw error;
     }
   }
 
-  // Parse MDG file format with streaming to reduce memory usage
-  static async parseMDGFileStreaming(filePath: string, data: ParsedData, filename: string) {
+  // Stream MDG file in small batches
+  static async parseMDGFileInBatches(
+    filePath: string, 
+    filename: string, 
+    batchSize: number,
+    batchCallback: (batch: ParsedData, batchIndex: number) => Promise<boolean>
+  ): Promise<void> {
     const headerSize = 256;
-    const recordSize = 128; // MDG record size
-    const chunkSize = 64 * 1024; // 64KB chunks
-    
-    // Get file stats
+    const recordSize = 128;
     const stats = fs.statSync(filePath);
-    const numRecords = Math.floor((stats.size - headerSize) / recordSize);
+    const totalRecords = Math.floor((stats.size - headerSize) / recordSize);
     
-    console.log(`Parsing MDG file: ${numRecords} records`);
+    console.log(`Processing MDG file in batches of ${batchSize}. Total records: ${totalRecords}`);
     
-    // Extract base timestamp from filename
     const baseTime = this.extractTimestamp(filename);
-    
-    // Read file in chunks to avoid loading entire file into memory
     const fd = fs.openSync(filePath, 'r');
-    let currentOffset = headerSize;
-    let recordIndex = 0;
     
     try {
-      while (currentOffset < stats.size && recordIndex < numRecords) {
-        // Read chunk
-        const buffer = Buffer.alloc(Math.min(chunkSize, stats.size - currentOffset));
-        const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, currentOffset);
+      let recordIndex = 0;
+      let batchIndex = 0;
+      
+      while (recordIndex < totalRecords) {
+        const currentBatchSize = Math.min(batchSize, totalRecords - recordIndex);
+        const buffer = Buffer.alloc(currentBatchSize * recordSize);
         
-        // Process records in this chunk
-        let bufferOffset = 0;
-        while (bufferOffset + recordSize <= bytesRead && recordIndex < numRecords) {
+        // Read batch of records
+        const offset = headerSize + (recordIndex * recordSize);
+        fs.readSync(fd, buffer, 0, buffer.length, offset);
+        
+        // Create batch data structure
+        const batch: ParsedData = this.createEmptyDataStructure();
+        
+        // Process records in this batch
+        for (let i = 0; i < currentBatchSize; i++) {
+          const bufferOffset = i * recordSize;
+          
           // Time progression (2 second intervals for MDG)
-          data.RTD.push(new Date(baseTime.getTime() + (recordIndex * 2000)));
+          batch.RTD.push(new Date(baseTime.getTime() + ((recordIndex + i) * 2000)));
           
           // MP-specific fields (not available in MDG) - set to null
-          data.TempMP.push(null);
-          data.BatteryCurrMP.push(null);
-          data.BatteryVoltMP.push(null);
-          data.FlowStatus.push(null);
-          data.MaxX.push(null);
-          data.MaxY.push(null);
-          data.MaxZ.push(null);
-          data.Threshold.push(null);
-          data.MotorMin.push(null);
-          data.MotorAvg.push(null);
-          data.MotorMax.push(null);
-          data.MotorHall.push(null);
-          data.ActuationTime.push(null);
+          batch.TempMP.push(null);
+          batch.BatteryCurrMP.push(null);
+          batch.BatteryVoltMP.push(null);
+          batch.FlowStatus.push(null);
+          batch.MaxX.push(null);
+          batch.MaxY.push(null);
+          batch.MaxZ.push(null);
+          batch.Threshold.push(null);
+          batch.MotorMin.push(null);
+          batch.MotorAvg.push(null);
+          batch.MotorMax.push(null);
+          batch.MotorHall.push(null);
+          batch.ActuationTime.push(null);
           
-          // MDG Accel data
-          data.AccelAX.push(this.readFloat32LE(buffer, bufferOffset + 0));
-          data.AccelAY.push(this.readFloat32LE(buffer, bufferOffset + 4));
-          data.AccelAZ.push(this.readFloat32LE(buffer, bufferOffset + 8));
-          data.ResetMP.push(this.readUInt8(buffer, bufferOffset + 12));
+          // MDG-specific data
+          batch.AccelAX.push(this.readFloat32LE(buffer, bufferOffset + 0));
+          batch.AccelAY.push(this.readFloat32LE(buffer, bufferOffset + 4));
+          batch.AccelAZ.push(this.readFloat32LE(buffer, bufferOffset + 8));
+          batch.ResetMP.push(this.readUInt8(buffer, bufferOffset + 12));
           
-          // Shock data  
-          data.ShockZ.push(this.readFloat32LE(buffer, bufferOffset + 16));
-          data.ShockX.push(this.readFloat32LE(buffer, bufferOffset + 20));
-          data.ShockY.push(this.readFloat32LE(buffer, bufferOffset + 24));
+          // Shock data
+          batch.ShockZ.push(this.readFloat32LE(buffer, bufferOffset + 16));
+          batch.ShockX.push(this.readFloat32LE(buffer, bufferOffset + 20));
+          batch.ShockY.push(this.readFloat32LE(buffer, bufferOffset + 24));
           
           // Shock counters
-          data.ShockCountAxial50.push(this.readUInt16LE(buffer, bufferOffset + 28));
-          data.ShockCountAxial100.push(this.readUInt16LE(buffer, bufferOffset + 30));
-          data.ShockCountLat50.push(this.readUInt16LE(buffer, bufferOffset + 32));
-          data.ShockCountLat100.push(this.readUInt16LE(buffer, bufferOffset + 34));
+          batch.ShockCountAxial50.push(this.readUInt16LE(buffer, bufferOffset + 28));
+          batch.ShockCountAxial100.push(this.readUInt16LE(buffer, bufferOffset + 30));
+          batch.ShockCountLat50.push(this.readUInt16LE(buffer, bufferOffset + 32));
+          batch.ShockCountLat100.push(this.readUInt16LE(buffer, bufferOffset + 34));
           
           // Rotation RPM
-          data.RotRpmMax.push(this.readFloat32LE(buffer, bufferOffset + 36));
-          data.RotRpmAvg.push(this.readFloat32LE(buffer, bufferOffset + 40));
-          data.RotRpmMin.push(this.readFloat32LE(buffer, bufferOffset + 44));
+          batch.RotRpmMax.push(this.readFloat32LE(buffer, bufferOffset + 36));
+          batch.RotRpmAvg.push(this.readFloat32LE(buffer, bufferOffset + 40));
+          batch.RotRpmMin.push(this.readFloat32LE(buffer, bufferOffset + 44));
           
           // System voltages
-          data.V3_3VA_DI.push(this.readFloat32LE(buffer, bufferOffset + 48));
-          data.V5VD.push(this.readFloat32LE(buffer, bufferOffset + 52));
-          data.V3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 56));
-          data.V1_9VD.push(this.readFloat32LE(buffer, bufferOffset + 60));
-          data.V1_5VD.push(this.readFloat32LE(buffer, bufferOffset + 64));
-          data.V1_8VA.push(this.readFloat32LE(buffer, bufferOffset + 68));
-          data.V3_3VA.push(this.readFloat32LE(buffer, bufferOffset + 72));
-          data.VBatt.push(this.readFloat32LE(buffer, bufferOffset + 76));
+          batch.V3_3VA_DI.push(this.readFloat32LE(buffer, bufferOffset + 48));
+          batch.V5VD.push(this.readFloat32LE(buffer, bufferOffset + 52));
+          batch.V3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 56));
+          batch.V1_9VD.push(this.readFloat32LE(buffer, bufferOffset + 60));
+          batch.V1_5VD.push(this.readFloat32LE(buffer, bufferOffset + 64));
+          batch.V1_8VA.push(this.readFloat32LE(buffer, bufferOffset + 68));
+          batch.V3_3VA.push(this.readFloat32LE(buffer, bufferOffset + 72));
+          batch.VBatt.push(this.readFloat32LE(buffer, bufferOffset + 76));
           
           // System currents
-          data.I5VD.push(this.readFloat32LE(buffer, bufferOffset + 80));
-          data.I3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 84));
-          data.IBatt.push(this.readFloat32LE(buffer, bufferOffset + 88));
+          batch.I5VD.push(this.readFloat32LE(buffer, bufferOffset + 80));
+          batch.I3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 84));
+          batch.IBatt.push(this.readFloat32LE(buffer, bufferOffset + 88));
           
           // Gamma radiation
-          data.Gamma.push(this.readUInt16LE(buffer, bufferOffset + 92));
+          batch.Gamma.push(this.readUInt16LE(buffer, bufferOffset + 92));
           
           // Acceleration stability
-          data.AccelStabX.push(this.readFloat32LE(buffer, bufferOffset + 96));
-          data.AccelStabY.push(this.readFloat32LE(buffer, bufferOffset + 100));
-          data.AccelStabZ.push(this.readFloat32LE(buffer, bufferOffset + 104));
-          data.AccelStabZH.push(this.readFloat32LE(buffer, bufferOffset + 108));
+          batch.AccelStabX.push(this.readFloat32LE(buffer, bufferOffset + 96));
+          batch.AccelStabY.push(this.readFloat32LE(buffer, bufferOffset + 100));
+          batch.AccelStabZ.push(this.readFloat32LE(buffer, bufferOffset + 104));
+          batch.AccelStabZH.push(this.readFloat32LE(buffer, bufferOffset + 108));
           
           // Survey data
-          data.SurveyTGF.push(this.readFloat32LE(buffer, bufferOffset + 112));
-          data.SurveyTMF.push(this.readFloat32LE(buffer, bufferOffset + 116));
-          data.SurveyDipA.push(this.readFloat32LE(buffer, bufferOffset + 120));
-          data.SurveyINC.push(this.readFloat32LE(buffer, bufferOffset + 124));
-          data.SurveyCINC.push(this.readFloat32LE(buffer, bufferOffset + 128));
-          data.SurveyAZM.push(this.readFloat32LE(buffer, bufferOffset + 132));
-          data.SurveyCAZM.push(this.readFloat32LE(buffer, bufferOffset + 136));
-          
-          bufferOffset += recordSize;
-          recordIndex++;
-          
-          // Periodic memory cleanup
-          if (recordIndex % 1000 === 0) {
-            if (global.gc) global.gc();
-            // Small delay to prevent memory buildup
-            await new Promise(resolve => setTimeout(resolve, 1));
-          }
+          batch.SurveyTGF.push(this.readFloat32LE(buffer, bufferOffset + 112));
+          batch.SurveyTMF.push(this.readFloat32LE(buffer, bufferOffset + 116));
+          batch.SurveyDipA.push(this.readFloat32LE(buffer, bufferOffset + 120));
+          batch.SurveyINC.push(this.readFloat32LE(buffer, bufferOffset + 124));
+          batch.SurveyCINC.push(this.readFloat32LE(buffer, bufferOffset + 128));
+          batch.SurveyAZM.push(this.readFloat32LE(buffer, bufferOffset + 132));
+          batch.SurveyCAZM.push(this.readFloat32LE(buffer, bufferOffset + 136));
         }
         
-        currentOffset += bytesRead;
+        // Process batch through callback
+        const shouldContinue = await batchCallback(batch, batchIndex);
+        if (!shouldContinue) {
+          console.log(`Stopping processing at batch ${batchIndex} due to callback request`);
+          break;
+        }
+        
+        recordIndex += currentBatchSize;
+        batchIndex++;
+        
+        // Force garbage collection every few batches
+        if (batchIndex % 5 === 0 && global.gc) {
+          global.gc();
+        }
       }
     } finally {
       fs.closeSync(fd);
     }
   }
 
-  // Parse MP file format with streaming to reduce memory usage
-  static async parseMPFileStreaming(filePath: string, data: ParsedData, filename: string) {
+  // Stream MP file in small batches
+  static async parseMPFileInBatches(
+    filePath: string, 
+    filename: string, 
+    batchSize: number,
+    batchCallback: (batch: ParsedData, batchIndex: number) => Promise<boolean>
+  ): Promise<void> {
     const headerSize = 256;
-    const recordSize = 64; // MP record size
-    const chunkSize = 64 * 1024; // 64KB chunks
-    
-    // Get file stats
+    const recordSize = 64;
     const stats = fs.statSync(filePath);
-    const numRecords = Math.floor((stats.size - headerSize) / recordSize);
+    const totalRecords = Math.floor((stats.size - headerSize) / recordSize);
     
-    console.log(`Parsing MP file: ${numRecords} records`);
+    console.log(`Processing MP file in batches of ${batchSize}. Total records: ${totalRecords}`);
     
-    // Extract base timestamp from filename
     const baseTime = this.extractTimestamp(filename);
-    
-    // Read file in chunks to avoid loading entire file into memory
     const fd = fs.openSync(filePath, 'r');
-    let currentOffset = headerSize;
-    let recordIndex = 0;
     
     try {
-      while (currentOffset < stats.size && recordIndex < numRecords) {
-        // Read chunk
-        const buffer = Buffer.alloc(Math.min(chunkSize, stats.size - currentOffset));
-        const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, currentOffset);
+      let recordIndex = 0;
+      let batchIndex = 0;
+      
+      while (recordIndex < totalRecords) {
+        const currentBatchSize = Math.min(batchSize, totalRecords - recordIndex);
+        const buffer = Buffer.alloc(currentBatchSize * recordSize);
         
-        // Process records in this chunk
-        let bufferOffset = 0;
-        while (bufferOffset + recordSize <= bytesRead && recordIndex < numRecords) {
-          // Time progression (1 second intervals for MP)
-          data.RTD.push(new Date(baseTime.getTime() + (recordIndex * 1000)));
+        // Read batch of records
+        const offset = headerSize + (recordIndex * recordSize);
+        fs.readSync(fd, buffer, 0, buffer.length, offset);
+        
+        // Create batch data structure
+        const batch: ParsedData = this.createEmptyDataStructure();
+        
+        // Process records in this batch
+        for (let i = 0; i < currentBatchSize; i++) {
+          const bufferOffset = i * recordSize;
           
-          // MP Temperature and basic data
-          data.TempMP.push(this.readFloat32LE(buffer, bufferOffset + 0));
-          data.ResetMP.push(this.readUInt8(buffer, bufferOffset + 4));
-          data.BatteryVoltMP.push(this.readFloat32LE(buffer, bufferOffset + 8));
-          data.BatteryCurrMP.push(this.readFloat32LE(buffer, bufferOffset + 12));
+          // Time progression (1 second intervals for MP)
+          batch.RTD.push(new Date(baseTime.getTime() + ((recordIndex + i) * 1000)));
+          
+          // MP-specific data
+          batch.TempMP.push(this.readFloat32LE(buffer, bufferOffset + 0));
+          batch.ResetMP.push(this.readUInt8(buffer, bufferOffset + 4));
+          batch.BatteryVoltMP.push(this.readFloat32LE(buffer, bufferOffset + 8));
+          batch.BatteryCurrMP.push(this.readFloat32LE(buffer, bufferOffset + 12));
           
           // Flow status
           const flowVal = this.readUInt8(buffer, bufferOffset + 16);
-          data.FlowStatus.push(flowVal > 0 ? 'On' : 'Off');
+          batch.FlowStatus.push(flowVal > 0 ? 'On' : 'Off');
           
-          // Vibration data (Max X, Y, Z)
-          data.MaxX.push(this.readFloat32LE(buffer, bufferOffset + 20));
-          data.MaxY.push(this.readFloat32LE(buffer, bufferOffset + 24));
-          data.MaxZ.push(this.readFloat32LE(buffer, bufferOffset + 28));
-          data.Threshold.push(1.5); // Standard threshold
+          // Vibration data
+          batch.MaxX.push(this.readFloat32LE(buffer, bufferOffset + 20));
+          batch.MaxY.push(this.readFloat32LE(buffer, bufferOffset + 24));
+          batch.MaxZ.push(this.readFloat32LE(buffer, bufferOffset + 28));
+          batch.Threshold.push(1.5);
           
           // Motor current data
-          data.MotorMin.push(this.readFloat32LE(buffer, bufferOffset + 32));
-          data.MotorAvg.push(this.readFloat32LE(buffer, bufferOffset + 36));
-          data.MotorMax.push(this.readFloat32LE(buffer, bufferOffset + 40));
-          data.MotorHall.push(this.readFloat32LE(buffer, bufferOffset + 44));
+          batch.MotorMin.push(this.readFloat32LE(buffer, bufferOffset + 32));
+          batch.MotorAvg.push(this.readFloat32LE(buffer, bufferOffset + 36));
+          batch.MotorMax.push(this.readFloat32LE(buffer, bufferOffset + 40));
+          batch.MotorHall.push(this.readFloat32LE(buffer, bufferOffset + 44));
           
           // Actuation time
-          data.ActuationTime.push(this.readFloat32LE(buffer, bufferOffset + 48));
+          batch.ActuationTime.push(this.readFloat32LE(buffer, bufferOffset + 48));
           
           // MDG-specific fields (not available in MP) - set to null
-          data.AccelAX.push(null);
-          data.AccelAY.push(null);
-          data.AccelAZ.push(null);
-          data.ShockZ.push(null);
-          data.ShockX.push(null);
-          data.ShockY.push(null);
-          data.ShockCountAxial50.push(null);
-          data.ShockCountAxial100.push(null);
-          data.ShockCountLat50.push(null);
-          data.ShockCountLat100.push(null);
-          data.RotRpmMax.push(null);
-          data.RotRpmAvg.push(null);
-          data.RotRpmMin.push(null);
-          data.V3_3VA_DI.push(null);
-          data.V5VD.push(null);
-          data.V3_3VD.push(null);
-          data.V1_9VD.push(null);
-          data.V1_5VD.push(null);
-          data.V1_8VA.push(null);
-          data.V3_3VA.push(null);
-          data.VBatt.push(null);
-          data.I5VD.push(null);
-          data.I3_3VD.push(null);
-          data.IBatt.push(null);
-          data.Gamma.push(null);
-          data.AccelStabX.push(null);
-          data.AccelStabY.push(null);
-          data.AccelStabZ.push(null);
-          data.AccelStabZH.push(null);
-          data.SurveyTGF.push(null);
-          data.SurveyTMF.push(null);
-          data.SurveyDipA.push(null);
-          data.SurveyINC.push(null);
-          data.SurveyCINC.push(null);
-          data.SurveyAZM.push(null);
-          data.SurveyCAZM.push(null);
-          
-          bufferOffset += recordSize;
-          recordIndex++;
-          
-          // Periodic memory cleanup
-          if (recordIndex % 1000 === 0) {
-            if (global.gc) global.gc();
-            // Small delay to prevent memory buildup
-            await new Promise(resolve => setTimeout(resolve, 1));
-          }
+          batch.AccelAX.push(null);
+          batch.AccelAY.push(null);
+          batch.AccelAZ.push(null);
+          batch.ShockZ.push(null);
+          batch.ShockX.push(null);
+          batch.ShockY.push(null);
+          batch.ShockCountAxial50.push(null);
+          batch.ShockCountAxial100.push(null);
+          batch.ShockCountLat50.push(null);
+          batch.ShockCountLat100.push(null);
+          batch.RotRpmMax.push(null);
+          batch.RotRpmAvg.push(null);
+          batch.RotRpmMin.push(null);
+          batch.V3_3VA_DI.push(null);
+          batch.V5VD.push(null);
+          batch.V3_3VD.push(null);
+          batch.V1_9VD.push(null);
+          batch.V1_5VD.push(null);
+          batch.V1_8VA.push(null);
+          batch.V3_3VA.push(null);
+          batch.VBatt.push(null);
+          batch.I5VD.push(null);
+          batch.I3_3VD.push(null);
+          batch.IBatt.push(null);
+          batch.Gamma.push(null);
+          batch.AccelStabX.push(null);
+          batch.AccelStabY.push(null);
+          batch.AccelStabZ.push(null);
+          batch.AccelStabZH.push(null);
+          batch.SurveyTGF.push(null);
+          batch.SurveyTMF.push(null);
+          batch.SurveyDipA.push(null);
+          batch.SurveyINC.push(null);
+          batch.SurveyCINC.push(null);
+          batch.SurveyAZM.push(null);
+          batch.SurveyCAZM.push(null);
         }
         
-        currentOffset += bytesRead;
+        // Process batch through callback
+        const shouldContinue = await batchCallback(batch, batchIndex);
+        if (!shouldContinue) {
+          console.log(`Stopping processing at batch ${batchIndex} due to callback request`);
+          break;
+        }
+        
+        recordIndex += currentBatchSize;
+        batchIndex++;
+        
+        // Force garbage collection every few batches
+        if (batchIndex % 5 === 0 && global.gc) {
+          global.gc();
+        }
       }
     } finally {
       fs.closeSync(fd);
     }
+  }
+
+  // Helper to create empty data structure
+  static createEmptyDataStructure(): ParsedData {
+    return {
+      RTD: [], TempMP: [], ResetMP: [], BatteryCurrMP: [], BatteryVoltMP: [], FlowStatus: [],
+      MaxX: [], MaxY: [], MaxZ: [], Threshold: [], MotorMin: [], MotorAvg: [], MotorMax: [], 
+      MotorHall: [], ActuationTime: [], AccelAX: [], AccelAY: [], AccelAZ: [], ShockZ: [], 
+      ShockX: [], ShockY: [], ShockCountAxial50: [], ShockCountAxial100: [], ShockCountLat50: [], 
+      ShockCountLat100: [], RotRpmMax: [], RotRpmAvg: [], RotRpmMin: [], V3_3VA_DI: [], V5VD: [], 
+      V3_3VD: [], V1_9VD: [], V1_5VD: [], V1_8VA: [], V3_3VA: [], VBatt: [], I5VD: [], I3_3VD: [], 
+      IBatt: [], Gamma: [], AccelStabX: [], AccelStabY: [], AccelStabZ: [], AccelStabZH: [], 
+      SurveyTGF: [], SurveyTMF: [], SurveyDipA: [], SurveyINC: [], SurveyCINC: [], SurveyAZM: [], 
+      SurveyCAZM: []
+    };
   }
 
   // Extract timestamp from filename
   static extractTimestamp(filename: string): Date {
     const timestampMatch = filename.match(/(\d{8})_(\d{6})/);
     if (timestampMatch) {
-      const dateStr = timestampMatch[1]; // YYYYMMDD
-      const timeStr = timestampMatch[2]; // HHMMSS
+      const dateStr = timestampMatch[1];
+      const timeStr = timestampMatch[2];
       const year = parseInt(dateStr.substr(0, 4));
       const month = parseInt(dateStr.substr(4, 2)) - 1;
       const day = parseInt(dateStr.substr(6, 2));
@@ -502,7 +478,7 @@ export class BinaryParser {
     }
     
     return {
-      dumpId: 0, // Will be set by caller
+      dumpId: 0,
       mpSerialNumber: isMP ? serialNumber : null,
       mpFirmwareVersion: isMP ? firmwareVersion : null,
       mpMaxTempFahrenheit: isMP ? maxTemp : null,
