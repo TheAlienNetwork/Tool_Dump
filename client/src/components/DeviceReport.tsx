@@ -11,7 +11,10 @@ import {
   Cpu,
   HardDrive,
   Wrench,
-  AlertTriangle
+  AlertTriangle,
+  Thermometer,
+  Clock,
+  Zap
 } from "lucide-react";
 
 interface DeviceReportProps {
