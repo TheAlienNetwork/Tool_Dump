@@ -75,20 +75,21 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
       }
 
       const result = await response.json();
+      console.log('Upload response:', result);
 
       toast({
-        title: "Upload successful",
-        description: `${validFiles.length} file(s) uploaded and processing started`,
+        title: "Upload Successful",
+        description: `${validFiles.length} file(s) uploaded and processing started.`,
       });
 
-      onUploadComplete();
+      // Clear the uploading files and refresh the list
+      setUploadingFiles([]);
+      queryClient.invalidateQueries({ queryKey: ['/api/memory-dumps'] });
 
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-
-    } catch (error) {
+      // Force multiple refreshes to ensure UI updates
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['/api/memory-dumps'] }), 1000);
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['/api/memory-dumps'] }), 3000);
+    } catch (error: any) {
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "An error occurred during upload",
@@ -123,15 +124,15 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
   const handleClearAllDumps = async () => {
     try {
       await apiRequest('DELETE', '/api/memory-dumps/clear-all');
-      
+
       // Clear all React Query cache
       queryClient.clear();
-      
+
       toast({
         title: "All dumps cleared",
         description: "All memory dumps and analysis data have been cleared successfully",
       });
-      
+
       onUploadComplete(); // Refresh the list
       onSelectDump(null); // Clear selected dump
     } catch (error) {

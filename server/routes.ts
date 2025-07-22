@@ -360,10 +360,12 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
 
     await storage.updateMemoryDumpStatus(dumpId, 'completed');
     console.log(`Successfully processed dump ${dumpId} with ${processed} records`);
+    console.log(`Dump ${dumpId} status updated to: completed`);
 
   } catch (error: any) {
     console.error(`Error in streaming processing for dump ${dumpId}:`, error);
     await storage.updateMemoryDumpStatus(dumpId, 'error', error?.message);
+    console.log(`Dump ${dumpId} status updated to: error`);
   } finally {
     // Clean up uploaded file
     try {
