@@ -8,15 +8,15 @@ export interface IStorage {
   getMemoryDump(id: number): Promise<MemoryDump | undefined>;
   updateMemoryDumpStatus(id: number, status: string, errorMessage?: string): Promise<void>;
   getMemoryDumps(): Promise<MemoryDump[]>;
-  
+
   // Sensor Data
   createSensorData(data: InsertSensorData[]): Promise<void>;
   getSensorDataByDumpId(dumpId: number): Promise<SensorData[]>;
-  
+
   // Analysis Results
   createAnalysisResults(results: InsertAnalysisResults): Promise<AnalysisResults>;
   getAnalysisResultsByDumpId(dumpId: number): Promise<AnalysisResults | undefined>;
-  
+
   // Device Reports
   createDeviceReport(report: InsertDeviceReport): Promise<DeviceReport>;
   getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined>;
@@ -189,7 +189,7 @@ export class DatabaseStorage implements IStorage {
     const updateData: any = { status };
     if (errorMessage) updateData.errorMessage = errorMessage;
     if (status === "completed") updateData.processedAt = new Date();
-    
+
     await db.update(memoryDumps)
       .set(updateData)
       .where(eq(memoryDumps.id, id));
@@ -226,7 +226,6 @@ export class DatabaseStorage implements IStorage {
 
   async getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined> {
     const [report] = await db.select().from(deviceReports).where(eq(deviceReports.dumpId, dumpId));
-    return report;
   }
 }
 

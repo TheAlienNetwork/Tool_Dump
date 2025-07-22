@@ -11,18 +11,33 @@ interface DataVisualizationProps {
   memoryDump: {
     id: number;
     status: string;
-  };
+  } | null;
 }
 
 export default function DataVisualization({ memoryDump }: DataVisualizationProps) {
   const { data: dumpDetails, isLoading } = useQuery<MemoryDumpDetails>({
-    queryKey: ['/api/memory-dumps', memoryDump.id],
-    enabled: memoryDump.status === 'completed',
+    queryKey: ['/api/memory-dumps', memoryDump?.id],
+    enabled: memoryDump?.status === 'completed',
   });
+
+  if (!memoryDump) {
+    return (
+      <section className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent">
+            Data Visualization & Analysis
+          </h2>
+        </div>
+        <div className="glass-morphism rounded-xl p-8 text-center">
+          <p className="text-slate-400 text-lg">Select a memory dump to view visualizations</p>
+        </div>
+      </section>
+    );
+  }
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch(`/api/memory-dumps/${memoryDump.id}/report`, {
+      const response = await fetch(`/api/memory-dumps/${memoryDump?.id}/report`, {
         method: 'GET',
       });
       
@@ -35,7 +50,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `memory-dump-report-${memoryDump.id}.pdf`;
+      a.download = `memory-dump-report-${memoryDump?.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -65,23 +80,11 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     );
   }
 
-  if (!dumpDetails?.sensorData) {
-    return (
-      <section>
-        <h2 className="text-2xl font-bold text-slate-100 mb-8 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-          Data Visualization & Analysis
-        </h2>
-        <div className="glass-morphism rounded-xl p-8 text-center">
-          <p className="text-slate-400 text-lg">No sensor data available for visualization</p>
-        </div>
-      </section>
-    );
-  }
-
-  const sensorData = dumpDetails.sensorData;
+  const sensorData = dumpDetails?.sensorData;
 
   // Prepare data for charts - memoized to prevent constant re-computation
   const chartData = useMemo(() => {
+    if (!sensorData) return [];
     return sensorData.map((data, index) => ({
       index,
       timestamp: new Date(data.rtd).toLocaleTimeString(),
@@ -125,6 +128,19 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
       return null;
     };
   }, []);
+
+  if (!dumpDetails?.sensorData) {
+    return (
+      <section>
+        <h2 className="text-2xl font-bold text-slate-100 mb-8 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+          Data Visualization & Analysis
+        </h2>
+        <div className="glass-morphism rounded-xl p-8 text-center">
+          <p className="text-slate-400 text-lg">No sensor data available for visualization</p>
+        </div>
+      </section>
+    );
+  }
 
   const ChartCard = ({ 
     title, 
