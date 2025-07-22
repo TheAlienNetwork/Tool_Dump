@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Lightning-fast processing optimized for 30-second target
-    const CHUNK_SIZE = 10000; // Maximum chunk size for ultimate speed
+    // MAXIMUM SPEED: Ultra-large chunks with COPY command
+    const CHUNK_SIZE = 25000; // Massive chunks for PostgreSQL COPY optimization
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
