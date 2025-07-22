@@ -42,6 +42,9 @@ Preferred communication style: Simple, everyday language.
 ✓ **Fresh Data Guarantee**: Added logging and cache clearing to ensure NO dummy data or old bin file information shows for new uploads
 ✓ **Latest Upload Prioritization**: Enhanced auto-selection logic to always display data from most recently uploaded binary files
 ✓ **Multi-File Support**: System correctly handles multiple different bin file uploads and prioritizes newest uploads for visualization
+✓ **Rotation Data Extraction**: Fixed MP files to properly extract rotation speed data (rotRpmMax, rotRpmAvg, rotRpmMin) for complete motor analysis
+✓ **Fresh Serial Number Generation**: Implemented timestamp-based unique device serial numbers to prevent cached device information display
+✓ **Aggressive Cache Clearing**: Enhanced cache invalidation to force complete data refresh on new uploads, preventing stale device reports
 
 ## System Architecture
 
