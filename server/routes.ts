@@ -59,7 +59,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           // Start processing in background
-          processMemoryDumpAsync(memoryDump.id, file.path, file.originalname, fileType);
+          processMemoryDumpAsync(memoryDump.id, file.path, file.originalname, fileType).catch(error => {
+            console.error(`Background processing failed for dump ${memoryDump.id}:`, error);
+          });
 
           results.push({
             id: memoryDump.id,
