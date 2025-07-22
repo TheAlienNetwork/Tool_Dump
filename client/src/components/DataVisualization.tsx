@@ -829,6 +829,60 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
+
+                  {/* Lateral Shock Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Peak Shock X</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validShockX = mdgData.filter(d => d.shockX !== null && d.shockX !== undefined && !isNaN(d.shockX) && isFinite(d.shockX));
+                          if (validShockX.length === 0) return "N/A";
+                          return `${Math.max(...validShockX.map(d => Math.abs(d.shockX!))).toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">lateral max</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Peak Shock Y</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validShockY = mdgData.filter(d => d.shockY !== null && d.shockY !== undefined && !isNaN(d.shockY) && isFinite(d.shockY));
+                          if (validShockY.length === 0) return "N/A";
+                          return `${Math.max(...validShockY.map(d => Math.abs(d.shockY!))).toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">lateral max</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">Combined Peak</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const validBoth = mdgData.filter(d => 
+                            d.shockX !== null && d.shockX !== undefined && !isNaN(d.shockX) && isFinite(d.shockX) &&
+                            d.shockY !== null && d.shockY !== undefined && !isNaN(d.shockY) && isFinite(d.shockY)
+                          );
+                          if (validBoth.length === 0) return "N/A";
+                          const maxCombined = Math.max(...validBoth.map(d => Math.sqrt(d.shockX! * d.shockX! + d.shockY! * d.shockY!)));
+                          return `${maxCombined.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">resultant</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">High Lateral Events</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const highLateral = mdgData.filter(d => 
+                            (d.shockX !== null && d.shockX !== undefined && !isNaN(d.shockX) && isFinite(d.shockX) && Math.abs(d.shockX) > 5) ||
+                            (d.shockY !== null && d.shockY !== undefined && !isNaN(d.shockY) && isFinite(d.shockY) && Math.abs(d.shockY) > 5)
+                          );
+                          return highLateral.length.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">events &gt; 5g</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 9. Axial Shock Count (cps) (MDG) 50g and 100g */}
@@ -849,6 +903,58 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <Bar dataKey="shockCountAxial100" fill="#EF4444" name="Axial 100g Count" />
                       </BarChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Axial Shock Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-lg p-4 border border-amber-500/20">
+                      <div className="text-amber-400 text-xs uppercase font-medium mb-2">Total 50g Axial Shocks</div>
+                      <div className="text-2xl font-bold text-amber-400">
+                        {(() => {
+                          const valid50g = mdgData.filter(d => d.shockCountAxial50 !== null && d.shockCountAxial50 !== undefined && !isNaN(d.shockCountAxial50) && isFinite(d.shockCountAxial50));
+                          if (valid50g.length === 0) return "N/A";
+                          return valid50g.reduce((sum, d) => sum + (d.shockCountAxial50 || 0), 0).toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-amber-300 text-sm">total events</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-500/10 to-rose-500/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Total 100g Axial Shocks</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const valid100g = mdgData.filter(d => d.shockCountAxial100 !== null && d.shockCountAxial100 !== undefined && !isNaN(d.shockCountAxial100) && isFinite(d.shockCountAxial100));
+                          if (valid100g.length === 0) return "N/A";
+                          return valid100g.reduce((sum, d) => sum + (d.shockCountAxial100 || 0), 0).toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">severe events</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">50g Event Rate</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const valid50g = mdgData.filter(d => d.shockCountAxial50 !== null && d.shockCountAxial50 !== undefined && !isNaN(d.shockCountAxial50) && isFinite(d.shockCountAxial50));
+                          if (valid50g.length === 0) return "N/A";
+                          const totalShocks = valid50g.reduce((sum, d) => sum + (d.shockCountAxial50 || 0), 0);
+                          const timeSpanHours = (valid50g.length * 2) / 3600; // 2 seconds per sample
+                          return `${(totalShocks / Math.max(timeSpanHours, 0.001)).toFixed(1)}/hr`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">frequency</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">100g Event Rate</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const valid100g = mdgData.filter(d => d.shockCountAxial100 !== null && d.shockCountAxial100 !== undefined && !isNaN(d.shockCountAxial100) && isFinite(d.shockCountAxial100));
+                          if (valid100g.length === 0) return "N/A";
+                          const totalShocks = valid100g.reduce((sum, d) => sum + (d.shockCountAxial100 || 0), 0);
+                          const timeSpanHours = (valid100g.length * 2) / 3600; // 2 seconds per sample
+                          return `${(totalShocks / Math.max(timeSpanHours, 0.001)).toFixed(1)}/hr`;
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">critical rate</div>
+                    </div>
                   </div>
                 </div>
 
@@ -1086,6 +1192,58 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <Line type="monotone" dataKey="surveyCAZM" stroke="#8B5CF6" strokeWidth={2} name="Survey CAZM" dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Survey Data Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-4 border border-cyan-500/20">
+                      <div className="text-cyan-400 text-xs uppercase font-medium mb-2">True Grav Field</div>
+                      <div className="text-2xl font-bold text-cyan-400">
+                        {(() => {
+                          const validTGF = mdgData.filter(d => d.surveyTGF !== null && d.surveyTGF !== undefined && !isNaN(d.surveyTGF) && isFinite(d.surveyTGF));
+                          if (validTGF.length === 0) return "N/A";
+                          const avgTGF = validTGF.reduce((sum, d) => sum + d.surveyTGF!, 0) / validTGF.length;
+                          return avgTGF.toFixed(3);
+                        })()}
+                      </div>
+                      <div className="text-cyan-300 text-sm">avg TGF</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-lg p-4 border border-indigo-500/20">
+                      <div className="text-indigo-400 text-xs uppercase font-medium mb-2">True Mag Field</div>
+                      <div className="text-2xl font-bold text-indigo-400">
+                        {(() => {
+                          const validTMF = mdgData.filter(d => d.surveyTMF !== null && d.surveyTMF !== undefined && !isNaN(d.surveyTMF) && isFinite(d.surveyTMF));
+                          if (validTMF.length === 0) return "N/A";
+                          const avgTMF = validTMF.reduce((sum, d) => sum + d.surveyTMF!, 0) / validTMF.length;
+                          return avgTMF.toFixed(3);
+                        })()}
+                      </div>
+                      <div className="text-indigo-300 text-sm">avg TMF</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-cyan-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Dip Angle</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validDip = mdgData.filter(d => d.surveyDipA !== null && d.surveyDipA !== undefined && !isNaN(d.surveyDipA) && isFinite(d.surveyDipA));
+                          if (validDip.length === 0) return "N/A";
+                          const avgDip = validDip.reduce((sum, d) => sum + d.surveyDipA!, 0) / validDip.length;
+                          return `${avgDip.toFixed(1)}°`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">avg dip</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">Inclination</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const validINC = mdgData.filter(d => d.surveyINC !== null && d.surveyINC !== undefined && !isNaN(d.surveyINC) && isFinite(d.surveyINC));
+                          if (validINC.length === 0) return "N/A";
+                          const avgINC = validINC.reduce((sum, d) => sum + d.surveyINC!, 0) / validINC.length;
+                          return `${avgINC.toFixed(1)}°`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">avg inclination</div>
+                    </div>
                   </div>
                 </div>
               </>

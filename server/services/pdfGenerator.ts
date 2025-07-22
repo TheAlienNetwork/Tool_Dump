@@ -84,48 +84,119 @@ export class PDFGenerator {
       
       pdf.setFontSize(10);
       
-      // MP Device
+      // MP Device (Enhanced User-Friendly Format)
       if (reportData.deviceReport.mpSerialNumber || reportData.deviceReport.mpFirmwareVersion) {
-        pdf.setFontSize(12);
-        pdf.text('MP Device:', 20, yPos);
-        yPos += 7;
+        pdf.setFontSize(13);
+        pdf.setTextColor(34, 139, 34); // Green for MP
+        pdf.text('Memory Pump (MP) Device:', 20, yPos);
+        yPos += 8;
         
         pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
         if (reportData.deviceReport.mpSerialNumber) {
-          pdf.text(`Serial Number: ${reportData.deviceReport.mpSerialNumber}`, 25, yPos);
+          pdf.text(`• Serial Number: MP S/N ${reportData.deviceReport.mpSerialNumber}`, 25, yPos);
           yPos += 6;
         }
         if (reportData.deviceReport.mpFirmwareVersion) {
-          pdf.text(`Firmware Version: ${reportData.deviceReport.mpFirmwareVersion}`, 25, yPos);
+          pdf.text(`• Firmware Version: ${reportData.deviceReport.mpFirmwareVersion}`, 25, yPos);
           yPos += 6;
         }
         if (reportData.deviceReport.mpMaxTempFahrenheit) {
-          pdf.text(`Max Temperature: ${reportData.deviceReport.mpMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mpMaxTempFahrenheit?.toFixed(1)}°F)`, 25, yPos);
+          const tempStatus = (reportData.deviceReport.mpMaxTempFahrenheit > 130) ? ' (⚠ High Temp)' : ' (✓ Normal)';
+          pdf.text(`• Peak Operating Temperature: ${reportData.deviceReport.mpMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mpMaxTempFahrenheit?.toFixed(1)}°F)${tempStatus}`, 25, yPos);
           yPos += 6;
         }
-        yPos += 5;
+        
+        // Additional MP metrics
+        if (reportData.deviceReport.motorOnTimeMinutes !== undefined) {
+          const hours = Math.floor(reportData.deviceReport.motorOnTimeMinutes / 60);
+          const mins = Math.round(reportData.deviceReport.motorOnTimeMinutes % 60);
+          pdf.text(`• Motor Operation: ${hours}h ${mins}m total runtime`, 25, yPos);
+          yPos += 6;
+        }
+        
+        if (reportData.deviceReport.commErrorsPercent !== undefined) {
+          const healthPercent = (100 - reportData.deviceReport.commErrorsPercent).toFixed(1);
+          const status = (reportData.deviceReport.commErrorsPercent < 5) ? ' (✓ Excellent)' : ' (⚠ Check Connection)';
+          pdf.text(`• Communication Health: ${healthPercent}%${status}`, 25, yPos);
+          yPos += 6;
+        }
+        
+        yPos += 8;
       }
       
-      // MDG Device
+      // MDG Device (Enhanced User-Friendly Format)
       if (reportData.deviceReport.mdgSerialNumber || reportData.deviceReport.mdgFirmwareVersion) {
-        pdf.setFontSize(12);
-        pdf.text('MDG Device:', 20, yPos);
-        yPos += 7;
+        pdf.setFontSize(13);
+        pdf.setTextColor(255, 140, 0); // Orange for MDG
+        pdf.text('Measurement During Drilling (MDG) Device:', 20, yPos);
+        yPos += 8;
         
         pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
         if (reportData.deviceReport.mdgSerialNumber) {
-          pdf.text(`Serial Number: ${reportData.deviceReport.mdgSerialNumber}`, 25, yPos);
+          pdf.text(`• Serial Number: MDG S/N ${reportData.deviceReport.mdgSerialNumber}`, 25, yPos);
           yPos += 6;
         }
         if (reportData.deviceReport.mdgFirmwareVersion) {
-          pdf.text(`Firmware Version: ${reportData.deviceReport.mdgFirmwareVersion}`, 25, yPos);
+          pdf.text(`• Firmware Version: ${reportData.deviceReport.mdgFirmwareVersion}`, 25, yPos);
           yPos += 6;
         }
         if (reportData.deviceReport.mdgMaxTempFahrenheit) {
-          pdf.text(`Max Temperature: ${reportData.deviceReport.mdgMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mdgMaxTempFahrenheit?.toFixed(1)}°F)`, 25, yPos);
+          const tempStatus = (reportData.deviceReport.mdgMaxTempFahrenheit > 130) ? ' (⚠ High Temp)' : ' (✓ Normal)';
+          pdf.text(`• Peak Operating Temperature: ${reportData.deviceReport.mdgMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mdgMaxTempFahrenheit?.toFixed(1)}°F)${tempStatus}`, 25, yPos);
           yPos += 6;
         }
-        yPos += 10;
+        
+        // Additional MDG metrics
+        if (reportData.deviceReport.mdgEdtTotalHours !== undefined) {
+          const days = Math.floor(reportData.deviceReport.mdgEdtTotalHours / 24);
+          const hours = Math.round(reportData.deviceReport.mdgEdtTotalHours % 24);
+          pdf.text(`• Total Operational Time: ${days} days, ${hours} hours`, 25, yPos);
+          yPos += 6;
+        }
+        
+        if (reportData.deviceReport.mdgExtremeShockIndex !== undefined) {
+          let shockLevel = 'Normal Operation';
+          let status = ' (✓ Good)';
+          if (reportData.deviceReport.mdgExtremeShockIndex > 100) {
+            shockLevel = 'High Vibration Environment';
+            status = ' (⚠ Monitor)';
+          }
+          if (reportData.deviceReport.mdgExtremeShockIndex > 500) {
+            shockLevel = 'Extreme Shock Environment';
+            status = ' (⚠ Critical)';
+          }
+          pdf.text(`• Shock Environment: ${shockLevel}${status}`, 25, yPos);
+          yPos += 6;
+        }
+        
+        yPos += 8;
+      }
+      
+      // Operation Summary (Enhanced)
+      if (reportData.deviceReport.circulationHours !== undefined || reportData.deviceReport.numberOfPulses !== undefined) {
+        pdf.setFontSize(13);
+        pdf.setTextColor(70, 130, 180); // Steel blue for summary
+        pdf.text('Operation Summary:', 20, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        
+        if (reportData.deviceReport.circulationHours !== undefined) {
+          const days = Math.floor(reportData.deviceReport.circulationHours / 24);
+          const hours = Math.round(reportData.deviceReport.circulationHours % 24);
+          pdf.text(`• Total Circulation Time: ${days} days, ${hours} hours (${reportData.deviceReport.circulationHours.toFixed(2)}h)`, 25, yPos);
+          yPos += 6;
+        }
+        
+        if (reportData.deviceReport.numberOfPulses !== undefined) {
+          pdf.text(`• Operational Cycles: ${reportData.deviceReport.numberOfPulses.toLocaleString()} pulses recorded`, 25, yPos);
+          yPos += 6;
+        }
+        
+        yPos += 8;
       }
     }
     
