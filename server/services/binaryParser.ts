@@ -67,63 +67,59 @@ export class BinaryParser {
       const buffer = fs.readFileSync(filePath);
       console.log(`Parsing ${fileType} file: ${filename} (${buffer.length} bytes)`);
       
-      // Initialize data structure with pre-allocated arrays for memory efficiency
-      const estimatedRecords = fileType === 'MDG' ? 
-        Math.floor((buffer.length - 256) / 128) : 
-        Math.floor((buffer.length - 256) / 64);
-      
+      // Initialize data structure with empty arrays for dynamic growth
       const data: ParsedData = {
-        RTD: new Array(estimatedRecords), 
-        TempMP: new Array(estimatedRecords), 
-        ResetMP: new Array(estimatedRecords), 
-        BatteryCurrMP: new Array(estimatedRecords), 
-        BatteryVoltMP: new Array(estimatedRecords), 
-        FlowStatus: new Array(estimatedRecords),
-        MaxX: new Array(estimatedRecords), 
-        MaxY: new Array(estimatedRecords), 
-        MaxZ: new Array(estimatedRecords), 
-        Threshold: new Array(estimatedRecords),
-        MotorMin: new Array(estimatedRecords), 
-        MotorAvg: new Array(estimatedRecords), 
-        MotorMax: new Array(estimatedRecords), 
-        MotorHall: new Array(estimatedRecords), 
-        ActuationTime: new Array(estimatedRecords),
-        AccelAX: new Array(estimatedRecords), 
-        AccelAY: new Array(estimatedRecords), 
-        AccelAZ: new Array(estimatedRecords),
-        ShockZ: new Array(estimatedRecords), 
-        ShockX: new Array(estimatedRecords), 
-        ShockY: new Array(estimatedRecords),
-        ShockCountAxial50: new Array(estimatedRecords), 
-        ShockCountAxial100: new Array(estimatedRecords), 
-        ShockCountLat50: new Array(estimatedRecords), 
-        ShockCountLat100: new Array(estimatedRecords),
-        RotRpmMax: new Array(estimatedRecords), 
-        RotRpmAvg: new Array(estimatedRecords), 
-        RotRpmMin: new Array(estimatedRecords),
-        V3_3VA_DI: new Array(estimatedRecords), 
-        V5VD: new Array(estimatedRecords), 
-        V3_3VD: new Array(estimatedRecords), 
-        V1_9VD: new Array(estimatedRecords), 
-        V1_5VD: new Array(estimatedRecords), 
-        V1_8VA: new Array(estimatedRecords), 
-        V3_3VA: new Array(estimatedRecords), 
-        VBatt: new Array(estimatedRecords),
-        I5VD: new Array(estimatedRecords), 
-        I3_3VD: new Array(estimatedRecords), 
-        IBatt: new Array(estimatedRecords),
-        Gamma: new Array(estimatedRecords),
-        AccelStabX: new Array(estimatedRecords), 
-        AccelStabY: new Array(estimatedRecords), 
-        AccelStabZ: new Array(estimatedRecords), 
-        AccelStabZH: new Array(estimatedRecords),
-        SurveyTGF: new Array(estimatedRecords), 
-        SurveyTMF: new Array(estimatedRecords), 
-        SurveyDipA: new Array(estimatedRecords), 
-        SurveyINC: new Array(estimatedRecords), 
-        SurveyCINC: new Array(estimatedRecords), 
-        SurveyAZM: new Array(estimatedRecords), 
-        SurveyCAZM: new Array(estimatedRecords)
+        RTD: [], 
+        TempMP: [], 
+        ResetMP: [], 
+        BatteryCurrMP: [], 
+        BatteryVoltMP: [], 
+        FlowStatus: [],
+        MaxX: [], 
+        MaxY: [], 
+        MaxZ: [], 
+        Threshold: [],
+        MotorMin: [], 
+        MotorAvg: [], 
+        MotorMax: [], 
+        MotorHall: [], 
+        ActuationTime: [],
+        AccelAX: [], 
+        AccelAY: [], 
+        AccelAZ: [],
+        ShockZ: [], 
+        ShockX: [], 
+        ShockY: [],
+        ShockCountAxial50: [], 
+        ShockCountAxial100: [], 
+        ShockCountLat50: [], 
+        ShockCountLat100: [],
+        RotRpmMax: [], 
+        RotRpmAvg: [], 
+        RotRpmMin: [],
+        V3_3VA_DI: [], 
+        V5VD: [], 
+        V3_3VD: [], 
+        V1_9VD: [], 
+        V1_5VD: [], 
+        V1_8VA: [], 
+        V3_3VA: [], 
+        VBatt: [],
+        I5VD: [], 
+        I3_3VD: [], 
+        IBatt: [],
+        Gamma: [],
+        AccelStabX: [], 
+        AccelStabY: [], 
+        AccelStabZ: [], 
+        AccelStabZH: [],
+        SurveyTGF: [], 
+        SurveyTMF: [], 
+        SurveyDipA: [], 
+        SurveyINC: [], 
+        SurveyCINC: [], 
+        SurveyAZM: [], 
+        SurveyCAZM: []
       };
 
       // Parse based on device type
@@ -133,21 +129,7 @@ export class BinaryParser {
         this.parseMPFile(buffer, data, filename);
       }
       
-      // Trim arrays to actual size and clean up memory
-      Object.keys(data).forEach(key => {
-        const arr = (data as any)[key];
-        if (Array.isArray(arr)) {
-          const actualLength = arr.findIndex(item => item === undefined);
-          if (actualLength > 0) {
-            (data as any)[key] = arr.slice(0, actualLength);
-          } else if (actualLength === -1) {
-            // No undefined found, keep the array as is
-          } else {
-            // Empty array
-            (data as any)[key] = [];
-          }
-        }
-      });
+      // Clean up memory after parsing
       
       // Force garbage collection after parsing
       if (global.gc) {
@@ -177,6 +159,21 @@ export class BinaryParser {
       
       // Time progression (2 second intervals for MDG)
       data.RTD.push(new Date(baseTime.getTime() + (i * 2000)));
+      
+      // MP-specific fields (not available in MDG) - set to null
+      data.TempMP.push(null);
+      data.BatteryCurrMP.push(null);
+      data.BatteryVoltMP.push(null);
+      data.FlowStatus.push(null);
+      data.MaxX.push(null);
+      data.MaxY.push(null);
+      data.MaxZ.push(null);
+      data.Threshold.push(null);
+      data.MotorMin.push(null);
+      data.MotorAvg.push(null);
+      data.MotorMax.push(null);
+      data.MotorHall.push(null);
+      data.ActuationTime.push(null);
       
       // MDG Accel data
       data.AccelAX.push(this.readFloat32LE(buffer, offset + 0));
@@ -276,6 +273,44 @@ export class BinaryParser {
       
       // Actuation time
       data.ActuationTime.push(this.readFloat32LE(buffer, offset + 48));
+      
+      // MDG-specific fields (not available in MP) - set to null
+      data.AccelAX.push(null);
+      data.AccelAY.push(null);
+      data.AccelAZ.push(null);
+      data.ShockZ.push(null);
+      data.ShockX.push(null);
+      data.ShockY.push(null);
+      data.ShockCountAxial50.push(null);
+      data.ShockCountAxial100.push(null);
+      data.ShockCountLat50.push(null);
+      data.ShockCountLat100.push(null);
+      data.RotRpmMax.push(null);
+      data.RotRpmAvg.push(null);
+      data.RotRpmMin.push(null);
+      data.V3_3VA_DI.push(null);
+      data.V5VD.push(null);
+      data.V3_3VD.push(null);
+      data.V1_9VD.push(null);
+      data.V1_5VD.push(null);
+      data.V1_8VA.push(null);
+      data.V3_3VA.push(null);
+      data.VBatt.push(null);
+      data.I5VD.push(null);
+      data.I3_3VD.push(null);
+      data.IBatt.push(null);
+      data.Gamma.push(null);
+      data.AccelStabX.push(null);
+      data.AccelStabY.push(null);
+      data.AccelStabZ.push(null);
+      data.AccelStabZH.push(null);
+      data.SurveyTGF.push(null);
+      data.SurveyTMF.push(null);
+      data.SurveyDipA.push(null);
+      data.SurveyINC.push(null);
+      data.SurveyCINC.push(null);
+      data.SurveyAZM.push(null);
+      data.SurveyCAZM.push(null);
     }
   }
 

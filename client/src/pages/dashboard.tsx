@@ -23,10 +23,10 @@ export default function Dashboard() {
     queryKey: ['/api/memory-dumps'],
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnReconnect: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Auto-select the most recent completed dump
