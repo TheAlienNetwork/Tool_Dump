@@ -1,7 +1,7 @@
 import fs from 'fs';
-import { InsertSensorData, InsertDeviceReport } from '@shared/schema';
+import { InsertDeviceReport, InsertSensorData } from '@shared/schema';
 
-interface ParsedData {
+export interface ParsedData {
   RTD: Date[];
   TempMP: number[];
   ResetMP: number[];
@@ -59,192 +59,173 @@ export class BinaryParser {
   static async parseMemoryDump(filePath: string, filename: string, fileType: string): Promise<ParsedData> {
     try {
       const buffer = fs.readFileSync(filePath);
+      console.log(`Parsing ${fileType} file: ${filename} (${buffer.length} bytes)`);
       
-      // Parse actual binary data based on Neural Drill format
-      // These are industry-standard binary structures for drilling data
-      return this.parseNeuralDrillBinary(buffer, filename, fileType);
+      // Initialize data structure
+      const data: ParsedData = {
+        RTD: [], TempMP: [], ResetMP: [], BatteryCurrMP: [], BatteryVoltMP: [], FlowStatus: [],
+        MaxX: [], MaxY: [], MaxZ: [], Threshold: [],
+        MotorMin: [], MotorAvg: [], MotorMax: [], MotorHall: [], ActuationTime: [],
+        AccelAX: [], AccelAY: [], AccelAZ: [],
+        ShockZ: [], ShockX: [], ShockY: [],
+        ShockCountAxial50: [], ShockCountAxial100: [], ShockCountLat50: [], ShockCountLat100: [],
+        RotRpmMax: [], RotRpmAvg: [], RotRpmMin: [],
+        V3_3VA_DI: [], V5VD: [], V3_3VD: [], V1_9VD: [], V1_5VD: [], V1_8VA: [], V3_3VA: [], VBatt: [],
+        I5VD: [], I3_3VD: [], IBatt: [],
+        Gamma: [],
+        AccelStabX: [], AccelStabY: [], AccelStabZ: [], AccelStabZH: [],
+        SurveyTGF: [], SurveyTMF: [], SurveyDipA: [], SurveyINC: [], SurveyCINC: [], SurveyAZM: [], SurveyCAZM: []
+      };
+
+      // Parse based on device type
+      if (fileType === 'MDG') {
+        this.parseMDGFile(buffer, data, filename);
+      } else if (fileType === 'MP') {
+        this.parseMPFile(buffer, data, filename);
+      }
+      
+      return data;
     } catch (error: any) {
       throw new Error(`Failed to parse binary file ${filename}: ${error.message}`);
     }
   }
 
-  // Parse Neural Drill binary format - optimized for speed and real data extraction
-  static parseNeuralDrillBinary(buffer: Buffer, filename: string, fileType: string): ParsedData {
-    const data: ParsedData = {
-      RTD: [],
-      TempMP: [],
-      ResetMP: [],
-      BatteryCurrMP: [],
-      BatteryVoltMP: [],
-      FlowStatus: [],
-      MaxX: [],
-      MaxY: [],
-      MaxZ: [],
-      Threshold: [],
-      MotorMin: [],
-      MotorAvg: [],
-      MotorMax: [],
-      MotorHall: [],
-      ActuationTime: [],
-      AccelAX: [],
-      AccelAY: [],
-      AccelAZ: [],
-      ShockZ: [],
-      ShockX: [],
-      ShockY: [],
-      ShockCountAxial50: [],
-      ShockCountAxial100: [],
-      ShockCountLat50: [],
-      ShockCountLat100: [],
-      RotRpmMax: [],
-      RotRpmAvg: [],
-      RotRpmMin: [],
-      V3_3VA_DI: [],
-      V5VD: [],
-      V3_3VD: [],
-      V1_9VD: [],
-      V1_5VD: [],
-      V1_8VA: [],
-      V3_3VA: [],
-      VBatt: [],
-      I5VD: [],
-      I3_3VD: [],
-      IBatt: [],
-      Gamma: [],
-      AccelStabX: [],
-      AccelStabY: [],
-      AccelStabZ: [],
-      AccelStabZH: [],
-      SurveyTGF: [],
-      SurveyTMF: [],
-      SurveyDipA: [],
-      SurveyINC: [],
-      SurveyCINC: [],
-      SurveyAZM: [],
-      SurveyCAZM: []
-    };
-
-    // Neural Drill binary format specifications
-    const RECORD_SIZE = 196; // bytes per data record
-    const HEADER_SIZE = 64;   // bytes for file header
+  // Parse MDG file format
+  static parseMDGFile(buffer: Buffer, data: ParsedData, filename: string) {
+    const headerSize = 256;
+    const recordSize = 128; // MDG record size
+    const numRecords = Math.floor((buffer.length - headerSize) / recordSize);
     
-    if (buffer.length < HEADER_SIZE) {
-      throw new Error(`Invalid binary file: too small (${buffer.length} bytes)`);
+    console.log(`Parsing MDG file: ${numRecords} records`);
+    
+    // Extract base timestamp from filename
+    const baseTime = this.extractTimestamp(filename);
+    
+    for (let i = 0; i < numRecords; i++) {
+      const offset = headerSize + (i * recordSize);
+      
+      // Time progression (2 second intervals for MDG)
+      data.RTD.push(new Date(baseTime.getTime() + (i * 2000)));
+      
+      // MDG Accel data
+      data.AccelAX.push(this.readFloat32LE(buffer, offset + 0));
+      data.AccelAY.push(this.readFloat32LE(buffer, offset + 4));
+      data.AccelAZ.push(this.readFloat32LE(buffer, offset + 8));
+      data.ResetMP.push(this.readUInt8(buffer, offset + 12));
+      
+      // Shock data  
+      data.ShockZ.push(this.readFloat32LE(buffer, offset + 16));
+      data.ShockX.push(this.readFloat32LE(buffer, offset + 20));
+      data.ShockY.push(this.readFloat32LE(buffer, offset + 24));
+      
+      // Shock counters
+      data.ShockCountAxial50.push(this.readUInt16LE(buffer, offset + 28));
+      data.ShockCountAxial100.push(this.readUInt16LE(buffer, offset + 30));
+      data.ShockCountLat50.push(this.readUInt16LE(buffer, offset + 32));
+      data.ShockCountLat100.push(this.readUInt16LE(buffer, offset + 34));
+      
+      // Rotation RPM
+      data.RotRpmMax.push(this.readFloat32LE(buffer, offset + 36));
+      data.RotRpmAvg.push(this.readFloat32LE(buffer, offset + 40));
+      data.RotRpmMin.push(this.readFloat32LE(buffer, offset + 44));
+      
+      // System voltages
+      data.V3_3VA_DI.push(this.readFloat32LE(buffer, offset + 48));
+      data.V5VD.push(this.readFloat32LE(buffer, offset + 52));
+      data.V3_3VD.push(this.readFloat32LE(buffer, offset + 56));
+      data.V1_9VD.push(this.readFloat32LE(buffer, offset + 60));
+      data.V1_5VD.push(this.readFloat32LE(buffer, offset + 64));
+      data.V1_8VA.push(this.readFloat32LE(buffer, offset + 68));
+      data.V3_3VA.push(this.readFloat32LE(buffer, offset + 72));
+      data.VBatt.push(this.readFloat32LE(buffer, offset + 76));
+      
+      // System currents
+      data.I5VD.push(this.readFloat32LE(buffer, offset + 80));
+      data.I3_3VD.push(this.readFloat32LE(buffer, offset + 84));
+      data.IBatt.push(this.readFloat32LE(buffer, offset + 88));
+      
+      // Gamma radiation
+      data.Gamma.push(this.readUInt16LE(buffer, offset + 92));
+      
+      // Acceleration stability
+      data.AccelStabX.push(this.readFloat32LE(buffer, offset + 96));
+      data.AccelStabY.push(this.readFloat32LE(buffer, offset + 100));
+      data.AccelStabZ.push(this.readFloat32LE(buffer, offset + 104));
+      data.AccelStabZH.push(this.readFloat32LE(buffer, offset + 108));
+      
+      // Survey data
+      data.SurveyTGF.push(this.readFloat32LE(buffer, offset + 112));
+      data.SurveyTMF.push(this.readFloat32LE(buffer, offset + 116));
+      data.SurveyDipA.push(this.readFloat32LE(buffer, offset + 120));
+      data.SurveyINC.push(this.readFloat32LE(buffer, offset + 124));
+      data.SurveyCINC.push(this.readFloat32LE(buffer, offset + 128));
+      data.SurveyAZM.push(this.readFloat32LE(buffer, offset + 132));
+      data.SurveyCAZM.push(this.readFloat32LE(buffer, offset + 136));
     }
+  }
 
-    // Extract timestamp from filename pattern: MemoryDump_XX_YYYYMMDD_HHMMSS
+  // Parse MP file format
+  static parseMPFile(buffer: Buffer, data: ParsedData, filename: string) {
+    const headerSize = 256;
+    const recordSize = 64; // MP record size
+    const numRecords = Math.floor((buffer.length - headerSize) / recordSize);
+    
+    console.log(`Parsing MP file: ${numRecords} records`);
+    
+    // Extract base timestamp from filename
+    const baseTime = this.extractTimestamp(filename);
+    
+    for (let i = 0; i < numRecords; i++) {
+      const offset = headerSize + (i * recordSize);
+      
+      // Time progression (1 second intervals for MP)
+      data.RTD.push(new Date(baseTime.getTime() + (i * 1000)));
+      
+      // MP Temperature and basic data
+      data.TempMP.push(this.readFloat32LE(buffer, offset + 0));
+      data.ResetMP.push(this.readUInt8(buffer, offset + 4));
+      data.BatteryVoltMP.push(this.readFloat32LE(buffer, offset + 8));
+      data.BatteryCurrMP.push(this.readFloat32LE(buffer, offset + 12));
+      
+      // Flow status
+      const flowVal = this.readUInt8(buffer, offset + 16);
+      data.FlowStatus.push(flowVal > 0 ? 'On' : 'Off');
+      
+      // Vibration data (Max X, Y, Z)
+      data.MaxX.push(this.readFloat32LE(buffer, offset + 20));
+      data.MaxY.push(this.readFloat32LE(buffer, offset + 24));
+      data.MaxZ.push(this.readFloat32LE(buffer, offset + 28));
+      data.Threshold.push(1.5); // Standard threshold
+      
+      // Motor current data
+      data.MotorMin.push(this.readFloat32LE(buffer, offset + 32));
+      data.MotorAvg.push(this.readFloat32LE(buffer, offset + 36));
+      data.MotorMax.push(this.readFloat32LE(buffer, offset + 40));
+      data.MotorHall.push(this.readFloat32LE(buffer, offset + 44));
+      
+      // Actuation time
+      data.ActuationTime.push(this.readFloat32LE(buffer, offset + 48));
+    }
+  }
+
+  // Extract timestamp from filename
+  static extractTimestamp(filename: string): Date {
     const timestampMatch = filename.match(/(\d{8})_(\d{6})/);
-    let baseTime = new Date();
     if (timestampMatch) {
       const dateStr = timestampMatch[1]; // YYYYMMDD
       const timeStr = timestampMatch[2]; // HHMMSS
       const year = parseInt(dateStr.substr(0, 4));
-      const month = parseInt(dateStr.substr(4, 2)) - 1; // Month is 0-indexed
+      const month = parseInt(dateStr.substr(4, 2)) - 1;
       const day = parseInt(dateStr.substr(6, 2));
       const hour = parseInt(timeStr.substr(0, 2));
       const minute = parseInt(timeStr.substr(2, 2));
       const second = parseInt(timeStr.substr(4, 2));
-      baseTime = new Date(year, month, day, hour, minute, second);
+      return new Date(year, month, day, hour, minute, second);
     }
-
-    // Calculate number of records available
-    const dataLength = buffer.length - HEADER_SIZE;
-    const numRecords = Math.floor(dataLength / RECORD_SIZE);
-    
-    // Process records in chunks for performance
-    for (let i = 0; i < numRecords; i++) {
-      const recordOffset = HEADER_SIZE + (i * RECORD_SIZE);
-      
-      // Ensure we don't read beyond buffer
-      if (recordOffset + RECORD_SIZE > buffer.length) break;
-      
-      // Calculate timestamp for this record (1 second intervals)
-      const timestamp = new Date(baseTime.getTime() + (i * 1000));
-      data.RTD.push(timestamp);
-      
-      // Read binary data using proper byte extraction
-      // Temperature data (IEEE 754 float, little-endian)
-      data.TempMP.push(this.readFloat32LE(buffer, recordOffset + 0));
-      data.ResetMP.push(this.readUInt8(buffer, recordOffset + 4));
-      data.BatteryCurrMP.push(this.readFloat32LE(buffer, recordOffset + 8));
-      data.BatteryVoltMP.push(this.readFloat32LE(buffer, recordOffset + 12));
-      
-      // Flow status (byte value: 0=Off, 1=On)
-      const flowVal = this.readUInt8(buffer, recordOffset + 16);
-      data.FlowStatus.push(flowVal > 0 ? 'On' : 'Off');
-      
-      // Acceleration values
-      data.MaxX.push(this.readFloat32LE(buffer, recordOffset + 20));
-      data.MaxY.push(this.readFloat32LE(buffer, recordOffset + 24));
-      data.MaxZ.push(this.readFloat32LE(buffer, recordOffset + 28));
-      data.Threshold.push(1.5); // Standard threshold
-      
-      // Motor performance data
-      data.MotorMin.push(this.readFloat32LE(buffer, recordOffset + 32));
-      data.MotorAvg.push(this.readFloat32LE(buffer, recordOffset + 36));
-      data.MotorMax.push(this.readFloat32LE(buffer, recordOffset + 40));
-      data.MotorHall.push(this.readFloat32LE(buffer, recordOffset + 44));
-      data.ActuationTime.push(this.readFloat32LE(buffer, recordOffset + 48));
-      
-      // Accelerometer readings
-      data.AccelAX.push(this.readFloat32LE(buffer, recordOffset + 52));
-      data.AccelAY.push(this.readFloat32LE(buffer, recordOffset + 56));
-      data.AccelAZ.push(this.readFloat32LE(buffer, recordOffset + 60));
-      
-      // Shock measurements
-      data.ShockZ.push(this.readFloat32LE(buffer, recordOffset + 64));
-      data.ShockX.push(this.readFloat32LE(buffer, recordOffset + 68));
-      data.ShockY.push(this.readFloat32LE(buffer, recordOffset + 72));
-      
-      // Shock counters
-      data.ShockCountAxial50.push(this.readUInt16LE(buffer, recordOffset + 76));
-      data.ShockCountAxial100.push(this.readUInt16LE(buffer, recordOffset + 78));
-      data.ShockCountLat50.push(this.readUInt16LE(buffer, recordOffset + 80));
-      data.ShockCountLat100.push(this.readUInt16LE(buffer, recordOffset + 82));
-      
-      // Rotation data
-      data.RotRpmMax.push(this.readFloat32LE(buffer, recordOffset + 84));
-      data.RotRpmAvg.push(this.readFloat32LE(buffer, recordOffset + 88));
-      data.RotRpmMin.push(this.readFloat32LE(buffer, recordOffset + 92));
-      
-      // Voltage measurements
-      data.V3_3VA_DI.push(this.readFloat32LE(buffer, recordOffset + 96));
-      data.V5VD.push(this.readFloat32LE(buffer, recordOffset + 100));
-      data.V3_3VD.push(this.readFloat32LE(buffer, recordOffset + 104));
-      data.V1_9VD.push(this.readFloat32LE(buffer, recordOffset + 108));
-      data.V1_5VD.push(this.readFloat32LE(buffer, recordOffset + 112));
-      data.V1_8VA.push(this.readFloat32LE(buffer, recordOffset + 116));
-      data.V3_3VA.push(this.readFloat32LE(buffer, recordOffset + 120));
-      data.VBatt.push(this.readFloat32LE(buffer, recordOffset + 124));
-      
-      // Current measurements
-      data.I5VD.push(this.readFloat32LE(buffer, recordOffset + 128));
-      data.I3_3VD.push(this.readFloat32LE(buffer, recordOffset + 132));
-      data.IBatt.push(this.readFloat32LE(buffer, recordOffset + 136));
-      
-      // Gamma radiation (16-bit unsigned integer)
-      data.Gamma.push(this.readUInt16LE(buffer, recordOffset + 140));
-      
-      // Acceleration stability
-      data.AccelStabX.push(this.readFloat32LE(buffer, recordOffset + 144));
-      data.AccelStabY.push(this.readFloat32LE(buffer, recordOffset + 148));
-      data.AccelStabZ.push(this.readFloat32LE(buffer, recordOffset + 152));
-      data.AccelStabZH.push(this.readFloat32LE(buffer, recordOffset + 156));
-      
-      // Survey data
-      data.SurveyTGF.push(this.readFloat32LE(buffer, recordOffset + 160));
-      data.SurveyTMF.push(this.readFloat32LE(buffer, recordOffset + 164));
-      data.SurveyDipA.push(this.readFloat32LE(buffer, recordOffset + 168));
-      data.SurveyINC.push(this.readFloat32LE(buffer, recordOffset + 172));
-      data.SurveyCINC.push(this.readFloat32LE(buffer, recordOffset + 176));
-      data.SurveyAZM.push(this.readFloat32LE(buffer, recordOffset + 180));
-      data.SurveyCAZM.push(this.readFloat32LE(buffer, recordOffset + 184));
-    }
-
-    return data;
+    return new Date();
   }
 
-  // Binary data reading helpers for efficient data extraction
+  // Binary data reading helpers
   static readFloat32LE(buffer: Buffer, offset: number): number {
     if (offset + 4 > buffer.length) return 0;
     return buffer.readFloatLE(offset);
@@ -265,9 +246,73 @@ export class BinaryParser {
     return buffer.readUInt32LE(offset);
   }
 
+  // Convert parsed data to sensor data array format
+  static convertToSensorDataArray(parsedData: ParsedData, dumpId: number): InsertSensorData[] {
+    const results: InsertSensorData[] = [];
+    const recordCount = parsedData.RTD.length;
+
+    for (let i = 0; i < recordCount; i++) {
+      results.push({
+        dumpId,
+        rtd: parsedData.RTD[i],
+        tempMP: parsedData.TempMP[i] || null,
+        resetMP: parsedData.ResetMP[i] || null,
+        batteryCurrMP: parsedData.BatteryCurrMP[i] || null,
+        batteryVoltMP: parsedData.BatteryVoltMP[i] || null,
+        flowStatus: parsedData.FlowStatus[i] || null,
+        maxX: parsedData.MaxX[i] || null,
+        maxY: parsedData.MaxY[i] || null,
+        maxZ: parsedData.MaxZ[i] || null,
+        threshold: parsedData.Threshold[i] || null,
+        motorMin: parsedData.MotorMin[i] || null,
+        motorAvg: parsedData.MotorAvg[i] || null,
+        motorMax: parsedData.MotorMax[i] || null,
+        motorHall: parsedData.MotorHall[i] || null,
+        actuationTime: parsedData.ActuationTime[i] || null,
+        accelAX: parsedData.AccelAX[i] || null,
+        accelAY: parsedData.AccelAY[i] || null,
+        accelAZ: parsedData.AccelAZ[i] || null,
+        shockZ: parsedData.ShockZ[i] || null,
+        shockX: parsedData.ShockX[i] || null,
+        shockY: parsedData.ShockY[i] || null,
+        shockCountAxial50: parsedData.ShockCountAxial50[i] || null,
+        shockCountAxial100: parsedData.ShockCountAxial100[i] || null,
+        shockCountLat50: parsedData.ShockCountLat50[i] || null,
+        shockCountLat100: parsedData.ShockCountLat100[i] || null,
+        rotRpmMax: parsedData.RotRpmMax[i] || null,
+        rotRpmAvg: parsedData.RotRpmAvg[i] || null,
+        rotRpmMin: parsedData.RotRpmMin[i] || null,
+        v3_3VA_DI: parsedData.V3_3VA_DI[i] || null,
+        v5VD: parsedData.V5VD[i] || null,
+        v3_3VD: parsedData.V3_3VD[i] || null,
+        v1_9VD: parsedData.V1_9VD[i] || null,
+        v1_5VD: parsedData.V1_5VD[i] || null,
+        v1_8VA: parsedData.V1_8VA[i] || null,
+        v3_3VA: parsedData.V3_3VA[i] || null,
+        vBatt: parsedData.VBatt[i] || null,
+        i5VD: parsedData.I5VD[i] || null,
+        i3_3VD: parsedData.I3_3VD[i] || null,
+        iBatt: parsedData.IBatt[i] || null,
+        gamma: parsedData.Gamma[i] || null,
+        accelStabX: parsedData.AccelStabX[i] || null,
+        accelStabY: parsedData.AccelStabY[i] || null,
+        accelStabZ: parsedData.AccelStabZ[i] || null,
+        accelStabZH: parsedData.AccelStabZH[i] || null,
+        surveyTGF: parsedData.SurveyTGF[i] || null,
+        surveyTMF: parsedData.SurveyTMF[i] || null,
+        surveyDipA: parsedData.SurveyDipA[i] || null,
+        surveyINC: parsedData.SurveyINC[i] || null,
+        surveyCINC: parsedData.SurveyCINC[i] || null,
+        surveyAZM: parsedData.SurveyAZM[i] || null,
+        surveyCAZM: parsedData.SurveyCAZM[i] || null,
+      });
+    }
+
+    return results;
+  }
+
+  // Extract device information from binary header
   static extractDeviceInfo(buffer: Buffer, filename: string, fileType: string): InsertDeviceReport {
-    // Extract real device information from binary data
-    // Parse filename for serial number and device type
     const isMDG = filename.includes('MDG');
     const isMP = filename.includes('MP');
     
@@ -275,28 +320,22 @@ export class BinaryParser {
     const serialMatch = filename.match(/(\d{10,})/);
     const serialNumber = serialMatch ? serialMatch[1] : null;
     
-    // Extract device info from binary header (first 256 bytes typically contain device metadata)
+    // Extract device info from binary header
     let firmwareVersion = null;
     let maxTemp = null;
-    let batteryVoltage = null;
     
     if (buffer.length >= 256) {
-      // Extract firmware version from header bytes 32-35 (4 bytes)
+      // Extract firmware version from header bytes 32-35
       const fwBytes = buffer.subarray(32, 36);
       firmwareVersion = `${fwBytes[0]}.${fwBytes[1]}.${fwBytes[2]}.${fwBytes[3]}`;
       
-      // Extract max temperature from header bytes 64-67 (4-byte float)
+      // Extract max temperature from header bytes 64-67
       if (buffer.length >= 68) {
         maxTemp = this.readFloat32LE(buffer, 64);
       }
-      
-      // Extract battery voltage from header bytes 68-71 (4-byte float)
-      if (buffer.length >= 72) {
-        batteryVoltage = this.readFloat32LE(buffer, 68);
-      }
     }
     
-    const deviceInfo: InsertDeviceReport = {
+    return {
       dumpId: 0, // Will be set by caller
       mpSerialNumber: isMP ? serialNumber : null,
       mpFirmwareVersion: isMP ? firmwareVersion : null,
@@ -306,155 +345,15 @@ export class BinaryParser {
       mdgFirmwareVersion: isMDG ? firmwareVersion : null,
       mdgMaxTempFahrenheit: isMDG ? maxTemp : null,
       mdgMaxTempCelsius: isMDG && maxTemp ? (maxTemp - 32) * 5/9 : null,
-      
-      // Calculate operational statistics from binary data
       circulationHours: buffer.length > 100 ? this.readFloat32LE(buffer, 96) : null,
       numberOfPulses: buffer.length > 104 ? this.readUInt32LE(buffer, 100) : null,
       motorOnTimeMinutes: buffer.length > 108 ? this.readFloat32LE(buffer, 104) : null,
-      
-      // Communication and hall status from binary data
       commErrorsTimeMinutes: buffer.length > 124 ? this.readFloat32LE(buffer, 120) : null,
       commErrorsPercent: buffer.length > 128 ? this.readFloat32LE(buffer, 124) : null,
       hallStatusTimeMinutes: buffer.length > 132 ? this.readFloat32LE(buffer, 128) : null,
       hallStatusPercent: buffer.length > 136 ? this.readFloat32LE(buffer, 132) : null,
-      
-      // MDG specific data
       mdgEdtTotalHours: isMDG && buffer.length > 140 ? this.readFloat32LE(buffer, 136) : null,
       mdgExtremeShockIndex: isMDG && buffer.length > 144 ? this.readFloat32LE(buffer, 140) : null,
     };
-
-    // Extract from filename
-    if (fileType === 'MP') {
-      // Extract MP S/N from filename or binary header
-      const mpSnMatch = filename.match(/MP.*?(\d{4})/);
-      if (mpSnMatch) {
-        deviceInfo.mpSerialNumber = `MP S/N ${mpSnMatch[1]}`;
-      } else {
-        deviceInfo.mpSerialNumber = 'MP S/N 3388'; // Default from user requirement
-      }
-      
-      // Extract from binary data
-      if (buffer.length >= 64) {
-        deviceInfo.mpFirmwareVersion = this.extractStringFromBuffer(buffer, 16, 8) || 'v2.1.4';
-        deviceInfo.circulationHours = this.readFloat32LE(buffer, 32);
-        deviceInfo.numberOfPulses = this.readUInt32LE(buffer, 36);
-        deviceInfo.motorOnTimeMinutes = this.readFloat32LE(buffer, 40);
-        deviceInfo.commErrorsTimeMinutes = this.readFloat32LE(buffer, 44);
-        deviceInfo.commErrorsPercent = deviceInfo.commErrorsTimeMinutes ? 
-          (deviceInfo.commErrorsTimeMinutes / (deviceInfo.circulationHours! * 60)) * 100 : 0.12;
-        deviceInfo.hallStatusTimeMinutes = this.readFloat32LE(buffer, 48);
-        deviceInfo.hallStatusPercent = deviceInfo.hallStatusTimeMinutes && deviceInfo.circulationHours ? 
-          (deviceInfo.hallStatusTimeMinutes / (deviceInfo.circulationHours * 60)) * 100 : null;
-        
-        // Temperature data
-        const maxTempF = this.readFloat32LE(buffer, 52);
-        deviceInfo.mpMaxTempFahrenheit = maxTempF;
-        deviceInfo.mpMaxTempCelsius = (maxTempF - 32) * 5/9;
-      }
-    } else if (fileType === 'MDG') {
-      // Extract MDG S/N from filename or binary header
-      const mdgSnMatch = filename.match(/MDG.*?(\d{4})/);
-      if (mdgSnMatch) {
-        deviceInfo.mdgSerialNumber = `MDG S/N ${mdgSnMatch[1]}`;
-      } else {
-        deviceInfo.mdgSerialNumber = 'MDG S/N 4421';
-      }
-      
-      // Extract from binary data
-      if (buffer.length >= 64) {
-        deviceInfo.mdgFirmwareVersion = this.extractStringFromBuffer(buffer, 16, 8) || 'v1.8.2';
-        deviceInfo.mdgEdtTotalHours = this.readFloat32LE(buffer, 32);
-        deviceInfo.mdgExtremeShockIndex = this.readFloat32LE(buffer, 36);
-        
-        // Temperature data
-        const maxTempF = this.readFloat32LE(buffer, 40);
-        deviceInfo.mdgMaxTempFahrenheit = maxTempF;
-        deviceInfo.mdgMaxTempCelsius = (maxTempF - 32) * 5/9;
-      }
-    }
-
-    return deviceInfo;
-  }
-
-  static extractStringFromBuffer(buffer: Buffer, offset: number, length: number): string | null {
-    if (offset + length > buffer.length) return null;
-    
-    try {
-      const stringData = buffer.subarray(offset, offset + length);
-      // Look for null terminator
-      const nullIndex = stringData.indexOf(0);
-      const endIndex = nullIndex >= 0 ? nullIndex : length;
-      
-      // Create a simple version string from buffer data
-      const version = `v${buffer[offset] % 3 + 1}.${buffer[offset + 1] % 10}.${buffer[offset + 2] % 10}`;
-      return version;
-    } catch {
-      return null;
-    }
-  }
-
-
-
-  static convertToSensorDataArray(data: ParsedData, dumpId: number): InsertSensorData[] {
-    const result: InsertSensorData[] = [];
-    
-    for (let i = 0; i < data.RTD.length; i++) {
-      result.push({
-        dumpId,
-        rtd: data.RTD[i],
-        tempMP: data.TempMP[i],
-        resetMP: data.ResetMP[i],
-        batteryCurrMP: data.BatteryCurrMP[i],
-        batteryVoltMP: data.BatteryVoltMP[i],
-        flowStatus: data.FlowStatus[i],
-        maxX: data.MaxX[i],
-        maxY: data.MaxY[i],
-        maxZ: data.MaxZ[i],
-        threshold: data.Threshold[i],
-        motorMin: data.MotorMin[i],
-        motorAvg: data.MotorAvg[i],
-        motorMax: data.MotorMax[i],
-        motorHall: data.MotorHall[i],
-        actuationTime: data.ActuationTime[i],
-        accelAX: data.AccelAX[i],
-        accelAY: data.AccelAY[i],
-        accelAZ: data.AccelAZ[i],
-        shockZ: data.ShockZ[i],
-        shockX: data.ShockX[i],
-        shockY: data.ShockY[i],
-        shockCountAxial50: data.ShockCountAxial50[i],
-        shockCountAxial100: data.ShockCountAxial100[i],
-        shockCountLat50: data.ShockCountLat50[i],
-        shockCountLat100: data.ShockCountLat100[i],
-        rotRpmMax: data.RotRpmMax[i],
-        rotRpmAvg: data.RotRpmAvg[i],
-        rotRpmMin: data.RotRpmMin[i],
-        v3_3VA_DI: data.V3_3VA_DI[i],
-        v5VD: data.V5VD[i],
-        v3_3VD: data.V3_3VD[i],
-        v1_9VD: data.V1_9VD[i],
-        v1_5VD: data.V1_5VD[i],
-        v1_8VA: data.V1_8VA[i],
-        v3_3VA: data.V3_3VA[i],
-        vBatt: data.VBatt[i],
-        i5VD: data.I5VD[i],
-        i3_3VD: data.I3_3VD[i],
-        iBatt: data.IBatt[i],
-        gamma: data.Gamma[i],
-        accelStabX: data.AccelStabX[i],
-        accelStabY: data.AccelStabY[i],
-        accelStabZ: data.AccelStabZ[i],
-        accelStabZH: data.AccelStabZH[i],
-        surveyTGF: data.SurveyTGF[i],
-        surveyTMF: data.SurveyTMF[i],
-        surveyDipA: data.SurveyDipA[i],
-        surveyINC: data.SurveyINC[i],
-        surveyCINC: data.SurveyCINC[i],
-        surveyAZM: data.SurveyAZM[i],
-        surveyCAZM: data.SurveyCAZM[i],
-      });
-    }
-    
-    return result;
   }
 }

@@ -284,7 +284,7 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     const warningCount = issues.filter(i => i.severity === 'warning').length;
     
     const analysisResult = {
-      overallStatus: criticalCount > 0 ? 'critical' : warningCount > 0 ? 'warning' : 'operational',
+      overallStatus: criticalCount > 0 ? 'critical' as const : warningCount > 0 ? 'warning' as const : 'operational' as const,
       criticalIssues: criticalCount,
       warnings: warningCount,
       issues
