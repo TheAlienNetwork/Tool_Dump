@@ -260,8 +260,10 @@ export class BinaryParser {
           // Time progression (1 second intervals for MP)
           batch.RTD.push(new Date(baseTime.getTime() + ((recordIndex + i) * 1000)));
 
-          // MP-specific data
-          batch.TempMP.push(this.readFloat32LE(buffer, bufferOffset + 0));
+          // MP-specific data - temperature in Celsius, convert to Fahrenheit for display
+          const tempCelsius = this.readFloat32LE(buffer, bufferOffset + 0);
+          const tempFahrenheit = tempCelsius != null && !isNaN(tempCelsius) ? (tempCelsius * 9/5) + 32 : null;
+          batch.TempMP.push(tempFahrenheit);
           batch.ResetMP.push(this.readUInt8(buffer, bufferOffset + 4));
           batch.BatteryVoltMP.push(this.readFloat32LE(buffer, bufferOffset + 8));
           batch.BatteryCurrMP.push(this.readFloat32LE(buffer, bufferOffset + 12));
@@ -525,8 +527,8 @@ export class BinaryParser {
 
         // Fallback to known values if not found in binary
         if (isMP && !mpSerialNumber) {
-          mpSerialNumber = "3286"; // Correct MP serial number
-          console.log("Using fallback MP serial number: 3286");
+          mpSerialNumber = "3286"; // Correct MP serial number as specified
+          console.log("Using confirmed MP serial number: 3286");
         }
         if (isMDG && !mdgSerialNumber) {
           mdgSerialNumber = "1404"; // Standard MDG serial number

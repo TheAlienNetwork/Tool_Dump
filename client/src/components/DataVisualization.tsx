@@ -31,11 +31,11 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
     const sensorData = dumpDetails.sensorData;
     console.log(`Processing ${sensorData.length} sensor records for visualization`);
-    
+
     // Optimize sampling for large datasets
     const maxPoints = 1000;
     const step = Math.max(1, Math.floor(sensorData.length / maxPoints));
-    
+
     return sensorData
       .filter((_, index) => index % step === 0)
       .map(item => ({
@@ -116,6 +116,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
         maxY: item.maxY,
         maxZ: item.maxZ,
         threshold: item.threshold,
+        flowStatus: item.flowStatus,
       }));
   }, [dumpDetails?.sensorData]);
 
@@ -241,8 +242,12 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   const sensorData = dumpDetails.sensorData;
 
-  // Filter data by type
-  const mpData = chartData.filter(d => d.tempMP !== null);
+  // Filter data by type and enhance flow status for visualization
+  const mpData = chartData.filter(d => d.tempMP !== null).map(d => ({
+    ...d,
+    flowStatus: d.flowStatus === 'On' ? 1 : 0, // Convert to numeric for bar chart
+    flowStatusLabel: d.flowStatus // Keep original for tooltip
+  }));
   const mdgData = chartData.filter(d => d.accelAX !== null);
 
   // Calculate pump stats
