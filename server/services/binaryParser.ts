@@ -218,13 +218,14 @@ export class BinaryParser {
             (batch as any)[key].length = 0;
           }
         });
-        
+
         if (global.gc) {
           global.gc();
         }
       }
     } finally {
       fs.closeSync(fd);
+      console.log(`✅ MDG FILE PROCESSING COMPLETE: ${totalRecords} records processed in ${batchIndex} batches`);
     }
   }
 
@@ -357,13 +358,14 @@ export class BinaryParser {
             (batch as any)[key].length = 0;
           }
         });
-        
+
         if (global.gc) {
           global.gc();
         }
       }
     } finally {
       fs.closeSync(fd);
+      console.log(`✅ MP FILE PROCESSING COMPLETE: ${totalRecords} records processed in ${batchIndex} batches`);
     }
   }
 
@@ -516,7 +518,7 @@ export class BinaryParser {
       try {
         // Search for device information in the header using pattern matching
         // Look for serial number patterns (typically 4-digit numbers for this equipment)
-        
+
         // Try multiple approaches to extract serial numbers
         // Approach 1: Look for 4-digit patterns in specific offsets
         for (let offset = 0; offset < Math.min(128, buffer.length - 4); offset += 4) {

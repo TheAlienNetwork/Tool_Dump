@@ -1,4 +1,3 @@
-
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -186,12 +185,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate PDF
       const pdfBuffer = await PDFGenerator.generateReport(reportData);
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${memoryDump.filename}_report.pdf"`);
       res.setHeader('Content-Length', pdfBuffer.length);
-      
+
       // Send PDF
       res.send(pdfBuffer);
     } catch (error) {
@@ -204,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/memory-dumps/clear-all", async (req, res) => {
     try {
       await storage.clearAllMemoryDumps();
-      
+
       // Also clean up uploaded files
       const uploadsDir = path.join(process.cwd(), 'uploads');
       if (fs.existsSync(uploadsDir)) {
@@ -233,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 // Ultra-fast streaming processing with memory control
 async function processMemoryDumpStreaming(dumpId: number, filePath: string, filename: string, fileType: string) {
   let processed = 0;
-  
+
   try {
     console.log(`Starting ultra-fast processing for dump ${dumpId}: ${filename}`);
     await storage.updateMemoryDumpStatus(dumpId, 'processing');
@@ -247,7 +246,7 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     const fd = fs.openSync(filePath, 'r');
     fs.readSync(fd, headerBuffer, 0, 256, 0);
     fs.closeSync(fd);
-    
+
     const deviceInfo = BinaryParser.extractDeviceInfo(headerBuffer, filename, fileType);
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
@@ -274,8 +273,11 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           MotorHall: batch.MotorHall,
           ActuationTime: batch.ActuationTime,
           AccelAX: batch.AccelAX,
-          AccelAY: batch.AccelAY,
-          AccelAZ: batch.AccelAZ,
+          AccelAY: batch.AccelAZ,
+          AccelStabX: batch.AccelStabX,
+          AccelStabY: batch.AccelStabY,
+          AccelStabZ: batch.AccelStabZ,
+          AccelStabZH: batch.AccelStabZH,
           ShockZ: batch.ShockZ,
           ShockX: batch.ShockX,
           ShockY: batch.ShockY,
@@ -298,10 +300,6 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           I3_3VD: batch.I3_3VD,
           IBatt: batch.IBatt,
           Gamma: batch.Gamma,
-          AccelStabX: batch.AccelStabX,
-          AccelStabY: batch.AccelStabY,
-          AccelStabZ: batch.AccelStabZ,
-          AccelStabZH: batch.AccelStabZH,
           SurveyTGF: batch.SurveyTGF,
           SurveyTMF: batch.SurveyTMF,
           SurveyDipA: batch.SurveyDipA,
@@ -320,12 +318,12 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
         if (global.gc) {
           global.gc();
         }
-        
+
         // Progress tracking for speed monitoring
         if (batchIndex % 5 === 0) {
           console.log(`⚡ Speed processing: ${processed} records | Batch ${batchIndex + 1}`);
         }
-        
+
         return true;
       } catch (error) {
         console.error(`Error processing batch ${batchIndex}:`, error);
@@ -338,13 +336,13 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     // Simple analysis on a sample of the data to avoid memory issues
     const sampleData = await storage.getSensorDataByDumpId(dumpId, 1000);
     const issues = [];
-    
+
     // Analyze temperature data
     const tempData = sampleData.filter(d => d.tempMP !== null);
     if (tempData.length > 0) {
       const highTemps = tempData.filter(d => d.tempMP! > 150);
       const lowTemps = tempData.filter(d => d.tempMP! < 50);
-      
+
       if (highTemps.length > 0) {
         const maxTemp = Math.max(...highTemps.map(d => d.tempMP!));
         issues.push({
@@ -354,7 +352,7 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           count: highTemps.length
         });
       }
-      
+
       if (lowTemps.length > 0) {
         const minTemp = Math.min(...lowTemps.map(d => d.tempMP!));
         issues.push({
@@ -368,7 +366,7 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
 
     const criticalCount = issues.filter(i => i.severity === 'critical').length;
     const warningCount = issues.filter(i => i.severity === 'warning').length;
-    
+
     const analysisResult = {
       overallStatus: criticalCount > 0 ? 'critical' as const : warningCount > 0 ? 'warning' as const : 'operational' as const,
       criticalIssues: criticalCount,
@@ -400,7 +398,7 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     } catch (err) {
       console.warn('Failed to delete uploaded file:', err);
     }
-    
+
     // Final garbage collection
     if (global.gc) {
       global.gc();
