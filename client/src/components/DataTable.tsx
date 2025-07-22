@@ -10,7 +10,7 @@ interface DataTableProps {
   memoryDump: {
     id: number;
     status: string;
-  };
+  } | null;
 }
 
 export default function DataTable({ memoryDump }: DataTableProps) {
@@ -18,9 +18,24 @@ export default function DataTable({ memoryDump }: DataTableProps) {
   const itemsPerPage = 20;
 
   const { data: dumpDetails, isLoading } = useQuery<MemoryDumpDetails>({
-    queryKey: ['/api/memory-dumps', memoryDump.id],
-    enabled: memoryDump.status === 'completed',
+    queryKey: ['/api/memory-dumps', memoryDump?.id],
+    enabled: memoryDump?.status === 'completed',
   });
+
+  if (!memoryDump) {
+    return (
+      <section>
+        <Card className="bg-gray-90 border-gray-80">
+          <CardHeader>
+            <CardTitle className="text-gray-10">Raw Data View</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 text-center text-gray-40">
+            Select a memory dump to view data
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   const handleExportCSV = () => {
     if (!dumpDetails?.sensorData) return;
