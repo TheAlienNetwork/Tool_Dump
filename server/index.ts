@@ -31,21 +31,20 @@ setInterval(() => {
   const memUsage = process.memoryUsage();
   console.log(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
   
-  // More aggressive memory management
-  if (memUsage.heapUsed > 150 * 1024 * 1024 && global.gc) { // Even lower threshold: 150MB
+  // Memory management for database storage - more relaxed thresholds
+  if (memUsage.heapUsed > 250 * 1024 * 1024 && global.gc) { // 250MB threshold
     console.log('High memory usage detected, forcing garbage collection...');
     global.gc();
   }
   
-  // Critical memory usage - more aggressive cleanup
-  if (memUsage.heapUsed > 300 * 1024 * 1024) { // 300MB critical threshold
-    console.log('Critical memory usage detected, performing aggressive cleanup...');
+  // Critical memory usage - emergency cleanup  
+  if (memUsage.heapUsed > 500 * 1024 * 1024) { // 500MB critical threshold
+    console.log('Critical memory usage detected, performing emergency cleanup...');
     if (global.gc) {
       global.gc();
       // Run GC multiple times for better cleanup
-      setTimeout(() => global.gc && global.gc(), 25);
-      setTimeout(() => global.gc && global.gc(), 75);
-      setTimeout(() => global.gc && global.gc(), 125);
+      setTimeout(() => global.gc && global.gc(), 50);
+      setTimeout(() => global.gc && global.gc(), 100);
     }
   }
 }, 10000); // Check every 10 seconds for faster response

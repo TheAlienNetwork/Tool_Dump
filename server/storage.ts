@@ -252,7 +252,12 @@ export class DatabaseStorage implements IStorage {
 
   async createSensorData(data: InsertSensorData[]): Promise<void> {
     if (data.length > 0) {
-      await db.insert(sensorData).values(data);
+      // Process in smaller batches to prevent database timeout and memory issues
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < data.length; i += BATCH_SIZE) {
+        const batch = data.slice(i, i + BATCH_SIZE);
+        await db.insert(sensorData).values(batch);
+      }
     }
   }
 
@@ -295,4 +300,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

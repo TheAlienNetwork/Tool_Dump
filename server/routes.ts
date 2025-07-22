@@ -250,8 +250,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Optimized for maximum speed with controlled memory
-    const CHUNK_SIZE = 2000; // Much larger chunks for maximum processing speed
+    // Optimized for database storage with controlled memory
+    const CHUNK_SIZE = 500; // Smaller chunks to prevent memory issues with database storage
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
@@ -309,19 +309,28 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           SurveyCAZM: batch.SurveyCAZM,
         }, dumpId);
 
-        // Store immediately and clear
+        // Store immediately to database and clear from memory
         await storage.createSensorData(sensorDataBatch);
         processed += sensorDataBatch.length;
 
-        // Controlled cleanup for speed vs memory balance
-        if (global.gc && batchIndex % 5 === 0) {
+        // Clear references to help GC
+        sensorDataBatch.length = 0;
+
+        // More frequent cleanup for database storage
+        if (global.gc && batchIndex % 3 === 0) {
           global.gc();
         }
         
-        // Minimal logging for maximum speed
-        if (batchIndex % 20 === 0) {
+        // Regular logging with memory monitoring
+        if (batchIndex % 10 === 0) {
           const currentMemory = process.memoryUsage();
           console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+          
+          // Emergency cleanup if memory gets too high during processing
+          if (currentMemory.heapUsed > 400 * 1024 * 1024 && global.gc) {
+            console.log('Emergency GC during processing...');
+            global.gc();
+          }
         }
         
         return true;
