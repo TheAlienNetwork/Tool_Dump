@@ -98,7 +98,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 <div className="h-6 bg-dark-600 rounded-lg w-1/4"></div>
                 <div className="space-y-3">
                   {[...Array(8)].map((_, i) => (
-                    <div key={i} className="h-16 bg-dark-600 rounded-lg"></div>
+                    <div key={`loading-row-${i}`} className="h-16 bg-dark-600 rounded-lg"></div>
                   ))}
                 </div>
               </div>

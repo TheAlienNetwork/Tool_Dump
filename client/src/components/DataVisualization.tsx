@@ -541,6 +541,55 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+
+                  {/* Motor Current Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Peak Max Current</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const validMax = mpData.filter(d => d.motorMax !== null && d.motorMax !== undefined && !isNaN(d.motorMax) && isFinite(d.motorMax));
+                          if (validMax.length === 0) return "N/A";
+                          return `${Math.max(...validMax.map(d => d.motorMax!)).toFixed(2)}A`;
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Avg Current</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validAvg = mpData.filter(d => d.motorAvg !== null && d.motorAvg !== undefined && !isNaN(d.motorAvg) && isFinite(d.motorAvg));
+                          if (validAvg.length === 0) return "N/A";
+                          const avgCurrent = validAvg.reduce((sum, d) => sum + d.motorAvg!, 0) / validAvg.length;
+                          return `${avgCurrent.toFixed(2)}A`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Min Current</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validMin = mpData.filter(d => d.motorMin !== null && d.motorMin !== undefined && !isNaN(d.motorMin) && isFinite(d.motorMin));
+                          if (validMin.length === 0) return "N/A";
+                          return `${Math.min(...validMin.map(d => d.motorMin!)).toFixed(2)}A`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">minimum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Hall Signal</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const validHall = mpData.filter(d => d.motorHall !== null && d.motorHall !== undefined && !isNaN(d.motorHall) && isFinite(d.motorHall));
+                          if (validHall.length === 0) return "N/A";
+                          return `${validHall.length.toLocaleString()}`;
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">samples</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 6. Actuation Time vs Average Motor Current (MP) */}
@@ -562,6 +611,58 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <Line yAxisId="right" type="monotone" dataKey="actuationTime" stroke="#F59E0B" strokeWidth={2} name="Actuation Time (s)" dot={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Actuation Time Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/20">
+                      <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Peak Actuation Time</div>
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {(() => {
+                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime));
+                          if (validActuation.length === 0) return "N/A";
+                          return `${Math.max(...validActuation.map(d => d.actuationTime!)).toFixed(2)}s`;
+                        })()}
+                      </div>
+                      <div className="text-yellow-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">Avg Actuation Time</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime));
+                          if (validActuation.length === 0) return "N/A";
+                          const avgTime = validActuation.reduce((sum, d) => sum + d.actuationTime!, 0) / validActuation.length;
+                          return `${avgTime.toFixed(2)}s`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Current Efficiency</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validData = mpData.filter(d => 
+                            d.motorAvg !== null && d.motorAvg !== undefined && !isNaN(d.motorAvg) && isFinite(d.motorAvg) &&
+                            d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime)
+                          );
+                          if (validData.length === 0) return "N/A";
+                          const efficiency = validData.reduce((sum, d) => sum + (d.actuationTime! / Math.max(d.motorAvg!, 0.1)), 0) / validData.length;
+                          return `${efficiency.toFixed(1)}`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">ratio</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Valid Samples</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime));
+                          return validActuation.length.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">data points</div>
+                    </div>
                   </div>
                 </div>
               </>
@@ -592,6 +693,54 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+
+                  {/* MDG Acceleration Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Peak AX Accel</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validAX = mdgData.filter(d => d.accelAX !== null && d.accelAX !== undefined && !isNaN(d.accelAX) && isFinite(d.accelAX));
+                          if (validAX.length === 0) return "N/A";
+                          return `${Math.max(...validAX.map(d => Math.abs(d.accelAX!))).toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Peak AY Accel</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validAY = mdgData.filter(d => d.accelAY !== null && d.accelAY !== undefined && !isNaN(d.accelAY) && isFinite(d.accelAY));
+                          if (validAY.length === 0) return "N/A";
+                          return `${Math.max(...validAY.map(d => Math.abs(d.accelAY!))).toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-lg p-4 border border-amber-500/20">
+                      <div className="text-amber-400 text-xs uppercase font-medium mb-2">Peak AZ Accel</div>
+                      <div className="text-2xl font-bold text-amber-400">
+                        {(() => {
+                          const validAZ = mdgData.filter(d => d.accelAZ !== null && d.accelAZ !== undefined && !isNaN(d.accelAZ) && isFinite(d.accelAZ));
+                          if (validAZ.length === 0) return "N/A";
+                          return `${Math.max(...validAZ.map(d => Math.abs(d.accelAZ!))).toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-amber-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Total Resets</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const validResets = mdgData.filter(d => d.resetMP !== null && d.resetMP !== undefined && !isNaN(d.resetMP) && isFinite(d.resetMP));
+                          if (validResets.length === 0) return "N/A";
+                          return validResets.reduce((sum, d) => sum + (d.resetMP || 0), 0).toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">events</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 8. Shock Peak Z (g) (MDG) */}
@@ -611,6 +760,53 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <Area type="monotone" dataKey="shockZ" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} name="Shock Z (g)" />
                       </AreaChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Shock Z Analysis */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-red-500/10 to-rose-500/10 rounded-lg p-4 border border-red-500/20">
+                      <div className="text-red-400 text-xs uppercase font-medium mb-2">Peak Shock Z</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {(() => {
+                          const validShockZ = mdgData.filter(d => d.shockZ !== null && d.shockZ !== undefined && !isNaN(d.shockZ) && isFinite(d.shockZ));
+                          if (validShockZ.length === 0) return "N/A";
+                          return `${Math.max(...validShockZ.map(d => Math.abs(d.shockZ!))).toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-red-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-lg p-4 border border-orange-500/20">
+                      <div className="text-orange-400 text-xs uppercase font-medium mb-2">Avg Shock Z</div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {(() => {
+                          const validShockZ = mdgData.filter(d => d.shockZ !== null && d.shockZ !== undefined && !isNaN(d.shockZ) && isFinite(d.shockZ));
+                          if (validShockZ.length === 0) return "N/A";
+                          const avgShockZ = validShockZ.reduce((sum, d) => sum + Math.abs(d.shockZ!), 0) / validShockZ.length;
+                          return `${avgShockZ.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-orange-300 text-sm">average</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-lg p-4 border border-yellow-500/20">
+                      <div className="text-yellow-400 text-xs uppercase font-medium mb-2">High Impact Events</div>
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {(() => {
+                          const highShocks = mdgData.filter(d => d.shockZ !== null && d.shockZ !== undefined && !isNaN(d.shockZ) && isFinite(d.shockZ) && Math.abs(d.shockZ) > 10);
+                          return highShocks.length.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-yellow-300 text-sm">events &gt; 10g</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Data Points</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const validShockZ = mdgData.filter(d => d.shockZ !== null && d.shockZ !== undefined && !isNaN(d.shockZ) && isFinite(d.shockZ));
+                          return validShockZ.length.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">samples</div>
+                    </div>
                   </div>
                 </div>
 
