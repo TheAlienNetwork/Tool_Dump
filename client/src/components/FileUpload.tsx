@@ -122,7 +122,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
 
   const handleClearAllDumps = async () => {
     try {
-      await apiRequest('/api/memory-dumps/clear-all', { method: 'DELETE' });
+      await apiRequest('/api/memory-dumps/clear-all', 'DELETE');
       
       // Clear all React Query cache
       queryClient.clear();

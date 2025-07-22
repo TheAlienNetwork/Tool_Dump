@@ -170,9 +170,26 @@ export class MemStorage implements IStorage {
   async createDeviceReport(insertReport: InsertDeviceReport): Promise<DeviceReport> {
     const id = this.currentId++;
     const report: DeviceReport = {
-      ...insertReport,
       id,
+      dumpId: insertReport.dumpId,
       generatedAt: new Date(),
+      mpSerialNumber: insertReport.mpSerialNumber ?? null,
+      mpFirmwareVersion: insertReport.mpFirmwareVersion ?? null,
+      mdgSerialNumber: insertReport.mdgSerialNumber ?? null,
+      mdgFirmwareVersion: insertReport.mdgFirmwareVersion ?? null,
+      mpMaxTempFahrenheit: insertReport.mpMaxTempFahrenheit ?? null,
+      mpMaxTempCelsius: insertReport.mpMaxTempCelsius ?? null,
+      circulationHours: insertReport.circulationHours ?? null,
+      numberOfPulses: insertReport.numberOfPulses ?? null,
+      motorOnTimeMinutes: insertReport.motorOnTimeMinutes ?? null,
+      commErrorsTimeMinutes: insertReport.commErrorsTimeMinutes ?? null,
+      commErrorsPercent: insertReport.commErrorsPercent ?? null,
+      hallStatusTimeMinutes: insertReport.hallStatusTimeMinutes ?? null,
+      hallStatusPercent: insertReport.hallStatusPercent ?? null,
+      mdgMaxTempFahrenheit: insertReport.mdgMaxTempFahrenheit ?? null,
+      mdgMaxTempCelsius: insertReport.mdgMaxTempCelsius ?? null,
+      mdgEdtTotalHours: insertReport.mdgEdtTotalHours ?? null,
+      mdgExtremeShockIndex: insertReport.mdgExtremeShockIndex ?? null,
     };
     this.deviceReports.set(insertReport.dumpId, report);
     return report;
