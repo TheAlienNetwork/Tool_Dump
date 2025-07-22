@@ -239,13 +239,15 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       memoryStore.set(dumpId, existingData);
     }
 
-    // Extract device information from header
+    // Extract device information from header - FRESH for each upload
     const headerBuffer = Buffer.alloc(256);
     const fd = fs.openSync(filePath, 'r');
     fs.readSync(fd, headerBuffer, 0, 256, 0);
     fs.closeSync(fd);
 
+    console.log(`🔍 Extracting fresh device info for ${filename} (${fileType})`);
     const deviceInfo = BinaryParser.extractDeviceInfo(headerBuffer, filename, fileType);
+    console.log(`📋 Device info extracted:`, deviceInfo);
 
     // Process file in smaller chunks to prevent memory issues
     const allSensorData: any[] = [];
@@ -292,7 +294,8 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       global.gc();
     }
 
-    // Streaming analysis to avoid stack overflow with large datasets
+    // Generate FRESH analysis for each new upload - NO cached/dummy data
+    console.log(`🔬 Starting fresh AI analysis for ${filename} with ${allSensorData.length} records`);
     const issues = [];
     let maxTemp = -Infinity;
     let minTemp = Infinity;
@@ -368,7 +371,7 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       analysisResults,
       deviceReport: {
         id: dumpId,
-        dumpId: dumpId,
+        dumpId,
         generatedAt: new Date(),
         ...deviceInfo
       }

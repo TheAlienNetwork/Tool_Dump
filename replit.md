@@ -38,6 +38,8 @@ Preferred communication style: Simple, everyday language.
 ✓ **User-Friendly Formatting**: Enhanced all values with readable units, proper formatting, and contextual status indicators
 ✓ **Analysis Containers Added**: Each plot now includes detailed metrics, analysis summaries, and calculated insights
 ✓ **Enhanced PDF Reports**: User-friendly device information with operational status, temperature warnings, and comprehensive analysis
+✓ **Cache Invalidation Fixed**: Resolved stale data issue - React Query caches now clear on new uploads ensuring fresh device S/N, analysis, and AI detections
+✓ **Fresh Data Guarantee**: Added logging and cache clearing to ensure NO dummy data or old bin file information shows for new uploads
 
 ## System Architecture
 

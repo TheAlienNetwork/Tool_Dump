@@ -82,6 +82,9 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
         description: `${validFiles.length} file(s) are being processed`,
       });
 
+      // Clear all React Query caches to ensure fresh data
+      queryClient.clear();
+      
       // Trigger immediate refresh and keep polling
       onUploadComplete();
 
@@ -94,6 +97,8 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
 
           if (processingDumps.length === 0) {
             clearInterval(pollInterval);
+            // Clear cache again when processing is complete to show fresh device info
+            queryClient.clear();
             onUploadComplete(); // Final refresh when all done
           }
         } catch (error) {

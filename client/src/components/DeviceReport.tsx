@@ -24,7 +24,12 @@ interface DeviceReportProps {
 export function DeviceReport({ memoryDump }: DeviceReportProps) {
   const { data: memoryDumpDetails, isLoading } = useQuery({
     queryKey: ['/api/memory-dumps', memoryDump.id],
-    enabled: !!memoryDump.id
+    enabled: !!memoryDump.id,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 0, // Always fetch fresh data for new dumps
+    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes only
   });
 
   if (isLoading) {
