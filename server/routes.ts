@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Ultra-fast processing with raw SQL bulk inserts
-    const CHUNK_SIZE = 5000; // Large chunks for maximum raw SQL performance
+    // Fast processing optimized for Drizzle ORM bulk operations
+    const CHUNK_SIZE = 2000; // Balanced chunk size for ORM performance
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects
