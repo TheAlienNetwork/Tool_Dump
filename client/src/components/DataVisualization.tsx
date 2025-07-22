@@ -68,6 +68,47 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     };
   }, []);
 
+  const ChartCard = useMemo(() => {
+    return ({ 
+      title, 
+      children, 
+      bounds, 
+      icon: Icon,
+      gradient = "from-blue-500 to-purple-500"
+    }: { 
+      title: string; 
+      children: React.ReactNode; 
+      bounds?: string;
+      icon?: any;
+      gradient?: string;
+    }) => (
+      <div className="gradient-border chart-enter">
+        <Card className="bg-dark-800/50 backdrop-blur-xl border-0 overflow-hidden">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {Icon && <Icon className="w-5 h-5 text-blue-500" />}
+                <CardTitle className={`text-lg font-semibold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
+                  {title}
+                </CardTitle>
+              </div>
+              {bounds && (
+                <div className="px-3 py-1 bg-dark-700/70 rounded-full">
+                  <span className="text-xs text-slate-400">{bounds}</span>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="h-80 relative">
+              {children}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }, []);
+
   const handleDownloadPDF = async () => {
     try {
       const response = await fetch(`/api/memory-dumps/${memoryDump?.id}/report`, {
@@ -141,44 +182,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     );
   }
 
-  const ChartCard = ({ 
-    title, 
-    children, 
-    bounds, 
-    icon: Icon,
-    gradient = "from-blue-500 to-purple-500"
-  }: { 
-    title: string; 
-    children: React.ReactNode; 
-    bounds?: string;
-    icon?: any;
-    gradient?: string;
-  }) => (
-    <div className="gradient-border chart-enter">
-      <Card className="bg-dark-800/50 backdrop-blur-xl border-0 overflow-hidden">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              {Icon && <Icon className="w-5 h-5 text-blue-500" />}
-              <CardTitle className={`text-lg font-semibold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
-                {title}
-              </CardTitle>
-            </div>
-            {bounds && (
-              <div className="px-3 py-1 bg-dark-700/70 rounded-full">
-                <span className="text-xs text-slate-400">{bounds}</span>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="h-80 relative">
-            {children}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  
 
   return (
     <section className="space-y-8">

@@ -4,11 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Activity, 
-  Battery, 
-  Thermometer, 
-  Zap, 
-  Clock, 
+  ChevronDown,
+  ChevronRight,
   MapPin, 
   Gauge,
   Cpu,

@@ -226,6 +226,50 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
               ))}
             </div>
           )}
+
+          {/* Recent Memory Dumps */}
+          {memoryDumps.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-10 uppercase tracking-wide">Recent Memory Dumps</h4>
+                <Button 
+                  onClick={handleClick}
+                  size="sm"
+                  className="bg-ibm-blue hover:bg-blue-600 text-white"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  New Dump
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {memoryDumps.slice(0, 5).map((dump: any) => (
+                  <div 
+                    key={dump.id} 
+                    className="flex items-center justify-between bg-gray-80 rounded-lg p-3 cursor-pointer hover:bg-gray-70 transition-colors"
+                    onClick={() => onSelectDump(dump)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gray-70 rounded flex items-center justify-center">
+                        <FileIcon className="w-4 h-4 text-gray-40" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-10">{dump.filename}</p>
+                        <p className="text-xs text-gray-40">
+                          {new Date(dump.createdAt).toLocaleDateString()} • {(dump.fileSize / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon(dump.status)}
+                      <span className={`text-xs ${getStatusColor(dump.status)}`}>
+                        {dump.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>
