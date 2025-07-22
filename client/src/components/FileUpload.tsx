@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { MemoryDump } from "@/lib/types";
-import { Upload, FileIcon, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Upload, FileIcon, AlertCircle, CheckCircle2, Clock, RotateCcw } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface FileUploadProps {
   onUploadComplete: () => void;
@@ -90,7 +91,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred during upload",
         variant: "destructive"
       });
     } finally {
@@ -117,6 +118,28 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
 
   const handleClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleClearAllDumps = async () => {
+    try {
+      await apiRequest('/api/memory-dumps/clear-all', { method: 'DELETE' });
+      
+      // Clear all React Query cache
+      queryClient.clear();
+      
+      toast({
+        title: "All dumps cleared",
+        description: "All memory dumps and analysis data have been cleared successfully",
+      });
+      
+      onUploadComplete(); // Refresh the list
+    } catch (error) {
+      toast({
+        title: "Clear failed",
+        description: error instanceof Error ? error.message : "Failed to clear dumps",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -233,11 +256,11 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-gray-10 uppercase tracking-wide">Recent Memory Dumps</h4>
                 <Button 
-                  onClick={handleClick}
+                  onClick={handleClearAllDumps}
                   size="sm"
-                  className="bg-ibm-blue hover:bg-blue-600 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white transition-colors"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-4 h-4 mr-2" />
                   New Dump
                 </Button>
               </div>

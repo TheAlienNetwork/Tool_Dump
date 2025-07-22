@@ -21,7 +21,9 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+    refetchOnReconnect: false,
+    staleTime: Infinity, // Never consider data stale
+    gcTime: Infinity, // Keep data in cache forever
   });
 
   // Process data for charts - using actual sensor data
@@ -92,7 +94,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     if (!chartData.length) return [];
     const tempBins: { [key: string]: number } = {};
     chartData.forEach(d => {
-      if (d.tempMP !== null) {
+      if (d.tempMP !== null && d.tempMP !== undefined) {
         const bin = Math.floor(d.tempMP / 5) * 5; // 5°F bins
         tempBins[bin] = (tempBins[bin] || 0) + 1;
       }

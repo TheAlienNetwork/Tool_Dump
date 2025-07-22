@@ -15,7 +15,10 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
     enabled: memoryDump.status === 'completed',
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: Infinity, // Never consider data stale
+    gcTime: Infinity, // Keep data in cache forever
   });
 
   const handleDownloadReport = async () => {

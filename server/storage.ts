@@ -8,6 +8,7 @@ export interface IStorage {
   getMemoryDump(id: number): Promise<MemoryDump | undefined>;
   updateMemoryDumpStatus(id: number, status: string, errorMessage?: string): Promise<void>;
   getMemoryDumps(): Promise<MemoryDump[]>;
+  clearAllMemoryDumps(): Promise<void>;
 
   // Sensor Data
   createSensorData(data: InsertSensorData[]): Promise<void>;
@@ -71,6 +72,14 @@ export class MemStorage implements IStorage {
     return Array.from(this.memoryDumps.values()).sort((a, b) => 
       new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
     );
+  }
+
+  async clearAllMemoryDumps(): Promise<void> {
+    this.memoryDumps.clear();
+    this.sensorData.clear();
+    this.analysisResults.clear();
+    this.deviceReports.clear();
+    this.currentId = 1;
   }
 
   async createSensorData(data: InsertSensorData[]): Promise<void> {
@@ -210,6 +219,14 @@ export class DatabaseStorage implements IStorage {
 
   async getMemoryDumps(): Promise<MemoryDump[]> {
     return await db.select().from(memoryDumps).orderBy(desc(memoryDumps.uploadedAt));
+  }
+
+  async clearAllMemoryDumps(): Promise<void> {
+    // Delete in reverse order to respect foreign key constraints
+    await db.delete(deviceReports);
+    await db.delete(analysisResults);
+    await db.delete(sensorData);
+    await db.delete(memoryDumps);
   }
 
   async createSensorData(data: InsertSensorData[]): Promise<void> {

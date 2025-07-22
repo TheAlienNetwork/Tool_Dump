@@ -196,6 +196,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all memory dumps and related data
+  app.delete("/api/memory-dumps/clear-all", async (req, res) => {
+    try {
+      await storage.clearAllMemoryDumps();
+      
+      // Also clean up uploaded files
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        for (const file of files) {
+          const filePath = path.join(uploadsDir, file);
+          try {
+            fs.unlinkSync(filePath);
+          } catch (err) {
+            console.warn(`Could not delete file ${filePath}:`, err);
+          }
+        }
+      }
+
+      res.json({ message: "All memory dumps and related data cleared successfully" });
+    } catch (error: any) {
+      console.error("Error clearing all dumps:", error);
+      res.status(500).json({ message: "Failed to clear all dumps", error: error?.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
