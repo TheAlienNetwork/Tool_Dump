@@ -21,6 +21,12 @@ export default function Dashboard() {
 
   const { data: memoryDumps = [], refetch: refetchDumps } = useQuery({
     queryKey: ['/api/memory-dumps'],
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   // Auto-select the most recent completed dump

@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 interface FileUploadProps {
   onUploadComplete: () => void;
   memoryDumps: MemoryDump[];
-  onSelectDump: (dump: MemoryDump) => void;
+  onSelectDump: (dump: MemoryDump | null) => void;
 }
 
 export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump }: FileUploadProps) {
@@ -122,7 +122,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
 
   const handleClearAllDumps = async () => {
     try {
-      await apiRequest('/api/memory-dumps/clear-all', 'DELETE');
+      await apiRequest('DELETE', '/api/memory-dumps/clear-all');
       
       // Clear all React Query cache
       queryClient.clear();
@@ -133,6 +133,7 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
       });
       
       onUploadComplete(); // Refresh the list
+      onSelectDump(null); // Clear selected dump
     } catch (error) {
       toast({
         title: "Clear failed",
