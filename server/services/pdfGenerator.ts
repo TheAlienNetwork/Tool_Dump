@@ -33,8 +33,174 @@ export interface ReportData {
 
 export class PDFGenerator {
   static async generateReport(reportData: ReportData): Promise<Buffer> {
-    const report = this.generateFormattedReport(reportData);
-    return Buffer.from(report, 'utf-8');
+    // Import jsPDF dynamically
+    const { jsPDF } = await import('jspdf');
+    const pdf = new jsPDF();
+    
+    // Set up fonts and colors
+    pdf.setFont('helvetica');
+    
+    // Header with logo space
+    pdf.setFontSize(24);
+    pdf.setTextColor(41, 128, 185); // Blue color
+    pdf.text('The Tool Dump', 105, 30, { align: 'center' });
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('Advanced Binary Dump Analysis Report', 105, 40, { align: 'center' });
+    
+    // Line separator
+    pdf.setLineWidth(0.5);
+    pdf.setDrawColor(41, 128, 185);
+    pdf.line(20, 45, 190, 45);
+    
+    let yPos = 60;
+    
+    // Executive Summary
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Executive Summary', 20, yPos);
+    yPos += 10;
+    
+    pdf.setFontSize(10);
+    pdf.text(`File Name: ${reportData.filename}`, 20, yPos);
+    yPos += 7;
+    pdf.text(`Generated: ${reportData.processedAt.toLocaleString()}`, 20, yPos);
+    yPos += 7;
+    pdf.text(`Overall Status: ${reportData.overallStatus.toUpperCase()}`, 20, yPos);
+    yPos += 7;
+    pdf.text(`Critical Issues: ${reportData.criticalIssues}`, 20, yPos);
+    yPos += 7;
+    pdf.text(`Warnings: ${reportData.warnings}`, 20, yPos);
+    yPos += 7;
+    pdf.text(`Total Data Points: ${reportData.sensorData.length}`, 20, yPos);
+    yPos += 15;
+    
+    // Device Information
+    if (reportData.deviceReport) {
+      pdf.setFontSize(16);
+      pdf.text('Device Information', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      
+      // MP Device
+      if (reportData.deviceReport.mpSerialNumber || reportData.deviceReport.mpFirmwareVersion) {
+        pdf.setFontSize(12);
+        pdf.text('MP Device:', 20, yPos);
+        yPos += 7;
+        
+        pdf.setFontSize(10);
+        if (reportData.deviceReport.mpSerialNumber) {
+          pdf.text(`Serial Number: ${reportData.deviceReport.mpSerialNumber}`, 25, yPos);
+          yPos += 6;
+        }
+        if (reportData.deviceReport.mpFirmwareVersion) {
+          pdf.text(`Firmware Version: ${reportData.deviceReport.mpFirmwareVersion}`, 25, yPos);
+          yPos += 6;
+        }
+        if (reportData.deviceReport.mpMaxTempFahrenheit) {
+          pdf.text(`Max Temperature: ${reportData.deviceReport.mpMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mpMaxTempFahrenheit?.toFixed(1)}°F)`, 25, yPos);
+          yPos += 6;
+        }
+        yPos += 5;
+      }
+      
+      // MDG Device
+      if (reportData.deviceReport.mdgSerialNumber || reportData.deviceReport.mdgFirmwareVersion) {
+        pdf.setFontSize(12);
+        pdf.text('MDG Device:', 20, yPos);
+        yPos += 7;
+        
+        pdf.setFontSize(10);
+        if (reportData.deviceReport.mdgSerialNumber) {
+          pdf.text(`Serial Number: ${reportData.deviceReport.mdgSerialNumber}`, 25, yPos);
+          yPos += 6;
+        }
+        if (reportData.deviceReport.mdgFirmwareVersion) {
+          pdf.text(`Firmware Version: ${reportData.deviceReport.mdgFirmwareVersion}`, 25, yPos);
+          yPos += 6;
+        }
+        if (reportData.deviceReport.mdgMaxTempFahrenheit) {
+          pdf.text(`Max Temperature: ${reportData.deviceReport.mdgMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mdgMaxTempFahrenheit?.toFixed(1)}°F)`, 25, yPos);
+          yPos += 6;
+        }
+        yPos += 10;
+      }
+    }
+    
+    // Issues Analysis
+    if (reportData.issues && reportData.issues.length > 0) {
+      if (yPos > 250) {
+        pdf.addPage();
+        yPos = 20;
+      }
+      
+      pdf.setFontSize(16);
+      pdf.text('Issues Analysis', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      for (const issue of reportData.issues.slice(0, 10)) { // Limit to first 10 issues
+        if (yPos > 270) {
+          pdf.addPage();
+          yPos = 20;
+        }
+        
+        pdf.setTextColor(issue.severity === 'critical' ? 220 : 255, issue.severity === 'critical' ? 53 : 193, issue.severity === 'critical' ? 69 : 7);
+        pdf.text(`${issue.severity.toUpperCase()}: ${issue.issue}`, 20, yPos);
+        yPos += 7;
+        
+        if (issue.explanation) {
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(`Explanation: ${issue.explanation}`, 25, yPos);
+          yPos += 7;
+        }
+        yPos += 3;
+      }
+    }
+    
+    // Sensor Data Summary (add simple statistics)
+    if (reportData.sensorData && reportData.sensorData.length > 0) {
+      if (yPos > 200) {
+        pdf.addPage();
+        yPos = 20;
+      }
+      
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Sensor Data Summary', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      
+      // Temperature analysis
+      const temps = reportData.sensorData
+        .map(d => d.tempMP)
+        .filter(t => t !== null && t !== undefined) as number[];
+      
+      if (temps.length > 0) {
+        const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+        const maxTemp = Math.max(...temps);
+        const minTemp = Math.min(...temps);
+        
+        pdf.text(`Temperature Analysis:`, 20, yPos);
+        yPos += 7;
+        pdf.text(`  Average: ${avgTemp.toFixed(1)}°F`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  Maximum: ${maxTemp.toFixed(1)}°F`, 25, yPos);
+        yPos += 6;
+        pdf.text(`  Minimum: ${minTemp.toFixed(1)}°F`, 25, yPos);
+        yPos += 10;
+      }
+    }
+    
+    // Footer
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text(`Report generated by The Tool Dump - ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
+    
+    return Buffer.from(pdf.output('arraybuffer'));
   }
 
   private static generateFormattedReport(data: ReportData): string {

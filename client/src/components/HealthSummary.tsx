@@ -24,19 +24,19 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
   const handleDownloadReport = async () => {
     try {
       const response = await fetch(`/api/memory-dumps/${memoryDump.id}/report`);
-      if (!response.ok) throw new Error('Failed to download report');
+      if (!response.ok) throw new Error('Failed to download PDF report');
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `NeuralDrill_Report_${memoryDump.filename.replace('.bin', '')}.txt`;
+      a.download = `TheToolDump_Report_${memoryDump.filename.replace('.bin', '')}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to download report:', error);
+      console.error('Failed to download PDF report:', error);
     }
   };
 
@@ -136,7 +136,7 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Generate Report
+                Download PDF Report
               </Button>
             </div>
           </CardHeader>

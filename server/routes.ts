@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { BinaryParser } from "./services/binaryParser";
+import { PDFGenerator } from "./services/pdfGenerator";
 
 interface MulterRequest extends Request {
   files?: Express.Multer.File[];
@@ -160,13 +161,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         warnings: analysis.warnings,
         issues: analysis.issues as any,
         sensorData: sensorData || [],
-        deviceReport: deviceReport || undefined
+        deviceReport: deviceReport ? {
+          mpSerialNumber: deviceReport.mpSerialNumber || undefined,
+          mpFirmwareVersion: deviceReport.mpFirmwareVersion || undefined,
+          mpMaxTempFahrenheit: deviceReport.mpMaxTempFahrenheit || undefined,
+          mpMaxTempCelsius: deviceReport.mpMaxTempCelsius || undefined,
+          circulationHours: deviceReport.circulationHours || undefined,
+          numberOfPulses: deviceReport.numberOfPulses || undefined,
+          motorOnTimeMinutes: deviceReport.motorOnTimeMinutes || undefined,
+          commErrorsTimeMinutes: deviceReport.commErrorsTimeMinutes || undefined,
+          commErrorsPercent: deviceReport.commErrorsPercent || undefined,
+          hallStatusTimeMinutes: deviceReport.hallStatusTimeMinutes || undefined,
+          hallStatusPercent: deviceReport.hallStatusPercent || undefined,
+          mdgSerialNumber: deviceReport.mdgSerialNumber || undefined,
+          mdgFirmwareVersion: deviceReport.mdgFirmwareVersion || undefined,
+          mdgMaxTempFahrenheit: deviceReport.mdgMaxTempFahrenheit || undefined,
+          mdgMaxTempCelsius: deviceReport.mdgMaxTempCelsius || undefined,
+          mdgEdtTotalHours: deviceReport.mdgEdtTotalHours || undefined,
+          mdgExtremeShockIndex: deviceReport.mdgExtremeShockIndex || undefined,
+        } : undefined
       };
 
-      res.json({ message: "Report data ready", data: reportData });
+      // Generate PDF
+      const pdfBuffer = await PDFGenerator.generateReport(reportData);
+      
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${memoryDump.filename}_report.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      // Send PDF
+      res.send(pdfBuffer);
     } catch (error) {
-      console.error("Error generating report:", error);
-      res.status(500).json({ error: "Failed to generate report" });
+      console.error("Error generating PDF report:", error);
+      res.status(500).json({ error: "Failed to generate PDF report" });
     }
   });
 

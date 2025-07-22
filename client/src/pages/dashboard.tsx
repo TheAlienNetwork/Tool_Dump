@@ -48,9 +48,16 @@ export default function Dashboard() {
       <div className="container mx-auto p-8 space-y-12">
         <header className="text-center space-y-6 py-8">
           <div className="space-y-4">
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
-              Neural Drill Analytics
-            </h1>
+            <div className="flex items-center justify-center space-x-6">
+              <img 
+                src="/attached_assets/ChatGPT Image Jul 22, 2025, 02_49_56 AM_1753170653088.png" 
+                alt="The Tool Dump Logo" 
+                className="h-16 w-16 object-contain"
+              />
+              <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                The Tool Dump
+              </h1>
+            </div>
             <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
             <p className="text-2xl text-slate-300 font-light">Advanced Binary Dump Analysis & Visualization Platform</p>
           </div>
