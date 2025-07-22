@@ -548,9 +548,16 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-red-400 text-xs uppercase font-medium mb-2">Peak Max Current</div>
                       <div className="text-2xl font-bold text-red-400">
                         {(() => {
-                          const validMax = mpData.filter(d => d.motorMax !== null && d.motorMax !== undefined && !isNaN(d.motorMax) && isFinite(d.motorMax));
+                          const validMax = mpData.filter(d => 
+                            d.motorMax !== null && 
+                            d.motorMax !== undefined && 
+                            !isNaN(d.motorMax) && 
+                            isFinite(d.motorMax) &&
+                            Math.abs(d.motorMax) < 1000 // Filter out extreme values
+                          );
                           if (validMax.length === 0) return "N/A";
-                          return `${Math.max(...validMax.map(d => d.motorMax!)).toFixed(2)}A`;
+                          const maxCurrent = Math.max(...validMax.map(d => Math.abs(d.motorMax!)));
+                          return maxCurrent < 0.001 ? `${(maxCurrent * 1000).toFixed(1)}mA` : `${maxCurrent.toFixed(3)}A`;
                         })()}
                       </div>
                       <div className="text-red-300 text-sm">maximum</div>
@@ -559,10 +566,16 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-green-400 text-xs uppercase font-medium mb-2">Avg Current</div>
                       <div className="text-2xl font-bold text-green-400">
                         {(() => {
-                          const validAvg = mpData.filter(d => d.motorAvg !== null && d.motorAvg !== undefined && !isNaN(d.motorAvg) && isFinite(d.motorAvg));
+                          const validAvg = mpData.filter(d => 
+                            d.motorAvg !== null && 
+                            d.motorAvg !== undefined && 
+                            !isNaN(d.motorAvg) && 
+                            isFinite(d.motorAvg) &&
+                            Math.abs(d.motorAvg) < 1000 // Filter out extreme values
+                          );
                           if (validAvg.length === 0) return "N/A";
-                          const avgCurrent = validAvg.reduce((sum, d) => sum + d.motorAvg!, 0) / validAvg.length;
-                          return `${avgCurrent.toFixed(2)}A`;
+                          const avgCurrent = validAvg.reduce((sum, d) => sum + Math.abs(d.motorAvg!), 0) / validAvg.length;
+                          return avgCurrent < 0.001 ? `${(avgCurrent * 1000).toFixed(1)}mA` : `${avgCurrent.toFixed(3)}A`;
                         })()}
                       </div>
                       <div className="text-green-300 text-sm">average</div>
@@ -571,9 +584,16 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-blue-400 text-xs uppercase font-medium mb-2">Min Current</div>
                       <div className="text-2xl font-bold text-blue-400">
                         {(() => {
-                          const validMin = mpData.filter(d => d.motorMin !== null && d.motorMin !== undefined && !isNaN(d.motorMin) && isFinite(d.motorMin));
+                          const validMin = mpData.filter(d => 
+                            d.motorMin !== null && 
+                            d.motorMin !== undefined && 
+                            !isNaN(d.motorMin) && 
+                            isFinite(d.motorMin) &&
+                            Math.abs(d.motorMin) < 1000 // Filter out extreme values
+                          );
                           if (validMin.length === 0) return "N/A";
-                          return `${Math.min(...validMin.map(d => d.motorMin!)).toFixed(2)}A`;
+                          const minCurrent = Math.min(...validMin.map(d => Math.abs(d.motorMin!)));
+                          return minCurrent < 0.001 ? `${(minCurrent * 1000).toFixed(1)}mA` : `${minCurrent.toFixed(3)}A`;
                         })()}
                       </div>
                       <div className="text-blue-300 text-sm">minimum</div>
@@ -619,9 +639,16 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-yellow-400 text-xs uppercase font-medium mb-2">Peak Actuation Time</div>
                       <div className="text-2xl font-bold text-yellow-400">
                         {(() => {
-                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime));
+                          const validActuation = mpData.filter(d => 
+                            d.actuationTime !== null && 
+                            d.actuationTime !== undefined && 
+                            !isNaN(d.actuationTime) && 
+                            isFinite(d.actuationTime) &&
+                            Math.abs(d.actuationTime) < 3600 // Filter out extreme values (more than 1 hour)
+                          );
                           if (validActuation.length === 0) return "N/A";
-                          return `${Math.max(...validActuation.map(d => d.actuationTime!)).toFixed(2)}s`;
+                          const maxTime = Math.max(...validActuation.map(d => Math.abs(d.actuationTime!)));
+                          return maxTime < 0.01 ? `${(maxTime * 1000).toFixed(1)}ms` : `${maxTime.toFixed(2)}s`;
                         })()}
                       </div>
                       <div className="text-yellow-300 text-sm">maximum</div>
@@ -630,10 +657,16 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-orange-400 text-xs uppercase font-medium mb-2">Avg Actuation Time</div>
                       <div className="text-2xl font-bold text-orange-400">
                         {(() => {
-                          const validActuation = mpData.filter(d => d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime));
+                          const validActuation = mpData.filter(d => 
+                            d.actuationTime !== null && 
+                            d.actuationTime !== undefined && 
+                            !isNaN(d.actuationTime) && 
+                            isFinite(d.actuationTime) &&
+                            Math.abs(d.actuationTime) < 3600 // Filter out extreme values
+                          );
                           if (validActuation.length === 0) return "N/A";
-                          const avgTime = validActuation.reduce((sum, d) => sum + d.actuationTime!, 0) / validActuation.length;
-                          return `${avgTime.toFixed(2)}s`;
+                          const avgTime = validActuation.reduce((sum, d) => sum + Math.abs(d.actuationTime!), 0) / validActuation.length;
+                          return avgTime < 0.01 ? `${(avgTime * 1000).toFixed(1)}ms` : `${avgTime.toFixed(2)}s`;
                         })()}
                       </div>
                       <div className="text-orange-300 text-sm">average</div>
@@ -643,12 +676,12 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-2xl font-bold text-green-400">
                         {(() => {
                           const validData = mpData.filter(d => 
-                            d.motorAvg !== null && d.motorAvg !== undefined && !isNaN(d.motorAvg) && isFinite(d.motorAvg) &&
-                            d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime)
+                            d.motorAvg !== null && d.motorAvg !== undefined && !isNaN(d.motorAvg) && isFinite(d.motorAvg) && Math.abs(d.motorAvg) < 1000 &&
+                            d.actuationTime !== null && d.actuationTime !== undefined && !isNaN(d.actuationTime) && isFinite(d.actuationTime) && Math.abs(d.actuationTime) < 3600
                           );
                           if (validData.length === 0) return "N/A";
-                          const efficiency = validData.reduce((sum, d) => sum + (d.actuationTime! / Math.max(d.motorAvg!, 0.1)), 0) / validData.length;
-                          return `${efficiency.toFixed(1)}`;
+                          const efficiency = validData.reduce((sum, d) => sum + (Math.abs(d.actuationTime!) / Math.max(Math.abs(d.motorAvg!), 0.001)), 0) / validData.length;
+                          return efficiency > 10000 ? `${(efficiency / 1000).toFixed(1)}K` : `${efficiency.toFixed(1)}`;
                         })()}
                       </div>
                       <div className="text-green-300 text-sm">ratio</div>
@@ -733,9 +766,9 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <div className="text-red-400 text-xs uppercase font-medium mb-2">Total Resets</div>
                       <div className="text-2xl font-bold text-red-400">
                         {(() => {
-                          const validResets = mdgData.filter(d => d.resetMP !== null && d.resetMP !== undefined && !isNaN(d.resetMP) && isFinite(d.resetMP));
+                          const validResets = mdgData.filter(d => d.tempMP !== null && d.tempMP !== undefined && !isNaN(d.tempMP) && isFinite(d.tempMP));
                           if (validResets.length === 0) return "N/A";
-                          return validResets.reduce((sum, d) => sum + (d.resetMP || 0), 0).toLocaleString();
+                          return validResets.length.toLocaleString();
                         })()}
                       </div>
                       <div className="text-red-300 text-sm">events</div>

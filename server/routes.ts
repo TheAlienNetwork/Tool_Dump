@@ -368,7 +368,7 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       analysisResults,
       deviceReport: {
         id: dumpId,
-        dumpId,
+        dumpId: dumpId,
         generatedAt: new Date(),
         ...deviceInfo
       }
