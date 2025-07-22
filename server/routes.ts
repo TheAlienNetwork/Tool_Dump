@@ -235,17 +235,35 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
 
     const deviceInfo = BinaryParser.extractDeviceInfo(headerBuffer, filename, fileType);
 
-    // Process file in larger chunks for speed since we're not saving to database
+    // Process file in smaller chunks to prevent memory issues
     const allSensorData: any[] = [];
-    const CHUNK_SIZE = 10000; // Larger chunks for faster processing
+    const CHUNK_SIZE = 5000; // Smaller chunks to prevent stack overflow
+    let totalProcessed = 0;
 
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         console.log(`📊 Processing batch ${batchIndex + 1} with ${batch.RTD.length} records...`);
         
-        // Convert to sensor data format and store in memory
+        // Convert to sensor data format and store in memory with better memory management
         const sensorDataBatch = BinaryParser.convertToSensorDataArray(batch, dumpId);
-        allSensorData.push(...sensorDataBatch);
+        
+        // Use spread operator in smaller chunks to prevent stack overflow
+        if (sensorDataBatch.length > 1000) {
+          // Process in sub-chunks to avoid stack overflow
+          for (let i = 0; i < sensorDataBatch.length; i += 1000) {
+            const subChunk = sensorDataBatch.slice(i, i + 1000);
+            allSensorData.push(...subChunk);
+          }
+        } else {
+          allSensorData.push(...sensorDataBatch);
+        }
+        
+        totalProcessed += batch.RTD.length;
+        
+        // Force garbage collection every few batches
+        if (batchIndex % 5 === 0 && global.gc) {
+          global.gc();
+        }
 
         return true;
       } catch (error) {
@@ -255,33 +273,58 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     });
 
     console.log(`✅ Processed ${allSensorData.length} total records for ${filename}`);
-
-    // Simple analysis on the data
-    const issues = [];
     
-    // Analyze temperature data
-    const tempData = allSensorData.filter(d => d.tempMP !== null);
-    if (tempData.length > 0) {
-      const highTemps = tempData.filter(d => d.tempMP! > 150);
-      const lowTemps = tempData.filter(d => d.tempMP! < 50);
+    // Force garbage collection after processing
+    if (global.gc) {
+      console.log(`🧹 Running garbage collection after processing ${allSensorData.length} records`);
+      global.gc();
+    }
 
-      if (highTemps.length > 0) {
-        const maxTemp = Math.max(...highTemps.map(d => d.tempMP!));
+    // Streaming analysis to avoid stack overflow with large datasets
+    const issues = [];
+    let maxTemp = -Infinity;
+    let minTemp = Infinity;
+    let highTempCount = 0;
+    let lowTempCount = 0;
+    let tempRecordCount = 0;
+
+    // Process data in chunks to avoid memory issues
+    const ANALYSIS_CHUNK_SIZE = 10000;
+    for (let i = 0; i < allSensorData.length; i += ANALYSIS_CHUNK_SIZE) {
+      const chunk = allSensorData.slice(i, i + ANALYSIS_CHUNK_SIZE);
+      
+      // Analyze temperature data in this chunk
+      for (const record of chunk) {
+        if (record.tempMP !== null) {
+          tempRecordCount++;
+          const temp = record.tempMP;
+          
+          if (temp > maxTemp) maxTemp = temp;
+          if (temp < minTemp) minTemp = temp;
+          
+          if (temp > 150) highTempCount++;
+          if (temp < 50) lowTempCount++;
+        }
+      }
+    }
+
+    // Generate issues based on streaming analysis
+    if (tempRecordCount > 0) {
+      if (highTempCount > 0) {
         issues.push({
           issue: `High temperature detected: ${maxTemp.toFixed(1)}°F`,
           explanation: "Temperature exceeded safe operating limits",
           severity: 'critical',
-          count: highTemps.length
+          count: highTempCount
         });
       }
 
-      if (lowTemps.length > 0) {
-        const minTemp = Math.min(...lowTemps.map(d => d.tempMP!));
+      if (lowTempCount > 0) {
         issues.push({
           issue: `Low temperature detected: ${minTemp.toFixed(1)}°F`,
           explanation: "Temperature below normal operating range",
           severity: 'warning',
-          count: lowTemps.length
+          count: lowTempCount
         });
       }
     }

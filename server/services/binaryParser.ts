@@ -202,24 +202,16 @@ export class BinaryParser {
         recordIndex += currentBatchSize;
         batchIndex++;
 
-        // Immediate cleanup after each batch for memory efficiency
-        batch.RTD.length = 0;
-        batch.TempMP.length = 0;
-        batch.ResetMP.length = 0;
-        batch.BatteryCurrMP.length = 0;
-        batch.BatteryVoltMP.length = 0;
-        batch.FlowStatus.length = 0;
-        batch.MaxX.length = 0;
-        batch.MaxY.length = 0;
-        batch.MaxZ.length = 0;
-        // Clear all other arrays to free memory immediately
+        // More aggressive memory cleanup after each batch
         Object.keys(batch).forEach(key => {
           if (Array.isArray((batch as any)[key])) {
             (batch as any)[key].length = 0;
+            (batch as any)[key] = null;
           }
         });
 
-        if (global.gc) {
+        // Force garbage collection more frequently for large files
+        if (global.gc && batchIndex % 3 === 0) {
           global.gc();
         }
       }
@@ -342,24 +334,16 @@ export class BinaryParser {
         recordIndex += currentBatchSize;
         batchIndex++;
 
-        // Immediate cleanup after each batch for memory efficiency  
-        batch.RTD.length = 0;
-        batch.TempMP.length = 0;
-        batch.ResetMP.length = 0;
-        batch.BatteryCurrMP.length = 0;
-        batch.BatteryVoltMP.length = 0;
-        batch.FlowStatus.length = 0;
-        batch.MaxX.length = 0;
-        batch.MaxY.length = 0;
-        batch.MaxZ.length = 0;
-        // Clear all other arrays to free memory immediately
+        // More aggressive memory cleanup after each batch
         Object.keys(batch).forEach(key => {
           if (Array.isArray((batch as any)[key])) {
             (batch as any)[key].length = 0;
+            (batch as any)[key] = null;
           }
         });
 
-        if (global.gc) {
+        // Force garbage collection more frequently for large files
+        if (global.gc && batchIndex % 3 === 0) {
           global.gc();
         }
       }
