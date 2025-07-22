@@ -222,8 +222,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Process in larger chunks for speed optimization
-    const CHUNK_SIZE = 1000; // Increased batch size for faster processing
+    // Process in very small chunks for maximum memory efficiency  
+    const CHUNK_SIZE = 100; // Minimal batch size to prevent memory issues
     const data = await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Convert batch to sensor data format
@@ -286,14 +286,28 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
         
         processed += sensorDataBatch.length;
         
-        // Reduced logging frequency and removed delays
-        if (batchIndex % 50 === 0) {
+        // Clear the batch data immediately after storage to free memory
+        sensorDataBatch.length = 0;
+        
+        // More frequent garbage collection for memory management
+        if (batchIndex % 5 === 0) {
           if (global.gc) {
             global.gc();
           }
           
           const currentMemory = process.memoryUsage();
-          console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+          if (batchIndex % 25 === 0) { // Log every 25 batches
+            console.log(`Processed ${processed} records in ${batchIndex + 1} batches. Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB`);
+          }
+          
+          // Stop processing if memory gets too high to prevent crashes
+          if (currentMemory.heapUsed > 250 * 1024 * 1024) { // Even lower 250MB limit
+            // Force multiple GC cycles and wait longer
+            for (let i = 0; i < 3; i++) {
+              if (global.gc) global.gc();
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+          }
         }
         
         return true; // Continue processing

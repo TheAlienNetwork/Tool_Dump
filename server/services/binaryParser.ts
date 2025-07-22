@@ -201,9 +201,16 @@ export class BinaryParser {
         recordIndex += currentBatchSize;
         batchIndex++;
 
-        // Reduced garbage collection frequency for better performance
-        if (batchIndex % 20 === 0 && global.gc) {
+        // More frequent garbage collection for memory management
+        if (batchIndex % 5 === 0 && global.gc) {
           global.gc();
+        }
+        
+        // Clear batch data immediately after processing to free memory
+        if (batch) {
+          for (const key in batch) {
+            (batch as any)[key].length = 0; // Clear arrays
+          }
         }
       }
     } finally {
@@ -324,9 +331,16 @@ export class BinaryParser {
         recordIndex += currentBatchSize;
         batchIndex++;
 
-        // Reduced garbage collection frequency for better performance  
-        if (batchIndex % 20 === 0 && global.gc) {
+        // More frequent garbage collection for memory management  
+        if (batchIndex % 5 === 0 && global.gc) {
           global.gc();
+        }
+        
+        // Clear batch data immediately after processing to free memory
+        if (batch) {
+          for (const key in batch) {
+            (batch as any)[key].length = 0; // Clear arrays
+          }
         }
       }
     } finally {

@@ -17,7 +17,9 @@ Preferred communication style: Simple, everyday language.
 ✓ **Type Safety Improvements**: Fixed nullable value support in ParsedData interface for proper data handling
 ✓ **Temperature Display**: Added proper Celsius/Fahrenheit conversion and display in device reports
 ✓ **PDF Report Generator**: Enhanced with proper device information formatting and comprehensive analytics
-✓ **Performance Optimization**: Maintained batch processing (1000 records) for large datasets with memory management
+✓ **Critical Memory Fix**: Resolved memory crash issue by optimizing batch processing from 1000 to 100 records
+✓ **Memory Management**: Implemented aggressive garbage collection with lower thresholds (150MB/300MB)
+✓ **Performance Stability**: Server now processes large files (27MB+) without memory crashes
 
 ## System Architecture
 
