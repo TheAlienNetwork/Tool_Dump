@@ -260,15 +260,27 @@ export class DatabaseStorage implements IStorage {
   async createSensorData(data: InsertSensorData[]): Promise<void> {
     if (data.length === 0) return;
     
-    // Perfect batch size - no errors, maximum speed
-    const OPTIMAL_BATCH_SIZE = 1000; // Sweet spot for PostgreSQL performance
+    // Smaller batch size for reliability - prevent timeouts
+    const RELIABLE_BATCH_SIZE = 500; // Smaller batches to prevent timeout issues
     
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < data.length; i += OPTIMAL_BATCH_SIZE) {
-        const batch = data.slice(i, i + OPTIMAL_BATCH_SIZE);
-        await tx.insert(sensorData).values(batch);
+    try {
+      // Process in smaller batches with individual transactions
+      for (let i = 0; i < data.length; i += RELIABLE_BATCH_SIZE) {
+        const batch = data.slice(i, i + RELIABLE_BATCH_SIZE);
+        
+        await db.transaction(async (tx) => {
+          await tx.insert(sensorData).values(batch);
+        });
+        
+        // Small delay to prevent overwhelming the database
+        if (i + RELIABLE_BATCH_SIZE < data.length) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
       }
-    });
+    } catch (error) {
+      console.error('Error creating sensor data batch:', error);
+      throw error;
+    }
   }
 
   async getSensorDataByDumpId(dumpId: number, limit?: number): Promise<SensorData[]> {

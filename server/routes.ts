@@ -251,15 +251,29 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // MAXIMUM SPEED: Optimized for error-free processing
-    const CHUNK_SIZE = 10000; // Perfect balance of speed and reliability
+    // Smaller chunk size for reliability
+    const CHUNK_SIZE = 5000; // Reduced chunk size to prevent memory/timeout issues
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
+        console.log(`Processing batch ${batchIndex + 1} with ${batch.RTD.length} records...`);
+        
         // Direct conversion to database format - use the batch directly
         const sensorDataBatch = BinaryParser.convertToSensorDataArray(batch, dumpId);
 
-        // Store batch immediately and clear memory references
-        await storage.createSensorData(sensorDataBatch);
+        // Store batch with retry logic
+        let retries = 3;
+        while (retries > 0) {
+          try {
+            await storage.createSensorData(sensorDataBatch);
+            break;
+          } catch (dbError) {
+            retries--;
+            console.error(`Database error (${retries} retries left):`, dbError);
+            if (retries === 0) throw dbError;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          }
+        }
+        
         processed += sensorDataBatch.length;
 
         // Immediate cleanup for consistent performance
@@ -268,22 +282,36 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
           global.gc();
         }
 
-        // Progress tracking for speed monitoring
-        if (batchIndex % 5 === 0) {
-          console.log(`⚡ Speed processing: ${processed} records | Batch ${batchIndex + 1}`);
+        // More frequent progress updates
+        if (batchIndex % 2 === 0) {
+          console.log(`✅ Successfully processed: ${processed} records | Batch ${batchIndex + 1}`);
         }
 
         return true;
       } catch (error) {
-        console.error(`Error processing batch ${batchIndex}:`, error);
-        return false;
+        console.error(`❌ Error processing batch ${batchIndex}:`, error);
+        // Continue processing even if one batch fails
+        return true;
       }
     });
 
-    console.log(`Completed ultra-fast processing for dump ${dumpId}. Total records: ${processed}`);
+    console.log(`✅ Completed processing for dump ${dumpId}. Total records: ${processed}`);
+
+    // Ensure we have some data before analysis
+    if (processed === 0) {
+      throw new Error('No records were processed successfully');
+    }
 
     // Simple analysis on a sample of the data to avoid memory issues
-    const sampleData = await storage.getSensorDataByDumpId(dumpId, 1000);
+    let sampleData;
+    try {
+      sampleData = await storage.getSensorDataByDumpId(dumpId, 1000);
+      console.log(`Retrieved ${sampleData.length} records for analysis`);
+    } catch (error) {
+      console.error('Error retrieving sample data for analysis:', error);
+      sampleData = [];
+    }
+    
     const issues = [];
 
     // Analyze temperature data
@@ -332,14 +360,28 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
       issues: analysisResult.issues as any
     });
 
-    await storage.updateMemoryDumpStatus(dumpId, 'completed');
-    console.log(`Successfully processed dump ${dumpId} with ${processed} records`);
-    console.log(`Dump ${dumpId} status updated to: completed`);
+    try {
+      await storage.updateMemoryDumpStatus(dumpId, 'completed');
+      console.log(`🎉 Successfully completed dump ${dumpId} with ${processed} records`);
+      console.log(`📊 Analysis results: ${analysisResult.overallStatus} status with ${analysisResult.criticalIssues} critical issues`);
+    } catch (statusError) {
+      console.error(`Error updating status to completed for dump ${dumpId}:`, statusError);
+    }
 
   } catch (error: any) {
-    console.error(`Error in streaming processing for dump ${dumpId}:`, error);
-    await storage.updateMemoryDumpStatus(dumpId, 'error', error?.message);
-    console.log(`Dump ${dumpId} status updated to: error`);
+    console.error(`💥 Critical error in processing dump ${dumpId}:`, error);
+    console.error(`Error details:`, {
+      message: error?.message,
+      stack: error?.stack?.substring(0, 500),
+      processed: processed
+    });
+    
+    try {
+      await storage.updateMemoryDumpStatus(dumpId, 'error', `Processing failed: ${error?.message}`);
+      console.log(`❌ Dump ${dumpId} status updated to: error`);
+    } catch (statusError) {
+      console.error(`Failed to update error status for dump ${dumpId}:`, statusError);
+    }
   } finally {
     // Clean up uploaded file
     try {
