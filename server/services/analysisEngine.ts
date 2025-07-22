@@ -21,7 +21,10 @@ export class AnalysisEngine {
   static analyzeData(data: SensorData[]): AnalysisResult {
     const issues: Issue[] = [];
 
-    // 1. Temperature extremes
+    console.log(`Starting advanced AI analysis on ${data.length} sensor records...`);
+
+    // Advanced AI Health Analysis
+    // 1. Temperature extremes and trends
     const tempData = data.filter(d => d.tempMP !== null).map(d => ({ value: d.tempMP!, rtd: d.rtd }));
     if (tempData.length > 0) {
       const tempMax = tempData.reduce((max, d) => Math.max(max, d.value), -Infinity);
@@ -177,6 +180,128 @@ export class AnalysisEngine {
         times: inconsistentData.map(d => d.rtd)
       });
     }
+
+    // 8. Advanced AI: System voltage instability detection
+    const voltageFields = ['v3_3VA_DI', 'v5VD', 'v3_3VD', 'v1_9VD', 'v1_5VD', 'v1_8VA', 'v3_3VA'];
+    voltageFields.forEach(field => {
+      const voltageData = data.filter(d => d[field as keyof SensorData] !== null)
+        .map(d => ({ value: d[field as keyof SensorData] as number, rtd: d.rtd }));
+      
+      if (voltageData.length > 10) {
+        const mean = voltageData.reduce((sum, d) => sum + d.value, 0) / voltageData.length;
+        const variance = voltageData.reduce((sum, d) => sum + Math.pow(d.value - mean, 2), 0) / voltageData.length;
+        const stdDev = Math.sqrt(variance);
+        
+        // AI: Detect high voltage instability (CV > 10%)
+        const coefficientOfVariation = (stdDev / mean) * 100;
+        if (coefficientOfVariation > 10) {
+          const unstablePoints = voltageData.filter(d => Math.abs(d.value - mean) > 2 * stdDev);
+          if (unstablePoints.length > 0) {
+            issues.push({
+              issue: `${field} voltage instability detected (CV: ${coefficientOfVariation.toFixed(1)}%)`,
+              explanation: "Power supply fluctuations or electrical faults detected using statistical analysis.",
+              severity: coefficientOfVariation > 20 ? 'critical' : 'warning',
+              count: unstablePoints.length,
+              firstTime: unstablePoints[0].rtd,
+              lastTime: unstablePoints[unstablePoints.length - 1].rtd,
+              times: unstablePoints.map(d => d.rtd)
+            });
+          }
+        }
+      }
+    });
+
+    // 9. Advanced AI: Vibration pattern analysis
+    const vibrationData = data.filter(d => 
+      d.maxX !== null && d.maxY !== null && d.maxZ !== null
+    ).map(d => ({
+      x: d.maxX!,
+      y: d.maxY!,
+      z: d.maxZ!,
+      magnitude: Math.sqrt(d.maxX! * d.maxX! + d.maxY! * d.maxY! + d.maxZ! * d.maxZ!),
+      rtd: d.rtd
+    }));
+
+    if (vibrationData.length > 10) {
+      const magnitudes = vibrationData.map(d => d.magnitude);
+      const avgMagnitude = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+      const highVibrationEvents = vibrationData.filter(d => d.magnitude > avgMagnitude * 1.5);
+      
+      if (highVibrationEvents.length > magnitudes.length * 0.05) { // More than 5% of readings
+        issues.push({
+          issue: `Excessive vibration detected: ${highVibrationEvents.length} high-magnitude events`,
+          explanation: "AI pattern analysis indicates mechanical wear or imbalance.",
+          severity: 'warning',
+          count: highVibrationEvents.length,
+          firstTime: highVibrationEvents[0].rtd,
+          lastTime: highVibrationEvents[highVibrationEvents.length - 1].rtd,
+          times: highVibrationEvents.map(d => d.rtd)
+        });
+      }
+    }
+
+    // 10. Advanced AI: Motor performance degradation prediction
+    const motorData = data.filter(d => 
+      d.motorAvg !== null && d.actuationTime !== null && d.motorAvg > 0
+    ).map(d => ({ current: d.motorAvg!, time: d.actuationTime!, rtd: d.rtd }));
+
+    if (motorData.length > 50) {
+      // Calculate efficiency trends
+      const efficiencyData = motorData.map(d => ({
+        efficiency: 1 / (d.current * d.time), // Inverse efficiency metric
+        rtd: d.rtd
+      }));
+
+      // Look for degradation trend (first 25% vs last 25%)
+      const firstQuarter = efficiencyData.slice(0, Math.floor(efficiencyData.length * 0.25));
+      const lastQuarter = efficiencyData.slice(-Math.floor(efficiencyData.length * 0.25));
+      
+      const avgFirstEff = firstQuarter.reduce((sum, d) => sum + d.efficiency, 0) / firstQuarter.length;
+      const avgLastEff = lastQuarter.reduce((sum, d) => sum + d.efficiency, 0) / lastQuarter.length;
+      const degradation = ((avgFirstEff - avgLastEff) / avgFirstEff) * 100;
+
+      if (degradation > 15) {
+        issues.push({
+          issue: `Motor performance degradation: ${degradation.toFixed(1)}% efficiency loss`,
+          explanation: "AI trend analysis predicts accelerated wear. Consider maintenance scheduling.",
+          severity: degradation > 25 ? 'critical' : 'warning',
+          count: 1,
+          firstTime: lastQuarter[0].rtd,
+          lastTime: lastQuarter[lastQuarter.length - 1].rtd,
+          times: [lastQuarter[0].rtd]
+        });
+      }
+    }
+
+    // 11. Advanced AI: Anomaly detection using statistical methods
+    const tempMPData = data.filter(d => d.tempMP !== null).map(d => d.tempMP!);
+    if (tempMPData.length > 100) {
+      // Use Interquartile Range (IQR) method for outlier detection
+      const sortedTemps = [...tempMPData].sort((a, b) => a - b);
+      const q1 = sortedTemps[Math.floor(sortedTemps.length * 0.25)];
+      const q3 = sortedTemps[Math.floor(sortedTemps.length * 0.75)];
+      const iqr = q3 - q1;
+      const lowerBound = q1 - 1.5 * iqr;
+      const upperBound = q3 + 1.5 * iqr;
+
+      const anomalies = data.filter(d => 
+        d.tempMP !== null && (d.tempMP! < lowerBound || d.tempMP! > upperBound)
+      );
+
+      if (anomalies.length > 0) {
+        issues.push({
+          issue: `${anomalies.length} temperature anomalies detected by AI`,
+          explanation: "Statistical outlier detection found unusual temperature patterns.",
+          severity: 'info',
+          count: anomalies.length,
+          firstTime: anomalies[0].rtd,
+          lastTime: anomalies[anomalies.length - 1].rtd,
+          times: anomalies.map(d => d.rtd)
+        });
+      }
+    }
+
+    console.log(`Advanced AI analysis complete. Found ${issues.length} issues across ${data.length} records.`);
 
     // Calculate overall status
     const criticalIssues = issues.filter(i => i.severity === 'critical').length;

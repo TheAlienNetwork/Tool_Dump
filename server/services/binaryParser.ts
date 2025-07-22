@@ -457,44 +457,92 @@ export class BinaryParser {
     const isMDG = filename.includes('MDG');
     const isMP = filename.includes('MP');
 
-    // Extract serial number from filename pattern
-    const serialMatch = filename.match(/(\d{10,})/);
-    const serialNumber = serialMatch ? serialMatch[1] : null;
+    console.log(`Extracting device info from ${fileType} header (${buffer.length} bytes)...`);
 
-    // Extract device info from binary header
+    // Extract device info from binary header - enhanced extraction
+    let mpSerialNumber = null;
+    let mdgSerialNumber = null;
     let firmwareVersion = null;
     let maxTemp = null;
+    let circulationHours = null;
+    let numberOfPulses = null;
+    let motorOnTimeMinutes = null;
+    let commErrorsTimeMinutes = null;
+    let commErrorsPercent = null;
+    let hallStatusTimeMinutes = null;
+    let hallStatusPercent = null;
+    let mdgEdtTotalHours = null;
+    let mdgExtremeShockIndex = null;
 
     if (buffer.length >= 256) {
-      // Extract firmware version from header bytes 32-35
-      const fwBytes = buffer.subarray(32, 36);
+      // Extract serial numbers from header bytes 0-3 (32-bit integer)
+      const serialFromHeader = this.readUInt32LE(buffer, 0);
+      if (serialFromHeader > 0 && serialFromHeader < 999999) {
+        if (isMP) mpSerialNumber = serialFromHeader.toString();
+        if (isMDG) mdgSerialNumber = serialFromHeader.toString();
+      }
+      
+      // Try filename fallback for serial number
+      const filenameSerial = filename.match(/(\d{4,})/);
+      if (filenameSerial && !mpSerialNumber && !mdgSerialNumber) {
+        if (isMP) mpSerialNumber = filenameSerial[1];
+        if (isMDG) mdgSerialNumber = filenameSerial[1];
+      }
+
+      // Extract firmware version from header bytes 16-19
+      const fwBytes = buffer.subarray(16, 20);
       firmwareVersion = `${fwBytes[0]}.${fwBytes[1]}.${fwBytes[2]}.${fwBytes[3]}`;
 
-      // Extract max temperature from header bytes 64-67
-      if (buffer.length >= 68) {
-        maxTemp = this.readFloat32LE(buffer, 64);
+      // Extract max temperature from header bytes 32-35 (float)
+      maxTemp = this.readFloat32LE(buffer, 32);
+      if (maxTemp < -50 || maxTemp > 300) maxTemp = null; // Sanity check
+
+      // Extract operational statistics
+      circulationHours = this.readFloat32LE(buffer, 64);
+      numberOfPulses = this.readUInt32LE(buffer, 68);
+      motorOnTimeMinutes = this.readFloat32LE(buffer, 72);
+      commErrorsTimeMinutes = this.readFloat32LE(buffer, 76);
+      commErrorsPercent = this.readFloat32LE(buffer, 80);
+      hallStatusTimeMinutes = this.readFloat32LE(buffer, 84);
+      hallStatusPercent = this.readFloat32LE(buffer, 88);
+
+      // MDG-specific data
+      if (isMDG) {
+        mdgEdtTotalHours = this.readFloat32LE(buffer, 92);
+        mdgExtremeShockIndex = this.readFloat32LE(buffer, 96);
       }
+
+      // Sanity checks on extracted values
+      if (circulationHours < 0 || circulationHours > 100000) circulationHours = null;
+      if (numberOfPulses < 0 || numberOfPulses > 10000000) numberOfPulses = null;
+      if (motorOnTimeMinutes < 0 || motorOnTimeMinutes > 100000) motorOnTimeMinutes = null;
+      if (commErrorsPercent < 0 || commErrorsPercent > 100) commErrorsPercent = null;
+      if (hallStatusPercent < 0 || hallStatusPercent > 100) hallStatusPercent = null;
+      if (mdgEdtTotalHours && (mdgEdtTotalHours < 0 || mdgEdtTotalHours > 100000)) mdgEdtTotalHours = null;
+      if (mdgExtremeShockIndex && (mdgExtremeShockIndex < 0 || mdgExtremeShockIndex > 1000)) mdgExtremeShockIndex = null;
+
+      console.log(`Device info extracted: S/N=${mpSerialNumber || mdgSerialNumber}, FW=${firmwareVersion}, MaxTemp=${maxTemp}°F`);
     }
 
     return {
       dumpId: 0,
-      mpSerialNumber: isMP ? serialNumber : null,
+      mpSerialNumber,
       mpFirmwareVersion: isMP ? firmwareVersion : null,
       mpMaxTempFahrenheit: isMP ? maxTemp : null,
       mpMaxTempCelsius: isMP && maxTemp ? (maxTemp - 32) * 5/9 : null,
-      mdgSerialNumber: isMDG ? serialNumber : null,
+      mdgSerialNumber,
       mdgFirmwareVersion: isMDG ? firmwareVersion : null,
       mdgMaxTempFahrenheit: isMDG ? maxTemp : null,
       mdgMaxTempCelsius: isMDG && maxTemp ? (maxTemp - 32) * 5/9 : null,
-      circulationHours: buffer.length > 100 ? this.readFloat32LE(buffer, 96) : null,
-      numberOfPulses: buffer.length > 104 ? this.readUInt32LE(buffer, 100) : null,
-      motorOnTimeMinutes: buffer.length > 108 ? this.readFloat32LE(buffer, 104) : null,
-      commErrorsTimeMinutes: buffer.length > 124 ? this.readFloat32LE(buffer, 120) : null,
-      commErrorsPercent: buffer.length > 128 ? this.readFloat32LE(buffer, 124) : null,
-      hallStatusTimeMinutes: buffer.length > 132 ? this.readFloat32LE(buffer, 128) : null,
-      hallStatusPercent: buffer.length > 136 ? this.readFloat32LE(buffer, 132) : null,
-      mdgEdtTotalHours: isMDG && buffer.length > 140 ? this.readFloat32LE(buffer, 136) : null,
-      mdgExtremeShockIndex: isMDG && buffer.length > 144 ? this.readFloat32LE(buffer, 140) : null,
+      circulationHours,
+      numberOfPulses,
+      motorOnTimeMinutes,
+      commErrorsTimeMinutes,
+      commErrorsPercent,
+      hallStatusTimeMinutes,
+      hallStatusPercent,
+      mdgEdtTotalHours,
+      mdgExtremeShockIndex,
     };
   }
 }

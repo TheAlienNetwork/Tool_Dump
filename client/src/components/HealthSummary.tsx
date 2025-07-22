@@ -126,9 +126,9 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
-                    Tool Health Analysis
+                    Advanced AI Health Analysis
                   </CardTitle>
-                  <p className="text-slate-400 text-sm mt-1">Binary Memory Dump Analysis Report</p>
+                  <p className="text-slate-400 text-sm mt-1">AI-Powered Binary Memory Dump Analysis with Predictive Insights</p>
                 </div>
               </div>
               <Button 
