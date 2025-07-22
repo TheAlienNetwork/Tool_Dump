@@ -357,6 +357,79 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                  
+                  {/* Vibration Statistics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <div className="text-blue-400 text-xs uppercase font-medium mb-2">Peak Max X</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {(() => {
+                          const validX = mpData.filter(d => 
+                            d.maxX !== null && 
+                            d.maxX !== undefined && 
+                            !isNaN(d.maxX) && 
+                            isFinite(d.maxX) && 
+                            Math.abs(d.maxX) < 50 // Reasonable vibration range
+                          );
+                          if (validX.length === 0) return "N/A";
+                          const maxX = Math.max(...validX.map(d => Math.abs(d.maxX!)));
+                          return `${maxX.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-blue-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                      <div className="text-green-400 text-xs uppercase font-medium mb-2">Peak Max Y</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {(() => {
+                          const validY = mpData.filter(d => 
+                            d.maxY !== null && 
+                            d.maxY !== undefined && 
+                            !isNaN(d.maxY) && 
+                            isFinite(d.maxY) && 
+                            Math.abs(d.maxY) < 50
+                          );
+                          if (validY.length === 0) return "N/A";
+                          const maxY = Math.max(...validY.map(d => Math.abs(d.maxY!)));
+                          return `${maxY.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-green-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-lg p-4 border border-amber-500/20">
+                      <div className="text-amber-400 text-xs uppercase font-medium mb-2">Peak Max Z</div>
+                      <div className="text-2xl font-bold text-amber-400">
+                        {(() => {
+                          const validZ = mpData.filter(d => 
+                            d.maxZ !== null && 
+                            d.maxZ !== undefined && 
+                            !isNaN(d.maxZ) && 
+                            isFinite(d.maxZ) && 
+                            Math.abs(d.maxZ) < 50
+                          );
+                          if (validZ.length === 0) return "N/A";
+                          const maxZ = Math.max(...validZ.map(d => Math.abs(d.maxZ!)));
+                          return `${maxZ.toFixed(2)}g`;
+                        })()}
+                      </div>
+                      <div className="text-amber-300 text-sm">maximum</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-lg p-4 border border-purple-500/20">
+                      <div className="text-purple-400 text-xs uppercase font-medium mb-2">Above Threshold</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {(() => {
+                          const thresholdEvents = mpData.filter(d => {
+                            const validX = d.maxX !== null && !isNaN(d.maxX) && isFinite(d.maxX) && Math.abs(d.maxX) > 1.5;
+                            const validY = d.maxY !== null && !isNaN(d.maxY) && isFinite(d.maxY) && Math.abs(d.maxY) > 1.5;
+                            const validZ = d.maxZ !== null && !isNaN(d.maxZ) && isFinite(d.maxZ) && Math.abs(d.maxZ) > 1.5;
+                            return validX || validY || validZ;
+                          });
+                          return thresholdEvents.length.toLocaleString();
+                        })()}
+                      </div>
+                      <div className="text-purple-300 text-sm">events</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 4. Flow Status Analysis with Advanced Metrics */}
@@ -384,13 +457,16 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       <ComposedChart data={mpData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Flow Status', angle: -90, position: 'insideLeft' }} domain={[0, 1]} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Duration (s)', angle: 90, position: 'insideRight' }} />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Flow Status', angle: -90, position: 'insideLeft' }} domain={[0, 1.2]} tickFormatter={(value) => value === 1 ? 'ON' : value === 0 ? 'OFF' : ''} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Duration (s)', angle: 90, position: 'insideRight' }} domain={[0, 'dataMax']} />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                           formatter={(value: any, name: string) => {
                             if (name === 'Flow Status') {
                               return [value === 1 ? 'ON' : 'OFF', 'Flow Status'];
+                            }
+                            if (name === 'Actuation Time (s)' && typeof value === 'number') {
+                              return [`${value.toFixed(2)}s`, name];
                             }
                             return [value, name];
                           }}
@@ -402,8 +478,8 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                           dataKey="flowStatus" 
                           stroke="#10B981" 
                           fill="#10B981" 
-                          fillOpacity={0.3} 
-                          strokeWidth={2} 
+                          fillOpacity={0.4} 
+                          strokeWidth={3} 
                           name="Flow Status" 
                         />
                         <Line 
@@ -942,8 +1018,8 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             d.tempMP !== undefined && 
                             !isNaN(d.tempMP) && 
                             isFinite(d.tempMP) && 
-                            d.tempMP > -200 && 
-                            d.tempMP < 500 // Reasonable temperature range
+                            d.tempMP > 32 && // Above freezing 
+                            d.tempMP < 300 // Below 300°F (reasonable max for industrial equipment)
                           );
                           if (validTemps.length === 0) return "N/A";
                           const maxTemp = Math.max(...validTemps.map(d => d.tempMP!));
@@ -963,8 +1039,8 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             d.batteryVoltMP !== undefined && 
                             !isNaN(d.batteryVoltMP) && 
                             isFinite(d.batteryVoltMP) && 
-                            d.batteryVoltMP > 0 && 
-                            d.batteryVoltMP < 50 // Reasonable voltage range
+                            d.batteryVoltMP > 8 && // Reasonable minimum battery voltage
+                            d.batteryVoltMP < 18 // Reasonable maximum battery voltage
                           );
                           if (validVolts.length === 0) return "N/A";
                           const avgVolt = validVolts.reduce((sum, d) => sum + d.batteryVoltMP!, 0) / validVolts.length;
@@ -988,7 +1064,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             !isNaN(d.motorMax) && 
                             isFinite(d.motorMax) && 
                             d.motorMax >= 0 && 
-                            d.motorMax < 100 // Reasonable current range
+                            d.motorMax < 20 // More realistic current range for motor pump
                           );
                           if (validCurrent.length === 0) return "N/A";
                           const maxCurrent = Math.max(...validCurrent.map(d => d.motorMax!));
@@ -1008,7 +1084,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             d.maxZ !== undefined && 
                             !isNaN(d.maxZ) && 
                             isFinite(d.maxZ) && 
-                            Math.abs(d.maxZ) < 1000 // Reasonable vibration range
+                            Math.abs(d.maxZ) < 50 // More realistic vibration range
                           );
                           if (validVibes.length === 0) return "N/A";
                           const maxVibe = Math.max(...validVibes.map(d => Math.abs(d.maxZ!)));
@@ -1029,7 +1105,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             !isNaN(d.actuationTime) && 
                             isFinite(d.actuationTime) && 
                             d.actuationTime >= 0 && 
-                            d.actuationTime < 3600 // Reasonable time range (0-1 hour)
+                            d.actuationTime < 600 // More realistic time range (0-10 minutes)
                           );
                           if (validActuation.length === 0) return "N/A";
                           const avgActuation = validActuation.reduce((sum, d) => sum + d.actuationTime!, 0) / validActuation.length;
