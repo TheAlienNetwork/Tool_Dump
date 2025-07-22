@@ -438,6 +438,160 @@ export class PDFGenerator {
       yPos += 15;
     }
     
+    // Add comprehensive charts page to PDF
+    pdf.addPage();
+    let chartYPos = 20;
+    
+    pdf.setFontSize(18);
+    pdf.setTextColor(41, 128, 185);
+    pdf.text('Data Visualization Charts', 105, chartYPos, { align: 'center' });
+    chartYPos += 20;
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Visual representation of key sensor data trends and patterns', 105, chartYPos, { align: 'center' });
+    chartYPos += 25;
+
+    // Temperature Analysis Chart
+    const tempData = reportData.sensorData.filter(d => d.tempMP !== null && d.tempMP > 0);
+    if (tempData.length > 0) {
+      pdf.setFontSize(14);
+      pdf.text('Temperature Analysis', 20, chartYPos);
+      chartYPos += 15;
+      
+      const temps = tempData.map(d => d.tempMP as number);
+      const minTemp = Math.min(...temps);
+      const maxTemp = Math.max(...temps);
+      const avgTemp = temps.reduce((sum, val) => sum + val, 0) / temps.length;
+      
+      // Temperature chart visualization
+      const chartWidth = 150;
+      const chartHeight = 40;
+      const startX = 25;
+      const startY = chartYPos;
+      
+      // Chart border and grid
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(startX, startY, chartWidth, chartHeight);
+      
+      // Draw temperature trend line
+      const sampleCount = Math.min(50, tempData.length);
+      const sampleStep = Math.max(1, Math.floor(tempData.length / sampleCount));
+      
+      pdf.setDrawColor(220, 53, 69); // Red for temperature
+      pdf.setLineWidth(1);
+      
+      for (let i = 0; i < sampleCount - 1; i++) {
+        const currentTemp = tempData[i * sampleStep].tempMP as number;
+        const nextTemp = tempData[Math.min((i + 1) * sampleStep, tempData.length - 1)].tempMP as number;
+        
+        const x1 = startX + (i / (sampleCount - 1)) * chartWidth;
+        const y1 = startY + chartHeight - ((currentTemp - minTemp) / (maxTemp - minTemp || 1)) * chartHeight;
+        const x2 = startX + ((i + 1) / (sampleCount - 1)) * chartWidth;
+        const y2 = startY + chartHeight - ((nextTemp - minTemp) / (maxTemp - minTemp || 1)) * chartHeight;
+        
+        pdf.line(x1, y1, x2, y2);
+      }
+      
+      pdf.setFontSize(10);
+      chartYPos += chartHeight + 10;
+      pdf.text(`Range: ${minTemp.toFixed(1)}°F - ${maxTemp.toFixed(1)}°F | Average: ${avgTemp.toFixed(1)}°F`, 25, chartYPos);
+      chartYPos += 20;
+    }
+
+    // Shock Analysis Chart  
+    const shockData = reportData.sensorData.filter(d => 
+      (d.shockZ !== null && Math.abs(d.shockZ as number) < 100) ||
+      (d.shockX !== null && Math.abs(d.shockX as number) < 100) ||
+      (d.shockY !== null && Math.abs(d.shockY as number) < 100)
+    );
+    
+    if (shockData.length > 0 && chartYPos < 220) {
+      pdf.setFontSize(14);
+      pdf.text('Shock Analysis', 20, chartYPos);
+      chartYPos += 15;
+      
+      const shockValues = shockData.map(d => 
+        Math.max(Math.abs(d.shockZ as number || 0), Math.abs(d.shockX as number || 0), Math.abs(d.shockY as number || 0))
+      ).filter(val => val > 0 && val < 100);
+      
+      if (shockValues.length > 0) {
+        const maxShock = Math.max(...shockValues);
+        const avgShock = shockValues.reduce((sum, val) => sum + val, 0) / shockValues.length;
+        
+        // Shock histogram
+        const histogramBins = 8;
+        const binWidth = 18;
+        const binHeight = 30;
+        
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(25, chartYPos, histogramBins * binWidth, binHeight);
+        
+        for (let i = 0; i < histogramBins; i++) {
+          const binMin = (i / histogramBins) * maxShock;
+          const binMax = ((i + 1) / histogramBins) * maxShock;
+          const binCount = shockValues.filter(val => val >= binMin && val < binMax).length;
+          const barHeight = (binCount / shockValues.length) * binHeight;
+          
+          const x = 25 + i * binWidth;
+          const y = chartYPos + binHeight - barHeight;
+          
+          pdf.setFillColor(255, 193, 7); // Yellow for shock
+          pdf.rect(x, y, binWidth - 2, barHeight, 'F');
+        }
+        
+        pdf.setFontSize(10);
+        chartYPos += binHeight + 10;
+        pdf.text(`Max Shock: ${maxShock.toFixed(2)}g | Average: ${avgShock.toFixed(2)}g | Events: ${shockValues.length}`, 25, chartYPos);
+        chartYPos += 20;
+      }
+    }
+
+    // Battery Voltage Chart
+    const voltageData = reportData.sensorData.filter(d => 
+      d.vBatt !== null && (d.vBatt as number) > 5 && (d.vBatt as number) < 20
+    );
+    
+    if (voltageData.length > 0 && chartYPos < 200) {
+      pdf.setFontSize(14);
+      pdf.text('Battery Voltage Trend', 20, chartYPos);
+      chartYPos += 15;
+      
+      const voltages = voltageData.map(d => d.vBatt as number);
+      const minVolt = Math.min(...voltages);
+      const maxVolt = Math.max(...voltages);
+      const avgVolt = voltages.reduce((sum, val) => sum + val, 0) / voltages.length;
+      
+      // Voltage trend chart
+      const vChartWidth = 150;
+      const vChartHeight = 30;
+      
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(25, chartYPos, vChartWidth, vChartHeight);
+      
+      const vSampleCount = Math.min(30, voltageData.length);
+      const vSampleStep = Math.max(1, Math.floor(voltageData.length / vSampleCount));
+      
+      pdf.setDrawColor(40, 167, 69); // Green for voltage
+      pdf.setLineWidth(1);
+      
+      for (let i = 0; i < vSampleCount - 1; i++) {
+        const currentVolt = voltageData[i * vSampleStep].vBatt as number;
+        const nextVolt = voltageData[Math.min((i + 1) * vSampleStep, voltageData.length - 1)].vBatt as number;
+        
+        const x1 = 25 + (i / (vSampleCount - 1)) * vChartWidth;
+        const y1 = chartYPos + vChartHeight - ((currentVolt - minVolt) / (maxVolt - minVolt || 1)) * vChartHeight;
+        const x2 = 25 + ((i + 1) / (vSampleCount - 1)) * vChartWidth;
+        const y2 = chartYPos + vChartHeight - ((nextVolt - minVolt) / (maxVolt - minVolt || 1)) * vChartHeight;
+        
+        pdf.line(x1, y1, x2, y2);
+      }
+      
+      pdf.setFontSize(10);
+      chartYPos += vChartHeight + 10;
+      pdf.text(`Voltage: ${minVolt.toFixed(2)}V - ${maxVolt.toFixed(2)}V | Average: ${avgVolt.toFixed(2)}V`, 25, chartYPos);
+    }
+
     // Footer
     pdf.setFontSize(8);
     pdf.setTextColor(100, 100, 100);
