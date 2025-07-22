@@ -14,13 +14,13 @@ interface DataVisualizationProps {
 
 export default function DataVisualization({ memoryDump }: DataVisualizationProps) {
   const { data: dumpDetails, isLoading, error } = useQuery<MemoryDumpDetails>({
-    queryKey: ['/api/memory-dumps', memoryDump?.id],
+    queryKey: ['/api/memory-dumps', memoryDump?.id, memoryDump?.filename, memoryDump?.uploadedAt],
     enabled: memoryDump?.status === 'completed',
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
     staleTime: 0, // Always fetch fresh data for new dumps
-    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes only
+    gcTime: 0, // Don't cache visualization data - always fresh
   });
 
   // Move all hooks to the top - this must be called on every render
@@ -242,6 +242,11 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   const sensorData = dumpDetails.sensorData;
 
+  // Helper function to check if data field has valid values
+  const hasValidData = (field: string) => {
+    return chartData.some(d => d[field] !== null && d[field] !== undefined && !isNaN(d[field] as number));
+  };
+
   // Filter data by type and enhance flow status for visualization
   const mpData = chartData.filter(d => d.tempMP !== null).map(d => ({
     ...d,
@@ -249,6 +254,22 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
     flowStatusLabel: d.flowStatus // Keep original for tooltip
   }));
   const mdgData = chartData.filter(d => d.accelAX !== null);
+
+  // Only show charts with valid data
+  const showTemperatureChart = hasValidData('tempMP');
+  const showAccelerationChart = hasValidData('accelAX') || hasValidData('accelAY') || hasValidData('accelAZ');
+  const showShockChart = hasValidData('shockX') || hasValidData('shockY') || hasValidData('shockZ');
+  const showRPMChart = hasValidData('rotRpmAvg') || hasValidData('rotRpmMax');
+  const showVoltageChart = hasValidData('vBatt') || hasValidData('v5VD') || hasValidData('v3_3VD');
+  const showCurrentChart = hasValidData('iSupply') || hasValidData('i3_3VD') || hasValidData('i5VD');
+  const showPowerChart = hasValidData('pSupply') || hasValidData('p3_3VD') || hasValidData('p5VD');
+  const showSurveyChart = hasValidData('surveyINC') || hasValidData('surveyAZM');
+  const showGammaChart = hasValidData('gamma');
+  const showShockCountChart = hasValidData('shockCountAxial50') || hasValidData('shockCountAxial100');
+  const showPumpChart = mpData.length > 0 && hasValidData('flowStatus');
+  const showInclinationChart = hasValidData('surveyINC');
+  const showAzimuthChart = hasValidData('surveyAZM');
+  const showEnvChart = hasValidData('gamma') || hasValidData('vBatt');
 
   // Calculate pump stats
   const pumpOnTime = mpData.reduce((acc, d) => acc + (d.flowStatus === 1 ? 1 : 0), 0);
@@ -281,17 +302,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
           </CardHeader>
           <CardContent className="space-y-8">
 
-            {/* MP Charts */}
+            {/* MP Charts - Only show if data exists */}
             {mpData.length > 0 && (
               <>
-                {/* 1. Temperature (MP) and Reset */}
-                <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Thermometer className="w-5 h-5 text-red-400" />
-                      <h3 className="text-lg font-semibold text-slate-200">Temperature (MP) and Reset</h3>
+                {/* 1. Temperature (MP) and Reset - Only show if valid temperature data */}
+                {showTemperatureChart && (
+                  <div className="glass-morphism rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <Thermometer className="w-5 h-5 text-red-400" />
+                        <h3 className="text-lg font-semibold text-slate-200">Temperature (MP) and Reset</h3>
+                      </div>
                     </div>
-                  </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={mpData}>
@@ -306,7 +328,8 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                </div>
+                  </div>
+                )}
 
                 {/* 2. Battery (MP) Current and Voltage */}
                 <div className="glass-morphism rounded-xl p-6">
