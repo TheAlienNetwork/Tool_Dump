@@ -252,8 +252,8 @@ async function processMemoryDumpStreaming(dumpId: number, filePath: string, file
     deviceInfo.dumpId = dumpId;
     await storage.createDeviceReport(deviceInfo);
 
-    // Optimized for database performance without stack overflow
-    const CHUNK_SIZE = 1000; // Sweet spot for PostgreSQL bulk inserts
+    // Ultra-fast processing with raw SQL bulk inserts
+    const CHUNK_SIZE = 5000; // Large chunks for maximum raw SQL performance
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         // Direct conversion to database format - no intermediate objects

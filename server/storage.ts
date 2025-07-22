@@ -1,5 +1,5 @@
 import { memoryDumps, sensorData, analysisResults, deviceReports, type MemoryDump, type InsertMemoryDump, type SensorData, type InsertSensorData, type AnalysisResults, type InsertAnalysisResults, type DeviceReport, type InsertDeviceReport } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -243,24 +243,68 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAllMemoryDumps(): Promise<void> {
-    // Delete in reverse order to respect foreign key constraints
-    await db.delete(deviceReports);
-    await db.delete(analysisResults);
-    await db.delete(sensorData);
-    await db.delete(memoryDumps);
+    // Use raw SQL to handle cascading deletes more efficiently
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('TRUNCATE sensor_data, analysis_results, device_reports, memory_dumps RESTART IDENTITY CASCADE');
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async createSensorData(data: InsertSensorData[]): Promise<void> {
-    if (data.length > 0) {
-      // Split into smaller batches to prevent stack overflow with large datasets
-      const BATCH_SIZE = 500; // Safe batch size for Drizzle ORM
+    if (data.length === 0) return;
+    
+    // Ultra-fast raw SQL bulk insert - bypasses ORM overhead
+    const client = await pool.connect();
+    try {
+      // Start transaction for atomic bulk insert
+      await client.query('BEGIN');
       
-      await db.transaction(async (tx) => {
-        for (let i = 0; i < data.length; i += BATCH_SIZE) {
-          const batch = data.slice(i, i + BATCH_SIZE);
-          await tx.insert(sensorData).values(batch);
-        }
+      // Prepare bulk insert values
+      const values: any[] = [];
+      const placeholders: string[] = [];
+      
+      data.forEach((record, idx) => {
+        const baseIdx = idx * 46; // 46 fields per record
+        placeholders.push(`($${baseIdx + 1}, $${baseIdx + 2}, $${baseIdx + 3}, $${baseIdx + 4}, $${baseIdx + 5}, $${baseIdx + 6}, $${baseIdx + 7}, $${baseIdx + 8}, $${baseIdx + 9}, $${baseIdx + 10}, $${baseIdx + 11}, $${baseIdx + 12}, $${baseIdx + 13}, $${baseIdx + 14}, $${baseIdx + 15}, $${baseIdx + 16}, $${baseIdx + 17}, $${baseIdx + 18}, $${baseIdx + 19}, $${baseIdx + 20}, $${baseIdx + 21}, $${baseIdx + 22}, $${baseIdx + 23}, $${baseIdx + 24}, $${baseIdx + 25}, $${baseIdx + 26}, $${baseIdx + 27}, $${baseIdx + 28}, $${baseIdx + 29}, $${baseIdx + 30}, $${baseIdx + 31}, $${baseIdx + 32}, $${baseIdx + 33}, $${baseIdx + 34}, $${baseIdx + 35}, $${baseIdx + 36}, $${baseIdx + 37}, $${baseIdx + 38}, $${baseIdx + 39}, $${baseIdx + 40}, $${baseIdx + 41}, $${baseIdx + 42}, $${baseIdx + 43}, $${baseIdx + 44}, $${baseIdx + 45}, $${baseIdx + 46})`);
+        
+        values.push(
+          record.dumpId, record.rtd, record.tempMP, record.resetMP, record.batteryCurrMP, record.batteryVoltMP,
+          record.flowStatus, record.maxX, record.maxY, record.maxZ, record.threshold, record.motorMin,
+          record.motorAvg, record.motorMax, record.motorHall, record.actuationTime, record.accelAX,
+          record.accelAY, record.accelAZ, record.shockZ, record.shockX, record.shockY, record.shockCountAxial50,
+          record.shockCountAxial100, record.shockCountLat50, record.shockCountLat100, record.rotRpmMax,
+          record.rotRpmAvg, record.rotRpmMin, record.v3_3VA_DI, record.v5VD, record.v3_3VD, record.v1_9VD,
+          record.v1_5VD, record.v1_8VA, record.v3_3VA, record.vBatt, record.i5VD, record.i3_3VD,
+          record.iBatt, record.gamma, record.accelStabX, record.accelStabY, record.accelStabZ,
+          record.accelStabZH, record.surveyTGF, record.surveyTMF
+        );
       });
+      
+      const sql = `
+        INSERT INTO sensor_data (
+          dump_id, rtd, temp_mp, reset_mp, battery_curr_mp, battery_volt_mp, flow_status, max_x, max_y, max_z,
+          threshold, motor_min, motor_avg, motor_max, motor_hall, actuation_time, accel_ax, accel_ay, accel_az,
+          shock_z, shock_x, shock_y, shock_count_axial_50, shock_count_axial_100, shock_count_lat_50,
+          shock_count_lat_100, rot_rpm_max, rot_rpm_avg, rot_rpm_min, v3_3va_di, v5vd, v3_3vd, v1_9vd,
+          v1_5vd, v1_8va, v3_3va, v_batt, i5vd, i3_3vd, i_batt, gamma, accel_stab_x, accel_stab_y,
+          accel_stab_z, accel_stab_zh, survey_tgf, survey_tmf
+        ) VALUES ${placeholders.join(', ')}
+      `;
+      
+      await client.query(sql, values);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 
