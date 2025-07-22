@@ -29,12 +29,13 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Layer
 - **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Database**: PostgreSQL (configured for Neon serverless)
-- **Schema**: Three main tables:
+- **Database**: PostgreSQL (Neon serverless with connection pooling)
+- **Schema**: Four main tables with relations:
   - `memory_dumps`: File metadata and processing status
   - `sensor_data`: Parsed sensor readings with 30+ fields
   - `analysis_results`: AI-generated health analysis and issue detection
-- **Storage Strategy**: Dual implementation (in-memory for development, PostgreSQL for production)
+  - `device_reports`: Extracted device information (MP/MDG S/N, firmware, temperatures, operational metrics)
+- **Storage Strategy**: DatabaseStorage using PostgreSQL for persistence and scalability
 
 ### File Processing Pipeline
 - **Binary Parser**: Handles MDG and MP file types with sensor data extraction

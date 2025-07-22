@@ -1,4 +1,6 @@
 import { memoryDumps, sensorData, analysisResults, deviceReports, type MemoryDump, type InsertMemoryDump, type SensorData, type InsertSensorData, type AnalysisResults, type InsertAnalysisResults, type DeviceReport, type InsertDeviceReport } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Memory Dumps
@@ -172,4 +174,60 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async createMemoryDump(insertDump: InsertMemoryDump): Promise<MemoryDump> {
+    const [dump] = await db.insert(memoryDumps).values(insertDump).returning();
+    return dump;
+  }
+
+  async getMemoryDump(id: number): Promise<MemoryDump | undefined> {
+    const [dump] = await db.select().from(memoryDumps).where(eq(memoryDumps.id, id));
+    return dump;
+  }
+
+  async updateMemoryDumpStatus(id: number, status: string, errorMessage?: string): Promise<void> {
+    const updateData: any = { status };
+    if (errorMessage) updateData.errorMessage = errorMessage;
+    if (status === "completed") updateData.processedAt = new Date();
+    
+    await db.update(memoryDumps)
+      .set(updateData)
+      .where(eq(memoryDumps.id, id));
+  }
+
+  async getMemoryDumps(): Promise<MemoryDump[]> {
+    return await db.select().from(memoryDumps).orderBy(desc(memoryDumps.uploadedAt));
+  }
+
+  async createSensorData(data: InsertSensorData[]): Promise<void> {
+    if (data.length > 0) {
+      await db.insert(sensorData).values(data);
+    }
+  }
+
+  async getSensorDataByDumpId(dumpId: number): Promise<SensorData[]> {
+    return await db.select().from(sensorData).where(eq(sensorData.dumpId, dumpId));
+  }
+
+  async createAnalysisResults(insertResults: InsertAnalysisResults): Promise<AnalysisResults> {
+    const [results] = await db.insert(analysisResults).values(insertResults).returning();
+    return results;
+  }
+
+  async getAnalysisResultsByDumpId(dumpId: number): Promise<AnalysisResults | undefined> {
+    const [results] = await db.select().from(analysisResults).where(eq(analysisResults.dumpId, dumpId));
+    return results;
+  }
+
+  async createDeviceReport(insertReport: InsertDeviceReport): Promise<DeviceReport> {
+    const [report] = await db.insert(deviceReports).values(insertReport).returning();
+    return report;
+  }
+
+  async getDeviceReportByDumpId(dumpId: number): Promise<DeviceReport | undefined> {
+    const [report] = await db.select().from(deviceReports).where(eq(deviceReports.dumpId, dumpId));
+    return report;
+  }
+}
+
+export const storage = new DatabaseStorage();

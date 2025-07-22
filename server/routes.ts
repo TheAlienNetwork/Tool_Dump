@@ -175,7 +175,7 @@ async function processMemoryDumpAsync(dumpId: number, filePath: string, filename
     
     // Extract device information and store it
     const deviceInfo = BinaryParser.extractDeviceInfo(
-      require('fs').readFileSync(filePath), 
+      fs.readFileSync(filePath), 
       filename, 
       fileType
     );

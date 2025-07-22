@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, real, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -131,3 +132,31 @@ export type InsertAnalysisResults = z.infer<typeof insertAnalysisResultsSchema>;
 export type AnalysisResults = typeof analysisResults.$inferSelect;
 export type InsertDeviceReport = z.infer<typeof insertDeviceReportSchema>;
 export type DeviceReport = typeof deviceReports.$inferSelect;
+
+// Relations
+export const memoryDumpsRelations = relations(memoryDumps, ({ many }) => ({
+  sensorData: many(sensorData),
+  analysisResults: many(analysisResults),
+  deviceReports: many(deviceReports),
+}));
+
+export const sensorDataRelations = relations(sensorData, ({ one }) => ({
+  memoryDump: one(memoryDumps, {
+    fields: [sensorData.dumpId],
+    references: [memoryDumps.id],
+  }),
+}));
+
+export const analysisResultsRelations = relations(analysisResults, ({ one }) => ({
+  memoryDump: one(memoryDumps, {
+    fields: [analysisResults.dumpId],
+    references: [memoryDumps.id],
+  }),
+}));
+
+export const deviceReportsRelations = relations(deviceReports, ({ one }) => ({
+  memoryDump: one(memoryDumps, {
+    fields: [deviceReports.dumpId],
+    references: [memoryDumps.id],
+  }),
+}));
