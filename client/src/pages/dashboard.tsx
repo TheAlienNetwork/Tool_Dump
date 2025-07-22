@@ -21,11 +21,11 @@ export default function Dashboard() {
 
   const { data: memoryDumps = [], refetch: refetchDumps } = useQuery<MemoryDump[]>({
     queryKey: ['/api/memory-dumps'],
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
+    refetchInterval: 2000, // Refetch every 2 seconds to show processing status
+    refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchOnReconnect: false,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnReconnect: true,
+    staleTime: 0, // Always fresh data
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 

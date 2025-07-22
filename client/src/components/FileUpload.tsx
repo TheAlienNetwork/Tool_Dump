@@ -78,21 +78,37 @@ export default function FileUpload({ onUploadComplete, memoryDumps, onSelectDump
       console.log('Upload response:', result);
 
       toast({
-        title: "Upload Successful",
-        description: `${validFiles.length} file(s) uploaded and processing started.`,
+        title: "Upload successful",
+        description: `${validFiles.length} file(s) are being processed`,
       });
 
-      // Clear the uploading files and refresh the list
-      setUploadingFiles([]);
-      queryClient.invalidateQueries({ queryKey: ['/api/memory-dumps'] });
+      // Trigger immediate refresh and keep polling
+      onUploadComplete();
 
-      // Force multiple refreshes to ensure UI updates
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['/api/memory-dumps'] }), 1000);
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['/api/memory-dumps'] }), 3000);
+      // Keep polling every 2 seconds until processing is complete
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch('/api/memory-dumps');
+          const dumps = await statusResponse.json();
+          const processingDumps = dumps.filter((dump: any) => dump.status === 'processing');
+
+          if (processingDumps.length === 0) {
+            clearInterval(pollInterval);
+            onUploadComplete(); // Final refresh when all done
+          }
+        } catch (error) {
+          console.error('Status poll error:', error);
+        }
+      }, 2000);
+
+      // Clear polling after 5 minutes max
+      setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
+
     } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "An error occurred during upload",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
