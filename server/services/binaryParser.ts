@@ -98,9 +98,9 @@ export class BinaryParser {
     const baseTime = this.extractTimestamp(filename);
     const fd = fs.openSync(filePath, 'r');
 
+    let batchIndex = 0;
     try {
       let recordIndex = 0;
-      let batchIndex = 0;
 
       while (recordIndex < totalRecords) {
         const currentBatchSize = Math.min(batchSize, totalRecords - recordIndex);
@@ -246,9 +246,9 @@ export class BinaryParser {
     const baseTime = this.extractTimestamp(filename);
     const fd = fs.openSync(filePath, 'r');
 
+    let batchIndex = 0;
     try {
       let recordIndex = 0;
-      let batchIndex = 0;
 
       while (recordIndex < totalRecords) {
         const currentBatchSize = Math.min(batchSize, totalRecords - recordIndex);
