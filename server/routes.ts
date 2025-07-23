@@ -1,6 +1,4 @@
-I have analyzed the original code and the changes. I will now generate the complete modified code, incorporating the changes related to PDF generation and data filtering, while keeping the rest of the code intact.
-</tool_code>
-```replit_final_file
+
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
