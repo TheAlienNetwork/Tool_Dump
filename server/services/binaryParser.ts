@@ -298,23 +298,56 @@ export class BinaryParser {
           batch.ShockCountAxial100.push(null);
           batch.ShockCountLat50.push(null);
           batch.ShockCountLat100.push(null);
-          // MP files don't contain rotation data - set to null for accuracy
-          batch.RotRpmMax.push(null);
-          batch.RotRpmAvg.push(null);
-          batch.RotRpmMin.push(null);
+          
+          // Check if MP files actually contain rotation data - try to extract from remaining bytes
+          // MP record size is 64 bytes, we've used up to offset 48 for actuationTime
+          // Check if there's rotation data in the remaining space
+          if (bufferOffset + 60 < buffer.length) {
+            // Try to extract rotation data from MP files if it exists
+            const rpmMax = this.readFloat32LE(buffer, bufferOffset + 52);
+            const rpmAvg = this.readFloat32LE(buffer, bufferOffset + 56);
+            const rpmMin = this.readFloat32LE(buffer, bufferOffset + 60);
+            
+            // Only include if values seem reasonable (0-50000 RPM range)
+            batch.RotRpmMax.push((rpmMax >= 0 && rpmMax < 50000 && isFinite(rpmMax)) ? rpmMax : null);
+            batch.RotRpmAvg.push((rpmAvg >= 0 && rpmAvg < 50000 && isFinite(rpmAvg)) ? rpmAvg : null);
+            batch.RotRpmMin.push((rpmMin >= 0 && rpmMin < 50000 && isFinite(rpmMin)) ? rpmMin : null);
+          } else {
+            // No rotation data available in MP files
+            batch.RotRpmMax.push(null);
+            batch.RotRpmAvg.push(null);
+            batch.RotRpmMin.push(null);
+          }
 
-          // Extract voltage data from MP files - these ARE available in MP
-          batch.V3_3VA_DI.push(this.readFloat32LE(buffer, bufferOffset + 52));
-          batch.V5VD.push(this.readFloat32LE(buffer, bufferOffset + 56));
-          batch.V3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 60));
-          batch.V1_9VD.push(this.readFloat32LE(buffer, bufferOffset + 64));
-          batch.V1_5VD.push(this.readFloat32LE(buffer, bufferOffset + 68));
-          batch.V1_8VA.push(this.readFloat32LE(buffer, bufferOffset + 72));
-          batch.V3_3VA.push(this.readFloat32LE(buffer, bufferOffset + 76));
-          batch.VBatt.push(this.readFloat32LE(buffer, bufferOffset + 80));
-          batch.I5VD.push(this.readFloat32LE(buffer, bufferOffset + 84));
-          batch.I3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 88));
-          batch.IBatt.push(this.readFloat32LE(buffer, bufferOffset + 92));
+          // Extract voltage data from MP files if available within 64-byte record
+          // Need to be careful about offsets since MP record is only 64 bytes total
+          if (bufferOffset + 64 <= buffer.length) {
+            // Try to extract voltage data, but only if it fits within the record size
+            // Note: Some voltage data may not be available in MP files
+            batch.V3_3VA_DI.push(null); // Not available in MP
+            batch.V5VD.push(null);      // Not available in MP  
+            batch.V3_3VD.push(null);    // Not available in MP
+            batch.V1_9VD.push(null);    // Not available in MP
+            batch.V1_5VD.push(null);    // Not available in MP
+            batch.V1_8VA.push(null);    // Not available in MP
+            batch.V3_3VA.push(null);    // Not available in MP
+            batch.VBatt.push(this.readFloat32LE(buffer, bufferOffset + 8)); // Same as batteryVoltMP
+            batch.I5VD.push(null);      // Not available in MP
+            batch.I3_3VD.push(null);    // Not available in MP
+            batch.IBatt.push(this.readFloat32LE(buffer, bufferOffset + 12)); // Same as batteryCurrMP
+          } else {
+            batch.V3_3VA_DI.push(null);
+            batch.V5VD.push(null);
+            batch.V3_3VD.push(null);
+            batch.V1_9VD.push(null);
+            batch.V1_5VD.push(null);
+            batch.V1_8VA.push(null);
+            batch.V3_3VA.push(null);
+            batch.VBatt.push(null);
+            batch.I5VD.push(null);
+            batch.I3_3VD.push(null);
+            batch.IBatt.push(null);
+          }
 
           batch.Gamma.push(null);
           batch.AccelStabX.push(null);
