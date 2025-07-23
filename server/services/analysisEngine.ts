@@ -23,16 +23,18 @@ export class AnalysisEngine {
 
     console.log(`Starting advanced AI analysis on ${data.length} sensor records...`);
 
-    // Advanced AI Health Analysis - SOPHISTICATED VALIDATION with real thresholds
-    // 1. Temperature Analysis with Statistical Validation
+    // ADVANCED AI TEMPERATURE ANALYSIS - High Precision Diagnostics
+    // 1. Enhanced Temperature Validation with Sensor Integrity Checks
     const tempData = data.filter(d => 
       d.tempMP !== null && 
       typeof d.tempMP === 'number' && 
       !isNaN(d.tempMP) && 
       isFinite(d.tempMP) && 
-      d.tempMP > 0 && 
-      d.tempMP < 1000 // Filter out obviously invalid readings
-    ).map(d => ({ value: d.tempMP!, rtd: d.rtd, index: data.indexOf(d) }));
+      d.tempMP > -40 && // Realistic low temp (-40°F = -40°C)
+      d.tempMP < 400 // Realistic high temp (400°F = 204°C for industrial equipment)
+    ).map(d => ({ value: d.tempMP!, rtd: d.rtd, index: data.indexOf(d), originalIndex: data.indexOf(d) }));
+    
+    console.log(`🔬 AI TEMPERATURE DIAGNOSTICS: Processing ${tempData.length} valid readings from ${data.length} total records`);
     
     if (tempData.length > 0) {
       const tempValues = tempData.map(d => d.value);
@@ -41,57 +43,145 @@ export class AnalysisEngine {
       const tempAvg = tempValues.reduce((sum, val) => sum + val, 0) / tempValues.length;
       const tempStdDev = Math.sqrt(tempValues.reduce((sum, val) => sum + Math.pow(val - tempAvg, 2), 0) / tempValues.length);
       
-      console.log(`🌡️ Enhanced Temperature Analysis: Min=${tempMin.toFixed(1)}°F, Max=${tempMax.toFixed(1)}°F, Avg=${tempAvg.toFixed(1)}°F, StdDev=${tempStdDev.toFixed(1)}°F`);
+      console.log(`🌡️ ADVANCED TEMP ANALYSIS: Min=${tempMin.toFixed(1)}°F, Max=${tempMax.toFixed(1)}°F, Avg=${tempAvg.toFixed(1)}°F, StdDev=${tempStdDev.toFixed(1)}°F`);
       
-      // Critical temperature analysis with context validation
-      const criticalTempThreshold = 200; // 200°F = 93°C (realistic critical threshold)
+      // CRITICAL TEMPERATURE ANALYSIS - Industry Standard Thresholds
+      const criticalTempThreshold = 200; // 200°F = 93°C (NEMA standard)
+      const warningTempThreshold = 160;  // 160°F = 71°C (early warning)
+      const lowTempThreshold = 50;       // 50°F = 10°C (operational minimum)
+      
+      // HIGH TEMPERATURE DETECTION with Pinpoint Accuracy
       const highTempData = tempData.filter(d => d.value > criticalTempThreshold);
+      const warningTempData = tempData.filter(d => d.value > warningTempThreshold && d.value <= criticalTempThreshold);
       
-      // Only flag if pattern suggests real issue (not isolated spikes)
-      if (highTempData.length >= 3) { // At least 3 consecutive readings
-        // Validate temporal clustering - are these consecutive or spread out?
-        const consecutiveGroups = [];
+      if (highTempData.length > 0) {
+        // Advanced Pattern Recognition - Detect sustained vs transient events
+        const temperatureGroups = [];
         let currentGroup = [highTempData[0]];
         
         for (let i = 1; i < highTempData.length; i++) {
-          if (highTempData[i].index - highTempData[i-1].index <= 5) { // Within 5 samples
+          const timeDiff = highTempData[i].rtd.getTime() - highTempData[i-1].rtd.getTime();
+          const indexDiff = highTempData[i].index - highTempData[i-1].index;
+          
+          // Group if within 30 seconds or 30 samples
+          if (timeDiff <= 30000 || indexDiff <= 30) {
             currentGroup.push(highTempData[i]);
           } else {
-            consecutiveGroups.push(currentGroup);
+            temperatureGroups.push(currentGroup);
             currentGroup = [highTempData[i]];
           }
         }
-        consecutiveGroups.push(currentGroup);
+        temperatureGroups.push(currentGroup);
         
-        // Critical if we have sustained high temp periods
-        const sustainedHighTemp = consecutiveGroups.some(group => group.length >= 3);
+        // Analyze each temperature event group
+        const sustainedEvents = temperatureGroups.filter(group => group.length >= 5); // 5+ consecutive readings
+        const transientEvents = temperatureGroups.filter(group => group.length < 5);
         
-        if (sustainedHighTemp) {
+        if (sustainedEvents.length > 0) {
+          const longestEvent = sustainedEvents.reduce((max, group) => group.length > max.length ? group : max);
+          const peakTemp = Math.max(...longestEvent.map(d => d.value));
+          const eventDuration = (longestEvent[longestEvent.length - 1].rtd.getTime() - longestEvent[0].rtd.getTime()) / 1000;
+          
           issues.push({
-            issue: `VALIDATED Critical Temperature: ${tempMax.toFixed(1)}°F (${((tempMax - 32) * 5/9).toFixed(1)}°C)`,
-            explanation: `AI detected sustained high temperature over ${highTempData.length} readings. Pattern analysis confirms this is NOT sensor noise - genuine thermal event detected.`,
+            issue: `CRITICAL: Sustained high temperature - Peak ${peakTemp.toFixed(1)}°F (${((peakTemp - 32) * 5/9).toFixed(1)}°C)`,
+            explanation: `AI detected ${sustainedEvents.length} sustained thermal event(s). Longest event: ${eventDuration.toFixed(0)}s duration with ${longestEvent.length} consecutive readings above ${criticalTempThreshold}°F. Risk of equipment damage or failure. Immediate inspection required.`,
             severity: 'critical',
+            count: highTempData.length,
+            firstTime: longestEvent[0].rtd,
+            lastTime: longestEvent[longestEvent.length - 1].rtd,
+            times: longestEvent.map(d => d.rtd)
+          });
+        } else if (transientEvents.length > 0) {
+          const peakTemp = Math.max(...highTempData.map(d => d.value));
+          issues.push({
+            issue: `WARNING: Transient temperature spikes - Peak ${peakTemp.toFixed(1)}°F (${((peakTemp - 32) * 5/9).toFixed(1)}°C)`,
+            explanation: `AI detected ${transientEvents.length} brief temperature spike(s) above ${criticalTempThreshold}°F. Events were transient (<5 consecutive readings) suggesting possible sensor noise or brief thermal events. Monitor for pattern development.`,
+            severity: 'warning',
             count: highTempData.length,
             firstTime: highTempData[0].rtd,
             lastTime: highTempData[highTempData.length - 1].rtd,
-            times: highTempData.map(d => d.rtd)
+            times: highTempData.slice(0, 10).map(d => d.rtd) // First 10 occurrences
           });
         }
       }
       
-      // Only flag if temperature is unusually low for extended periods
-      const lowTempData = tempData.filter(d => d.value < 32); // Below freezing
-      if (lowTempData.length > tempData.length * 0.1) { // Only if >10% of readings are below freezing
+      // WARNING LEVEL TEMPERATURE ANALYSIS
+      if (warningTempData.length > tempData.length * 0.05) { // >5% of readings in warning range
+        const avgWarningTemp = warningTempData.reduce((sum, d) => sum + d.value, 0) / warningTempData.length;
         issues.push({
-          issue: `Low temperature detected: ${tempMin.toFixed(1)}°F`,
-          explanation: "Temperature below normal operating range",
+          issue: `Elevated operating temperature - Average ${avgWarningTemp.toFixed(1)}°F (${((avgWarningTemp - 32) * 5/9).toFixed(1)}°C)`,
+          explanation: `AI analysis shows ${warningTempData.length} readings (${((warningTempData.length / tempData.length) * 100).toFixed(1)}%) in warning range (${warningTempThreshold}-${criticalTempThreshold}°F). Indicates elevated thermal stress - recommend checking ventilation and cooling systems.`,
           severity: 'warning',
+          count: warningTempData.length,
+          firstTime: warningTempData[0].rtd,
+          lastTime: warningTempData[warningTempData.length - 1].rtd,
+          times: warningTempData.slice(0, 20).map(d => d.rtd) // First 20 occurrences
+        });
+      }
+      
+      // LOW TEMPERATURE ANALYSIS - Enhanced Logic
+      const lowTempData = tempData.filter(d => d.value < lowTempThreshold);
+      if (lowTempData.length > tempData.length * 0.1) { // >10% of readings below threshold
+        const minTemp = Math.min(...lowTempData.map(d => d.value));
+        const avgLowTemp = lowTempData.reduce((sum, d) => sum + d.value, 0) / lowTempData.length;
+        
+        issues.push({
+          issue: `Low temperature operation - Minimum ${minTemp.toFixed(1)}°F (${((minTemp - 32) * 5/9).toFixed(1)}°C)`,
+          explanation: `AI detected ${lowTempData.length} readings (${((lowTempData.length / tempData.length) * 100).toFixed(1)}%) below optimal operating range (<${lowTempThreshold}°F). Average low temp: ${avgLowTemp.toFixed(1)}°F. May indicate cold environment affecting viscosity and performance.`,
+          severity: 'info',
           count: lowTempData.length,
           firstTime: lowTempData[0].rtd,
           lastTime: lowTempData[lowTempData.length - 1].rtd,
-          times: lowTempData.slice(0, 100).map(d => d.rtd) // Limit to first 100 occurrences
+          times: lowTempData.slice(0, 50).map(d => d.rtd)
         });
       }
+      
+      // SENSOR INTEGRITY ANALYSIS - Detect Invalid/Suspicious Readings
+      const invalidTempData = data.filter(d => 
+        d.tempMP === null || 
+        typeof d.tempMP !== 'number' || 
+        isNaN(d.tempMP) || 
+        !isFinite(d.tempMP) ||
+        d.tempMP <= -40 || 
+        d.tempMP >= 400
+      );
+      
+      if (invalidTempData.length > 0) {
+        const invalidPercent = (invalidTempData.length / data.length) * 100;
+        let severity: 'info' | 'warning' | 'critical' = 'info';
+        let explanation = `AI detected ${invalidTempData.length} invalid temperature readings (${invalidPercent.toFixed(1)}% of total data).`;
+        
+        if (invalidPercent > 20) {
+          severity = 'critical';
+          explanation += ` HIGH FAILURE RATE - Sensor malfunction or communication errors likely. Immediate calibration required.`;
+        } else if (invalidPercent > 5) {
+          severity = 'warning';
+          explanation += ` Moderate sensor issues detected. Consider sensor maintenance.`;
+        } else {
+          explanation += ` Occasional sensor anomalies - within acceptable range but monitor trend.`;
+        }
+        
+        issues.push({
+          issue: `Temperature sensor integrity: ${invalidTempData.length} invalid readings`,
+          explanation,
+          severity,
+          count: invalidTempData.length,
+          firstTime: invalidTempData.length > 0 ? invalidTempData[0].rtd : undefined,
+          lastTime: invalidTempData.length > 0 ? invalidTempData[invalidTempData.length - 1].rtd : undefined,
+          times: invalidTempData.slice(0, 100).map(d => d.rtd)
+        });
+      }
+    } else {
+      // No valid temperature data available
+      issues.push({
+        issue: `Temperature sensor failure: No valid readings`,
+        explanation: `CRITICAL: AI analysis found zero valid temperature readings from ${data.length} total records. Complete sensor failure or severe communication issues. Immediate replacement required.`,
+        severity: 'critical',
+        count: data.length,
+        firstTime: data.length > 0 ? data[0].rtd : undefined,
+        lastTime: data.length > 0 ? data[data.length - 1].rtd : undefined,
+        times: data.slice(0, 100).map(d => d.rtd)
+      });
     }
 
     // 2. Battery voltage
@@ -312,7 +402,118 @@ export class AnalysisEngine {
       }
     }
 
-    // 10. Advanced AI: Motor performance degradation prediction
+    // 10. ADVANCED ROTATION SPEED ANALYSIS - Motor Performance Intelligence
+    const rotationData = data.filter(d => 
+      (d.rotRpmMax !== null && d.rotRpmMax > 0) ||
+      (d.rotRpmAvg !== null && d.rotRpmAvg > 0) ||
+      (d.rotRpmMin !== null && d.rotRpmMin > 0)
+    ).map(d => ({
+      max: d.rotRpmMax || 0,
+      avg: d.rotRpmAvg || 0,
+      min: d.rotRpmMin || 0,
+      motorCurrent: d.motorAvg || 0,
+      rtd: d.rtd,
+      index: data.indexOf(d)
+    }));
+
+    if (rotationData.length > 10) {
+      const validRPMData = rotationData.filter(d => d.max > 0 || d.avg > 0 || d.min > 0);
+      console.log(`🔄 ROTATION ANALYSIS: ${validRPMData.length} valid RPM readings from ${rotationData.length} records`);
+      
+      if (validRPMData.length > 0) {
+        const maxRPMs = validRPMData.map(d => d.max).filter(rpm => rpm > 0);
+        const avgRPMs = validRPMData.map(d => d.avg).filter(rpm => rpm > 0);
+        
+        if (maxRPMs.length > 0) {
+          const peakRPM = Math.max(...maxRPMs);
+          const avgMaxRPM = maxRPMs.reduce((sum, rpm) => sum + rpm, 0) / maxRPMs.length;
+          const minRPM = Math.min(...maxRPMs);
+          
+          console.log(`🔄 RPM STATISTICS: Peak=${peakRPM}, Avg=${avgMaxRPM.toFixed(0)}, Min=${minRPM}`);
+          
+          // High RPM Analysis - Equipment Protection
+          const highRPMThreshold = 4000; // Typical industrial pump max safe RPM
+          const highRPMEvents = validRPMData.filter(d => d.max > highRPMThreshold);
+          
+          if (highRPMEvents.length > 0) {
+            const highRPMPercent = (highRPMEvents.length / validRPMData.length) * 100;
+            let severity: 'warning' | 'critical' = 'warning';
+            let explanation = `AI detected ${highRPMEvents.length} high-speed events (>${highRPMThreshold} RPM, ${highRPMPercent.toFixed(1)}% of operation).`;
+            
+            if (peakRPM > 4500 || highRPMPercent > 10) {
+              severity = 'critical';
+              explanation += ` CRITICAL: Peak RPM ${peakRPM} exceeds safe operating limits. Risk of mechanical failure, cavitation, or bearing damage.`;
+            } else {
+              explanation += ` Operating near maximum design limits. Monitor for mechanical stress indicators.`;
+            }
+            
+            issues.push({
+              issue: `High rotation speed detected: Peak ${peakRPM} RPM`,
+              explanation,
+              severity,
+              count: highRPMEvents.length,
+              firstTime: highRPMEvents[0].rtd,
+              lastTime: highRPMEvents[highRPMEvents.length - 1].rtd,
+              times: highRPMEvents.slice(0, 50).map(d => d.rtd)
+            });
+          }
+          
+          // Low RPM Analysis - Performance Issues
+          const lowRPMThreshold = 500; // Minimum effective pumping speed
+          const lowRPMEvents = validRPMData.filter(d => d.max < lowRPMThreshold && d.max > 0);
+          
+          if (lowRPMEvents.length > validRPMData.length * 0.15) { // >15% of operation
+            const lowRPMPercent = (lowRPMEvents.length / validRPMData.length) * 100;
+            issues.push({
+              issue: `Low rotation speed operation: ${lowRPMPercent.toFixed(1)}% below optimal`,
+              explanation: `AI detected ${lowRPMEvents.length} low-speed events (<${lowRPMThreshold} RPM). May indicate motor issues, high viscosity, blockages, or insufficient power supply. Reduced pumping efficiency expected.`,
+              severity: 'warning',
+              count: lowRPMEvents.length,
+              firstTime: lowRPMEvents[0].rtd,
+              lastTime: lowRPMEvents[lowRPMEvents.length - 1].rtd,
+              times: lowRPMEvents.slice(0, 30).map(d => d.rtd)
+            });
+          }
+          
+          // RPM Variability Analysis - Stability Assessment
+          const rpmVariability = validRPMData.map(d => Math.abs(d.max - d.min)).filter(v => v > 0);
+          if (rpmVariability.length > 0) {
+            const avgVariability = rpmVariability.reduce((sum, v) => sum + v, 0) / rpmVariability.length;
+            const maxVariability = Math.max(...rpmVariability);
+            
+            if (avgVariability > 200 || maxVariability > 500) {
+              let severity: 'info' | 'warning' | 'critical' = 'warning';
+              let explanation = `AI detected high RPM variability: Average ${avgVariability.toFixed(0)} RPM spread, Maximum ${maxVariability} RPM spread.`;
+              
+              if (maxVariability > 1000) {
+                severity = 'critical';
+                explanation += ` CRITICAL: Extreme speed fluctuations indicate severe mechanical issues, control system problems, or unstable load conditions.`;
+              } else if (avgVariability > 400) {
+                severity = 'warning';
+                explanation += ` High variability suggests mechanical wear, bearing issues, or control system instability.`;
+              } else {
+                severity = 'info';
+                explanation += ` Moderate variability detected - normal for variable load conditions but monitor trend.`;
+              }
+              
+              issues.push({
+                issue: `RPM instability detected: ${avgVariability.toFixed(0)} RPM average variation`,
+                explanation,
+                severity,
+                count: rpmVariability.length,
+                firstTime: validRPMData[0].rtd,
+                lastTime: validRPMData[validRPMData.length - 1].rtd,
+                times: validRPMData.slice(0, 25).map(d => d.rtd)
+              });
+            }
+          }
+        }
+      } else {
+        console.log(`⚠️ No valid RPM data found in ${rotationData.length} rotation records`);
+      }
+    }
+
+    // 11. Advanced AI: Motor performance degradation prediction
     const motorData = data.filter(d => 
       d.motorAvg !== null && d.actuationTime !== null && d.motorAvg > 0
     ).map(d => ({ current: d.motorAvg!, time: d.actuationTime!, rtd: d.rtd }));
