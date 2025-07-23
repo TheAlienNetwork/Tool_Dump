@@ -132,7 +132,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   });
 
   // Create error markers for critical issues
-  const createErrorMarkers = (issues: any[], dataKey: string) => {
+  const createErrorMarkers = (issues: any[], dataKey: string, yAxisId: string = 'left') => {
     if (!issues || issues.length === 0) return null;
     
     const relevantIssues = issues.filter(issue => 
@@ -149,6 +149,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
         stroke="#dc2626" 
         strokeWidth={2}
         strokeDasharray="5 5"
+        yAxisId={yAxisId}
         label={{ 
           value: `⚠️ ${issue.severity.toUpperCase()}`, 
           position: 'top',
@@ -390,7 +391,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         />
                         <Legend />
                         {/* Critical error markers */}
-                        {createErrorMarkers(analysisResults?.issues, 'tempMP')}
+                        {createErrorMarkers(analysisResults?.issues, 'tempMP', 'left')}
                         <Area yAxisId="left" type="monotone" dataKey="tempMP" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={2} name="Temperature (°F)" />
                         <Bar yAxisId="right" dataKey="resetMP" fill="#10B981" name="Reset Count" opacity={0.7} />
                       </ComposedChart>
@@ -1087,7 +1088,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         />
                         <Legend />
                         {/* Critical error markers for shock events */}
-                        {createErrorMarkers(analysisResults?.issues, 'shockZ')}
+                        {createErrorMarkers(analysisResults?.issues, 'shockZ', 'left')}
                         <Area type="monotone" dataKey="shockZ" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} name="Shock Z (g)" />
                       </AreaChart>
                     </ResponsiveContainer>
