@@ -296,14 +296,6 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   const sensorData = dumpDetails.sensorData;
 
-  // Helper function to check if data field has valid values
-  const hasValidData = (field: string) => {
-    return chartData.some(d => {
-      const value = (d as any)[field];
-      return value !== null && value !== undefined && !isNaN(value as number);
-    });
-  };
-
   // Filter data by type and enhance flow status for visualization
   const mpData = chartData.filter(d => d.tempMP !== null).map(d => ({
     ...d,
