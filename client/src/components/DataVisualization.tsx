@@ -1140,6 +1140,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* 9. Shock Peak X,Y (g) (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
