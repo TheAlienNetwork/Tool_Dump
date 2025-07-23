@@ -302,7 +302,7 @@ export class BinaryParser {
           batch.RotRpmMax.push(null);
           batch.RotRpmAvg.push(null);
           batch.RotRpmMin.push(null);
-          
+
           // Extract voltage data from MP files - these ARE available in MP
           batch.V3_3VA_DI.push(this.readFloat32LE(buffer, bufferOffset + 52));
           batch.V5VD.push(this.readFloat32LE(buffer, bufferOffset + 56));
@@ -315,7 +315,7 @@ export class BinaryParser {
           batch.I5VD.push(this.readFloat32LE(buffer, bufferOffset + 84));
           batch.I3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 88));
           batch.IBatt.push(this.readFloat32LE(buffer, bufferOffset + 92));
-          
+
           batch.Gamma.push(null);
           batch.AccelStabX.push(null);
           batch.AccelStabY.push(null);
@@ -513,7 +513,7 @@ export class BinaryParser {
         for (let offset = 0; offset < Math.min(200, buffer.length - 4); offset += 1) {
           const value16 = this.readUInt16LE(buffer, offset);
           const value32 = this.readUInt32LE(buffer, offset);
-          
+
           // Look for realistic serial number patterns based on filename
           if (isMP && value16 >= 1000 && value16 <= 9999 && !mpSerialNumber) {
             // Check if this looks like a valid serial number
@@ -523,7 +523,7 @@ export class BinaryParser {
               break;
             }
           }
-          
+
           // Look for MDG serial patterns
           if (isMDG && value16 >= 1000 && value16 <= 9999 && !mdgSerialNumber) {
             mdgSerialNumber = value16.toString();
@@ -551,7 +551,7 @@ export class BinaryParser {
           const fileHash = filename.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) & 0xffffffff, 0);
           const contentHash = buffer.subarray(100, Math.min(300, buffer.length))
             .reduce((hash, byte, index) => ((hash << 3) - hash + byte + index) & 0xffffffff, Math.abs(fileHash));
-          
+
           // Generate file-specific serial (different files will have different serials)
           mpSerialNumber = (Math.abs(contentHash % 8999) + 1000).toString();
           console.log(`📍 FILE-SPECIFIC MP S/N extracted: ${mpSerialNumber} for ${filename}`);
@@ -561,7 +561,7 @@ export class BinaryParser {
           const fileHash = filename.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) & 0xffffffff, 0);
           const contentHash = buffer.subarray(50, Math.min(250, buffer.length))
             .reduce((hash, byte, index) => ((hash << 3) - hash + byte + index) & 0xffffffff, Math.abs(fileHash));
-          
+
           // Generate file-specific serial for MDG files
           mdgSerialNumber = (Math.abs(contentHash % 8999) + 1000).toString();
           console.log(`📍 FILE-SPECIFIC MDG S/N extracted: ${mdgSerialNumber} for ${filename}`);
@@ -585,29 +585,16 @@ export class BinaryParser {
         const deviceSerial = parseInt(mpSerialNumber || mdgSerialNumber || "1000");
         const statsHash = buffer.subarray(200, Math.min(600, buffer.length))
           .reduce((hash, byte, index) => ((hash << 4) - hash + byte + index) & 0xffffffff, deviceSerial);
-        
+
         // Generate file-specific realistic values
         const statsFactor = Math.abs(statsHash) / 0xffffffff;
         circulationHours = Math.round((50.0 + (statsFactor * 200)) * 10) / 10; // 50-250 hours range
         numberOfPulses = Math.floor(40000 + (statsFactor * 150000)); // 40k-190k range  
         motorOnTimeMinutes = Math.round((circulationHours * 35 + (statsFactor * 1000)) * 10) / 10; // Variable motor time
-        
-        // Extract temperature from actual sensor data if available
-        const tempSum = allSensorData.slice(0, 100).reduce((sum, record) => {
-          const temp = record.tempMP || record.tempMDG;
-          return temp ? sum + temp : sum;
-        }, 0);
-        const avgTemp = tempSum > 0 ? tempSum / 100 : 70 + (statsFactor * 60); // 70-130°F range
-        
-        if (isMP) {
-          mpMaxTempFahrenheit = Math.round(avgTemp * 10) / 10;
-          mpMaxTempCelsius = Math.round(((avgTemp - 32) * 5/9) * 10) / 10;
-        } else if (isMDG) {
-          mdgMaxTempFahrenheit = Math.round(avgTemp * 10) / 10;
-          mdgMaxTempCelsius = Math.round(((avgTemp - 32) * 5/9) * 10) / 10;
-        }
-        
-        console.log(`📊 FILE-SPECIFIC DEVICE STATS for ${filename}: S/N=${deviceSerial}, Circulation=${circulationHours}hrs, Pulses=${numberOfPulses}, Motor=${motorOnTimeMinutes}min, MaxTemp=${avgTemp.toFixed(1)}°F`);
+
+        // Note: Temperature analysis will be performed after sensor data is processed
+
+        console.log(`📊 FILE-SPECIFIC DEVICE STATS for ${filename}: S/N=${deviceSerial}, Circulation=${circulationHours}hrs, Pulses=${numberOfPulses}, Motor=${motorOnTimeMinutes}min`);
         commErrorsTimeMinutes = 0.00;
         commErrorsPercent = 0.00;
         hallStatusTimeMinutes = 0.00;

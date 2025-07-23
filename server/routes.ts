@@ -1,4 +1,3 @@
-
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -37,7 +36,7 @@ const clearStaleCache = () => {
   console.log('🔄 AGGRESSIVE CACHE CLEAR - removing ALL stored data to force fresh extraction');
   memoryStore.clear();
   currentId = 1;
-  
+
   // Clear any residual file handles or streams
   process.nextTick(() => {
     // Force multiple garbage collection cycles
@@ -46,11 +45,11 @@ const clearStaleCache = () => {
       setTimeout(() => global.gc(), 100);
       setTimeout(() => global.gc(), 500);
     }
-    
+
     // Clear any module-level caches
     delete require.cache[require.resolve('./services/binaryParser')];
     delete require.cache[require.resolve('./services/analysisEngine')];
-    
+
     console.log('🧹 DEEP CACHE PURGE COMPLETE - All residual data cleared');
   });
 };
@@ -151,9 +150,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const forceRefresh = req.query.refresh === 'true';
-      
+
       let data = memoryStore.get(id);
-      
+
       // Force refresh if requested or if data seems stale
       if (forceRefresh || !data || !data.sensorData || data.sensorData.length === 0) {
         console.log(`🔄 Force refreshing data for dump ID ${id}`);
@@ -169,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For large datasets, limit sensor data to prevent timeout
       const maxRecords = 10000; // Limit to 10k records for visualization
       let sensorData = data.sensorData;
-      
+
       if (sensorData.length > maxRecords) {
         // Sample data evenly across the dataset
         const step = Math.floor(sensorData.length / maxRecords);
@@ -231,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Debug log the device report data being sent to PDF
       console.log('📄 PDF Generation - Device Report Data:', JSON.stringify(data.deviceReport, null, 2));
-      
+
       // Generate PDF
       const pdfBuffer = await PDFGenerator.generateReport(reportData);
 
@@ -283,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 async function processFileInMemory(dumpId: number, filePath: string, filename: string, fileType: string) {
   try {
     console.log(`🚀 Starting in-memory processing for ${filename}`);
-    
+
     // Update status to processing
     const existingData = memoryStore.get(dumpId);
     if (existingData) {
@@ -309,10 +308,10 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     await BinaryParser.parseMemoryDumpStream(filePath, filename, fileType, CHUNK_SIZE, async (batch, batchIndex) => {
       try {
         console.log(`📊 Processing batch ${batchIndex + 1} with ${batch.RTD.length} records...`);
-        
+
         // Convert to sensor data format and store in memory with better memory management
         const sensorDataBatch = BinaryParser.convertToSensorDataArray(batch, dumpId);
-        
+
         // Use spread operator in smaller chunks to prevent stack overflow
         if (sensorDataBatch.length > 1000) {
           // Process in sub-chunks to avoid stack overflow
@@ -323,9 +322,9 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
         } else {
           allSensorData.push(...sensorDataBatch);
         }
-        
+
         totalProcessed += batch.RTD.length;
-        
+
         // Force garbage collection every few batches
         if (batchIndex % 5 === 0 && global.gc) {
           global.gc();
@@ -339,7 +338,7 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     });
 
     console.log(`✅ Processed ${allSensorData.length} total records for ${filename}`);
-    
+
     // Force garbage collection after processing
     if (global.gc) {
       console.log(`🧹 Running garbage collection after processing ${allSensorData.length} records`);
@@ -359,16 +358,16 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     const ANALYSIS_CHUNK_SIZE = 10000;
     for (let i = 0; i < allSensorData.length; i += ANALYSIS_CHUNK_SIZE) {
       const chunk = allSensorData.slice(i, i + ANALYSIS_CHUNK_SIZE);
-      
+
       // Analyze temperature data in this chunk
       for (const record of chunk) {
         if (record.tempMP !== null) {
           tempRecordCount++;
           const temp = record.tempMP;
-          
+
           if (temp > maxTemp) maxTemp = temp;
           if (temp < minTemp) minTemp = temp;
-          
+
           if (temp > 150) highTempCount++;
           if (temp < 50) lowTempCount++;
         }
@@ -412,7 +411,7 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     // Store everything in memory - preserve original upload time
     const existingEntry = memoryStore.get(dumpId);
     const originalUploadTime = existingEntry?.memoryDump.uploadedAt || new Date();
-    
+
     const processedData: ProcessedData = {
       memoryDump: {
         id: dumpId,
@@ -439,7 +438,7 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
 
   } catch (error: any) {
     console.error(`💥 Error processing ${filename}:`, error);
-    
+
     const errorData: ProcessedData = {
       memoryDump: {
         id: dumpId,
