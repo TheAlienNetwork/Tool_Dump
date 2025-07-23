@@ -141,10 +141,14 @@ export class BinaryParser {
           batch.AccelAZ.push(this.readFloat32LE(buffer, bufferOffset + 8));
           batch.ResetMP.push(this.readUInt8(buffer, bufferOffset + 12));
 
-          // Shock data
-          batch.ShockZ.push(this.readFloat32LE(buffer, bufferOffset + 16));
-          batch.ShockX.push(this.readFloat32LE(buffer, bufferOffset + 20));
-          batch.ShockY.push(this.readFloat32LE(buffer, bufferOffset + 24));
+          // Shock data with validation (typical range -100g to +100g)
+          const shockZ = this.readFloat32LE(buffer, bufferOffset + 16);
+          const shockX = this.readFloat32LE(buffer, bufferOffset + 20);
+          const shockY = this.readFloat32LE(buffer, bufferOffset + 24);
+          
+          batch.ShockZ.push(this.isValidValue(shockZ, -500, 500) ? shockZ : null);
+          batch.ShockX.push(this.isValidValue(shockX, -500, 500) ? shockX : null);
+          batch.ShockY.push(this.isValidValue(shockY, -500, 500) ? shockY : null);
 
           // Shock counters
           batch.ShockCountAxial50.push(this.readUInt16LE(buffer, bufferOffset + 28));
@@ -157,15 +161,24 @@ export class BinaryParser {
           batch.RotRpmAvg.push(this.readFloat32LE(buffer, bufferOffset + 40));
           batch.RotRpmMin.push(this.readFloat32LE(buffer, bufferOffset + 44));
 
-          // System voltages
-          batch.V3_3VA_DI.push(this.readFloat32LE(buffer, bufferOffset + 48));
-          batch.V5VD.push(this.readFloat32LE(buffer, bufferOffset + 52));
-          batch.V3_3VD.push(this.readFloat32LE(buffer, bufferOffset + 56));
-          batch.V1_9VD.push(this.readFloat32LE(buffer, bufferOffset + 60));
-          batch.V1_5VD.push(this.readFloat32LE(buffer, bufferOffset + 64));
-          batch.V1_8VA.push(this.readFloat32LE(buffer, bufferOffset + 68));
-          batch.V3_3VA.push(this.readFloat32LE(buffer, bufferOffset + 72));
-          batch.VBatt.push(this.readFloat32LE(buffer, bufferOffset + 76));
+          // System voltages with validation
+          const v3_3VA_DI = this.readFloat32LE(buffer, bufferOffset + 48);
+          const v5VD = this.readFloat32LE(buffer, bufferOffset + 52);
+          const v3_3VD = this.readFloat32LE(buffer, bufferOffset + 56);
+          const v1_9VD = this.readFloat32LE(buffer, bufferOffset + 60);
+          const v1_5VD = this.readFloat32LE(buffer, bufferOffset + 64);
+          const v1_8VA = this.readFloat32LE(buffer, bufferOffset + 68);
+          const v3_3VA = this.readFloat32LE(buffer, bufferOffset + 72);
+          const vBatt = this.readFloat32LE(buffer, bufferOffset + 76);
+          
+          batch.V3_3VA_DI.push(this.isValidValue(v3_3VA_DI, 0, 10) ? v3_3VA_DI : null);
+          batch.V5VD.push(this.isValidValue(v5VD, 0, 10) ? v5VD : null);
+          batch.V3_3VD.push(this.isValidValue(v3_3VD, 0, 10) ? v3_3VD : null);
+          batch.V1_9VD.push(this.isValidValue(v1_9VD, 0, 5) ? v1_9VD : null);
+          batch.V1_5VD.push(this.isValidValue(v1_5VD, 0, 5) ? v1_5VD : null);
+          batch.V1_8VA.push(this.isValidValue(v1_8VA, 0, 5) ? v1_8VA : null);
+          batch.V3_3VA.push(this.isValidValue(v3_3VA, 0, 10) ? v3_3VA : null);
+          batch.VBatt.push(this.isValidValue(vBatt, 0, 50) ? vBatt : null);
 
           // System currents
           batch.I5VD.push(this.readFloat32LE(buffer, bufferOffset + 80));
@@ -265,24 +278,39 @@ export class BinaryParser {
           const tempFahrenheit = tempCelsius != null && !isNaN(tempCelsius) ? (tempCelsius * 9/5) + 32 : null;
           batch.TempMP.push(tempFahrenheit);
           batch.ResetMP.push(this.readUInt8(buffer, bufferOffset + 4));
-          batch.BatteryVoltMP.push(this.readFloat32LE(buffer, bufferOffset + 8));
-          batch.BatteryCurrMP.push(this.readFloat32LE(buffer, bufferOffset + 12));
+          
+          // Battery voltage with validation (typical range 9-18V for industrial equipment)
+          const battVolt = this.readFloat32LE(buffer, bufferOffset + 8);
+          batch.BatteryVoltMP.push(this.isValidValue(battVolt, 0, 50) ? battVolt : null);
+          
+          // Battery current with validation (typical range 0-10A for pumps)
+          const battCurr = this.readFloat32LE(buffer, bufferOffset + 12);
+          batch.BatteryCurrMP.push(this.isValidValue(battCurr, -50, 50) ? battCurr : null);
 
           // Flow status
           const flowVal = this.readUInt8(buffer, bufferOffset + 16);
           batch.FlowStatus.push(flowVal > 0 ? 'On' : 'Off');
 
-          // Vibration data
-          batch.MaxX.push(this.readFloat32LE(buffer, bufferOffset + 20));
-          batch.MaxY.push(this.readFloat32LE(buffer, bufferOffset + 24));
-          batch.MaxZ.push(this.readFloat32LE(buffer, bufferOffset + 28));
+          // Vibration data with validation (typical range 0-50g for industrial equipment)
+          const maxX = this.readFloat32LE(buffer, bufferOffset + 20);
+          const maxY = this.readFloat32LE(buffer, bufferOffset + 24);
+          const maxZ = this.readFloat32LE(buffer, bufferOffset + 28);
+          
+          batch.MaxX.push(this.isValidValue(maxX, -100, 100) ? maxX : null);
+          batch.MaxY.push(this.isValidValue(maxY, -100, 100) ? maxY : null);
+          batch.MaxZ.push(this.isValidValue(maxZ, -100, 100) ? maxZ : null);
           batch.Threshold.push(1.5);
 
-          // Motor current data
-          batch.MotorMin.push(this.readFloat32LE(buffer, bufferOffset + 32));
-          batch.MotorAvg.push(this.readFloat32LE(buffer, bufferOffset + 36));
-          batch.MotorMax.push(this.readFloat32LE(buffer, bufferOffset + 40));
-          batch.MotorHall.push(this.readFloat32LE(buffer, bufferOffset + 44));
+          // Motor current data with validation (typical range 0-10A for pumps)
+          const motorMin = this.readFloat32LE(buffer, bufferOffset + 32);
+          const motorAvg = this.readFloat32LE(buffer, bufferOffset + 36);
+          const motorMax = this.readFloat32LE(buffer, bufferOffset + 40);
+          const motorHall = this.readFloat32LE(buffer, bufferOffset + 44);
+          
+          batch.MotorMin.push(this.isValidValue(motorMin, 0, 20) ? motorMin : null);
+          batch.MotorAvg.push(this.isValidValue(motorAvg, 0, 20) ? motorAvg : null);
+          batch.MotorMax.push(this.isValidValue(motorMax, 0, 20) ? motorMax : null);
+          batch.MotorHall.push(this.isValidValue(motorHall, 0, 10000) ? motorHall : null);
 
           // Actuation time
           batch.ActuationTime.push(this.readFloat32LE(buffer, bufferOffset + 48));
@@ -431,6 +459,17 @@ export class BinaryParser {
       SurveyTGF: [], SurveyTMF: [], SurveyDipA: [], SurveyINC: [], SurveyCINC: [], SurveyAZM: [], 
       SurveyCAZM: []
     };
+  }
+
+  // Helper method to validate sensor values and filter out extreme/invalid readings
+  static isValidValue(value: number, min: number, max: number): boolean {
+    return value !== null && 
+           value !== undefined && 
+           !isNaN(value) && 
+           isFinite(value) && 
+           value >= min && 
+           value <= max &&
+           Math.abs(value) < 1e10; // Filter out scientific notation extremes
   }
 
   // Extract timestamp from filename

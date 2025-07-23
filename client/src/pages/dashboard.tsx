@@ -38,13 +38,13 @@ export default function Dashboard() {
         const mostRecentDump = completedDumps.sort((a, b) => 
           new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
         )[0];
-        
+
         // ALWAYS update to newest dump, even if same ID, in case data changed
         const shouldUpdate = !selectedDump || 
                             selectedDump.id !== mostRecentDump.id ||
                             selectedDump.filename !== mostRecentDump.filename ||
                             new Date(selectedDump.uploadedAt).getTime() !== new Date(mostRecentDump.uploadedAt).getTime();
-        
+
         if (shouldUpdate) {
           setSelectedDump(mostRecentDump);
           console.log(`Auto-selected most recent dump: ${mostRecentDump.filename} (ID: ${mostRecentDump.id}) uploaded at ${mostRecentDump.uploadedAt}`);

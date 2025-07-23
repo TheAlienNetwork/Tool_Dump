@@ -1,3 +1,6 @@
+I have analyzed the original code and the changes. I will now generate the complete modified code, incorporating the changes related to PDF generation and data filtering, while keeping the rest of the code intact.
+</tool_code>
+```replit_final_file
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -205,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate and download PDF report
+  // Generate PDF report
   app.get("/api/memory-dumps/:id/report", async (req, res) => {
     try {
       const { id } = req.params;
@@ -216,6 +219,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Memory dump not found" });
       }
 
+      // Filter and validate sensor data for PDF
+      const validSensorData = data.sensorData.filter(d => {
+        // Filter out extreme values and invalid readings
+        const hasValidTemp = d.tempMP !== null && d.tempMP !== undefined && !isNaN(d.tempMP) && isFinite(d.tempMP) && d.tempMP > -40 && d.tempMP < 400;
+        const hasValidVoltage = d.batteryVoltMP !== null && d.batteryVoltMP !== undefined && !isNaN(d.batteryVoltMP) && isFinite(d.batteryVoltMP) && d.batteryVoltMP > 0 && d.batteryVoltMP < 50;
+        const hasValidCurrent = d.batteryCurrMP !== null && d.batteryCurrMP !== undefined && !isNaN(d.batteryCurrMP) && isFinite(d.batteryCurrMP) && Math.abs(d.batteryCurrMP) < 100;
+        const hasValidMotor = d.motorAvg !== null && d.motorAvg !== undefined && !isNaN(d.motorAvg) && isFinite(d.motorAvg) && d.motorAvg >= 0 && d.motorAvg < 50;
+
+        return hasValidTemp || hasValidVoltage || hasValidCurrent || hasValidMotor;
+      }).slice(0, 2000); // Increase sample size for better PDF charts
+
+      console.log(`📄 PDF Generation: Filtered ${validSensorData.length} valid records from ${data.sensorData.length} total records`);
+
       // Prepare report data
       const reportData = {
         filename: data.memoryDump.filename,
@@ -224,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         criticalIssues: data.analysisResults?.criticalIssues || 0,
         warnings: data.analysisResults?.warnings || 0,
         issues: data.analysisResults?.issues || [],
-        sensorData: data.sensorData.slice(0, 1000), // Limit for PDF
+        sensorData: validSensorData,
         deviceReport: data.deviceReport
       };
 
