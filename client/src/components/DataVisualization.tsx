@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, ComposedChart, Area, AreaChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, ComposedChart, Area, AreaChart, ReferenceLine } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemoryDumpDetails } from "@/lib/types";
 import { Activity, Thermometer, Zap, AlertTriangle, Battery, Gauge, RotateCw, RotateCcw, Cpu, Compass, TrendingUp } from "lucide-react";
@@ -121,6 +121,58 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
         flowStatus: item.flowStatus,
       }));
   }, [dumpDetails?.sensorData]);
+
+  // Get analysis results for error markers
+  const { data: analysisResults } = useQuery({
+    queryKey: ['/api/memory-dumps', memoryDump?.id, 'analysis'],
+    enabled: memoryDump?.status === 'completed',
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  // Create error markers for critical issues
+  const createErrorMarkers = (issues: any[], dataKey: string) => {
+    if (!issues || issues.length === 0) return null;
+    
+    const relevantIssues = issues.filter(issue => 
+      issue.issue.toLowerCase().includes(dataKey.toLowerCase()) ||
+      (dataKey === 'tempMP' && issue.issue.toLowerCase().includes('temperature')) ||
+      (dataKey === 'shockZ' && issue.issue.toLowerCase().includes('shock')) ||
+      (dataKey === 'motorAvg' && issue.issue.toLowerCase().includes('motor'))
+    );
+    
+    return relevantIssues.map((issue, index) => (
+      <ReferenceLine 
+        key={`error-${index}`}
+        x={new Date(issue.firstTime).toLocaleTimeString()} 
+        stroke="#dc2626" 
+        strokeWidth={2}
+        strokeDasharray="5 5"
+        label={{ 
+          value: `⚠️ ${issue.severity.toUpperCase()}`, 
+          position: 'top',
+          style: { fill: '#dc2626', fontWeight: 'bold', fontSize: '12px' }
+        }}
+      />
+    ));
+  };
+
+  // Enhanced visibility logic - only show charts with meaningful data
+  const hasValidData = (field: string, minCount: number = 5) => {
+    if (!dumpDetails?.sensorData) return false;
+    
+    const validValues = dumpDetails.sensorData.filter(d => {
+      const value = (d as any)[field];
+      return value !== null && 
+             value !== undefined && 
+             !isNaN(value) && 
+             isFinite(value) && 
+             (typeof value === 'number' ? Math.abs(value) > 0.001 : true);
+    });
+    
+    return validValues.length >= minCount;
+  };
 
   // Now handle the conditional rendering after all hooks are defined
   if (!memoryDump) {
@@ -311,13 +363,21 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
             {mpData.length > 0 && (
               <>
                 {/* 1. Temperature (MP) and Reset - Only show if valid temperature data */}
-                {showTemperatureChart && (
+                {hasValidData('tempMP', 10) && (
                   <div className="glass-morphism rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-2">
                         <Thermometer className="w-5 h-5 text-red-400" />
-                        <h3 className="text-lg font-semibold text-slate-200">Temperature (MP) and Reset</h3>
+                        <h3 className="text-lg font-semibold text-slate-200">Temperature (MP) and Reset Analysis</h3>
                       </div>
+                      {analysisResults?.issues && analysisResults.issues.some(issue => 
+                        issue.issue.toLowerCase().includes('temperature')
+                      ) && (
+                        <div className="flex items-center space-x-2 bg-red-500/20 px-3 py-1 rounded-full border border-red-500/30">
+                          <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                          <span className="text-red-400 text-sm font-medium">AI Alert Detected</span>
+                        </div>
+                      )}
                     </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -326,8 +386,19 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
                         <YAxis yAxisId="left" stroke="#9CA3AF" fontSize={12} label={{ value: 'Temperature (°F)', angle: -90, position: 'insideLeft' }} />
                         <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" fontSize={12} label={{ value: 'Reset Count', angle: 90, position: 'insideRight' }} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value: any, name: string) => {
+                            if (name === 'Temperature (°F)' && typeof value === 'number') {
+                              const celsius = ((value - 32) * 5/9).toFixed(1);
+                              return [`${value.toFixed(1)}°F (${celsius}°C)`, name];
+                            }
+                            return [value, name];
+                          }}
+                        />
                         <Legend />
+                        {/* Critical error markers */}
+                        {createErrorMarkers(analysisResults?.issues, 'tempMP')}
                         <Area yAxisId="left" type="monotone" dataKey="tempMP" stroke="#EF4444" fill="#EF4444" fillOpacity={0.1} strokeWidth={2} name="Temperature (°F)" />
                         <Bar yAxisId="right" dataKey="resetMP" fill="#10B981" name="Reset Count" opacity={0.7} />
                       </ComposedChart>
@@ -991,10 +1062,21 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 </div>
 
                 {/* 8. Shock Peak Z (g) (MDG) */}
+                {hasValidData('shockZ', 5) && (
                 <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Zap className="w-5 h-5 text-red-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Shock Peak Z (g) (MDG)</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-5 h-5 text-red-400" />
+                      <h3 className="text-lg font-semibold text-slate-200">Shock Peak Z (g) Analysis - AI Enhanced</h3>
+                    </div>
+                    {analysisResults?.issues && analysisResults.issues.some(issue => 
+                      issue.issue.toLowerCase().includes('shock')
+                    ) && (
+                      <div className="flex items-center space-x-2 bg-red-500/20 px-3 py-1 rounded-full border border-red-500/30">
+                        <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                        <span className="text-red-400 text-sm font-medium">Critical Shock Events</span>
+                      </div>
+                    )}
                   </div>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1002,8 +1084,18 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
                         <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Shock Z (g)', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                          formatter={(value: any, name: string) => {
+                            if (typeof value === 'number') {
+                              return [`${Math.abs(value).toFixed(2)}g`, name];
+                            }
+                            return [value, name];
+                          }}
+                        />
                         <Legend />
+                        {/* Critical error markers for shock events */}
+                        {createErrorMarkers(analysisResults?.issues, 'shockZ')}
                         <Area type="monotone" dataKey="shockZ" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} name="Shock Z (g)" />
                       </AreaChart>
                     </ResponsiveContainer>

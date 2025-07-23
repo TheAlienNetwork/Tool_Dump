@@ -444,13 +444,33 @@ export class PDFGenerator {
     
     pdf.setFontSize(18);
     pdf.setTextColor(41, 128, 185);
-    pdf.text('Data Visualization Charts', 105, chartYPos, { align: 'center' });
-    chartYPos += 20;
+    pdf.text('Advanced Data Visualization & AI Analysis', 105, chartYPos, { align: 'center' });
+    chartYPos += 15;
     
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Visual representation of key sensor data trends and patterns', 105, chartYPos, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('Comprehensive sensor data analysis with AI-detected anomalies and patterns', 105, chartYPos, { align: 'center' });
     chartYPos += 25;
+
+    // Critical Issues Summary Box
+    if (reportData.issues && reportData.issues.length > 0) {
+      const criticalIssues = reportData.issues.filter(i => i.severity === 'critical');
+      const warningIssues = reportData.issues.filter(i => i.severity === 'warning');
+      
+      pdf.setFillColor(255, 240, 240); // Light red background
+      pdf.rect(20, chartYPos, 170, 25, 'F');
+      pdf.setDrawColor(220, 53, 69);
+      pdf.rect(20, chartYPos, 170, 25);
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(220, 53, 69);
+      pdf.text('🚨 AI ANALYSIS SUMMARY', 25, chartYPos + 8);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 0, 0);
+      pdf.text(`Critical Issues: ${criticalIssues.length} | Warnings: ${warningIssues.length} | Total Analyzed: ${reportData.sensorData.length.toLocaleString()} records`, 25, chartYPos + 18);
+      
+      chartYPos += 35;
+    }
 
     // Temperature Analysis Chart
     const tempData = reportData.sensorData.filter(d => d.tempMP !== null && d.tempMP > 0);
@@ -590,12 +610,100 @@ export class PDFGenerator {
       pdf.setFontSize(10);
       chartYPos += vChartHeight + 10;
       pdf.text(`Voltage: ${minVolt.toFixed(2)}V - ${maxVolt.toFixed(2)}V | Average: ${avgVolt.toFixed(2)}V`, 25, chartYPos);
+      chartYPos += 20;
     }
 
-    // Footer
+    // Motor Performance Analysis Chart (if space allows)
+    const motorData = reportData.sensorData.filter(d => 
+      d.motorAvg !== null && (d.motorAvg as number) > 0 && (d.motorAvg as number) < 100
+    );
+    
+    if (motorData.length > 0 && chartYPos < 180) {
+      pdf.setFontSize(14);
+      pdf.text('Motor Performance Analysis', 20, chartYPos);
+      chartYPos += 15;
+      
+      const motorValues = motorData.map(d => d.motorAvg as number);
+      const minMotor = Math.min(...motorValues);
+      const maxMotor = Math.max(...motorValues);
+      const avgMotor = motorValues.reduce((sum, val) => sum + val, 0) / motorValues.length;
+      
+      // Motor performance trend chart
+      const mChartWidth = 150;
+      const mChartHeight = 25;
+      
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(25, chartYPos, mChartWidth, mChartHeight);
+      
+      const mSampleCount = Math.min(25, motorData.length);
+      const mSampleStep = Math.max(1, Math.floor(motorData.length / mSampleCount));
+      
+      pdf.setDrawColor(147, 51, 234); // Purple for motor
+      pdf.setLineWidth(1);
+      
+      for (let i = 0; i < mSampleCount - 1; i++) {
+        const currentMotor = motorData[i * mSampleStep].motorAvg as number;
+        const nextMotor = motorData[Math.min((i + 1) * mSampleStep, motorData.length - 1)].motorAvg as number;
+        
+        const x1 = 25 + (i / (mSampleCount - 1)) * mChartWidth;
+        const y1 = chartYPos + mChartHeight - ((currentMotor - minMotor) / (maxMotor - minMotor || 1)) * mChartHeight;
+        const x2 = 25 + ((i + 1) / (mSampleCount - 1)) * mChartWidth;
+        const y2 = chartYPos + mChartHeight - ((nextMotor - minMotor) / (maxMotor - minMotor || 1)) * mChartHeight;
+        
+        pdf.line(x1, y1, x2, y2);
+      }
+      
+      pdf.setFontSize(10);
+      chartYPos += mChartHeight + 10;
+      pdf.text(`Motor Current: ${minMotor.toFixed(2)}A - ${maxMotor.toFixed(2)}A | Average: ${avgMotor.toFixed(2)}A`, 25, chartYPos);
+      chartYPos += 15;
+    }
+
+    // Add new page for AI analysis summary if needed
+    if (reportData.issues && reportData.issues.length > 0) {
+      pdf.addPage();
+      let aiYPos = 20;
+      
+      pdf.setFontSize(16);
+      pdf.setTextColor(220, 53, 69);
+      pdf.text('🤖 AI ANALYSIS & CRITICAL FINDINGS', 20, aiYPos);
+      aiYPos += 15;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Advanced AI algorithms analyzed ${reportData.sensorData.length.toLocaleString()} data points`, 20, aiYPos);
+      aiYPos += 10;
+      
+      // List critical issues with timestamps
+      reportData.issues.slice(0, 8).forEach((issue, index) => {
+        if (aiYPos > 250) return; // Prevent overflow
+        
+        const color = issue.severity === 'critical' ? [220, 53, 69] : issue.severity === 'warning' ? [245, 158, 11] : [59, 130, 246];
+        pdf.setTextColor(color[0], color[1], color[2]);
+        pdf.setFontSize(11);
+        pdf.text(`${issue.severity.toUpperCase()}: ${issue.issue}`, 20, aiYPos);
+        aiYPos += 8;
+        
+        pdf.setTextColor(100, 100, 100);
+        pdf.setFontSize(9);
+        const explanation = issue.explanation.length > 85 ? 
+          issue.explanation.substring(0, 82) + '...' : issue.explanation;
+        pdf.text(explanation, 25, aiYPos);
+        aiYPos += 6;
+        
+        if (issue.firstTime) {
+          pdf.text(`First detected: ${new Date(issue.firstTime).toLocaleString()}`, 25, aiYPos);
+          aiYPos += 6;
+        }
+        
+        aiYPos += 5;
+      });
+    }
+
+    // Footer on last page
     pdf.setFontSize(8);
     pdf.setTextColor(100, 100, 100);
-    pdf.text(`Report generated by The Tool Dump - ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
+    pdf.text(`Advanced AI Report generated by The Tool Dump - ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
     
     return Buffer.from(pdf.output('arraybuffer'));
   }

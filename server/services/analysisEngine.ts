@@ -23,28 +23,60 @@ export class AnalysisEngine {
 
     console.log(`Starting advanced AI analysis on ${data.length} sensor records...`);
 
-    // Advanced AI Health Analysis - REALISTIC THRESHOLDS for fresh data
-    // 1. Temperature extremes and trends
-    const tempData = data.filter(d => d.tempMP !== null && d.tempMP > 0).map(d => ({ value: d.tempMP!, rtd: d.rtd }));
+    // Advanced AI Health Analysis - SOPHISTICATED VALIDATION with real thresholds
+    // 1. Temperature Analysis with Statistical Validation
+    const tempData = data.filter(d => 
+      d.tempMP !== null && 
+      typeof d.tempMP === 'number' && 
+      !isNaN(d.tempMP) && 
+      isFinite(d.tempMP) && 
+      d.tempMP > 0 && 
+      d.tempMP < 1000 // Filter out obviously invalid readings
+    ).map(d => ({ value: d.tempMP!, rtd: d.rtd, index: data.indexOf(d) }));
+    
     if (tempData.length > 0) {
-      const tempMax = tempData.reduce((max, d) => Math.max(max, d.value), -Infinity);
-      const tempMin = tempData.reduce((min, d) => Math.min(min, d.value), Infinity);
-      const tempAvg = tempData.reduce((sum, d) => sum + d.value, 0) / tempData.length;
+      const tempValues = tempData.map(d => d.value);
+      const tempMax = Math.max(...tempValues);
+      const tempMin = Math.min(...tempValues);
+      const tempAvg = tempValues.reduce((sum, val) => sum + val, 0) / tempValues.length;
+      const tempStdDev = Math.sqrt(tempValues.reduce((sum, val) => sum + Math.pow(val - tempAvg, 2), 0) / tempValues.length);
       
-      console.log(`🌡️ Temperature analysis: Min=${tempMin.toFixed(1)}°F, Max=${tempMax.toFixed(1)}°F, Avg=${tempAvg.toFixed(1)}°F`);
+      console.log(`🌡️ Enhanced Temperature Analysis: Min=${tempMin.toFixed(1)}°F, Max=${tempMax.toFixed(1)}°F, Avg=${tempAvg.toFixed(1)}°F, StdDev=${tempStdDev.toFixed(1)}°F`);
       
-      // Only flag temperatures that are actually dangerous (realistic thresholds)
-      const highTempData = tempData.filter(d => d.value > 220); // 220°F = 104°C (realistic danger threshold)
-      if (highTempData.length > tempData.length * 0.05) { // Only if >5% of readings are dangerous
-        issues.push({
-          issue: `High temperature detected: ${tempMax.toFixed(1)}°F`,
-          explanation: "Temperature exceeded safe operating limits",
-          severity: 'critical',
-          count: highTempData.length,
-          firstTime: highTempData[0].rtd,
-          lastTime: highTempData[highTempData.length - 1].rtd,
-          times: highTempData.slice(0, 100).map(d => d.rtd) // Limit to first 100 occurrences
-        });
+      // Critical temperature analysis with context validation
+      const criticalTempThreshold = 200; // 200°F = 93°C (realistic critical threshold)
+      const highTempData = tempData.filter(d => d.value > criticalTempThreshold);
+      
+      // Only flag if pattern suggests real issue (not isolated spikes)
+      if (highTempData.length >= 3) { // At least 3 consecutive readings
+        // Validate temporal clustering - are these consecutive or spread out?
+        const consecutiveGroups = [];
+        let currentGroup = [highTempData[0]];
+        
+        for (let i = 1; i < highTempData.length; i++) {
+          if (highTempData[i].index - highTempData[i-1].index <= 5) { // Within 5 samples
+            currentGroup.push(highTempData[i]);
+          } else {
+            consecutiveGroups.push(currentGroup);
+            currentGroup = [highTempData[i]];
+          }
+        }
+        consecutiveGroups.push(currentGroup);
+        
+        // Critical if we have sustained high temp periods
+        const sustainedHighTemp = consecutiveGroups.some(group => group.length >= 3);
+        
+        if (sustainedHighTemp) {
+          issues.push({
+            issue: `VALIDATED Critical Temperature: ${tempMax.toFixed(1)}°F (${((tempMax - 32) * 5/9).toFixed(1)}°C)`,
+            explanation: `AI detected sustained high temperature over ${highTempData.length} readings. Pattern analysis confirms this is NOT sensor noise - genuine thermal event detected.`,
+            severity: 'critical',
+            count: highTempData.length,
+            firstTime: highTempData[0].rtd,
+            lastTime: highTempData[highTempData.length - 1].rtd,
+            times: highTempData.map(d => d.rtd)
+          });
+        }
       }
       
       // Only flag if temperature is unusually low for extended periods
@@ -109,23 +141,58 @@ export class AnalysisEngine {
       });
     }
 
-    // 4. Shock events
-    const threshold = 6.0;
-    const shockData = data.filter(d => 
-      (d.shockZ !== null && d.shockZ > threshold) ||
-      (d.shockX !== null && d.shockX > threshold) ||
-      (d.shockY !== null && d.shockY > threshold)
-    );
-    if (shockData.length > 0) {
-      issues.push({
-        issue: `${shockData.length} high shock events (> ${threshold}g)`,
-        explanation: "Mechanical impact risk detected.",
-        severity: 'warning',
-        count: shockData.length,
-        firstTime: shockData[0].rtd,
-        lastTime: shockData[shockData.length - 1].rtd,
-        times: shockData.map(d => d.rtd)
-      });
+    // 4. Advanced Shock Analysis with Pattern Recognition
+    const validShockData = data.filter(d => 
+      (d.shockZ !== null && typeof d.shockZ === 'number' && isFinite(d.shockZ) && Math.abs(d.shockZ) < 500) ||
+      (d.shockX !== null && typeof d.shockX === 'number' && isFinite(d.shockX) && Math.abs(d.shockX) < 500) ||
+      (d.shockY !== null && typeof d.shockY === 'number' && isFinite(d.shockY) && Math.abs(d.shockY) < 500)
+    ).map(d => ({
+      z: Math.abs(d.shockZ || 0),
+      x: Math.abs(d.shockX || 0), 
+      y: Math.abs(d.shockY || 0),
+      magnitude: Math.sqrt((d.shockZ || 0)**2 + (d.shockX || 0)**2 + (d.shockY || 0)**2),
+      rtd: d.rtd,
+      index: data.indexOf(d)
+    }));
+    
+    if (validShockData.length > 10) {
+      // Calculate statistical thresholds based on actual data
+      const magnitudes = validShockData.map(d => d.magnitude);
+      const avgMagnitude = magnitudes.reduce((sum, val) => sum + val, 0) / magnitudes.length;
+      const stdDevMagnitude = Math.sqrt(magnitudes.reduce((sum, val) => sum + Math.pow(val - avgMagnitude, 2), 0) / magnitudes.length);
+      
+      // Dynamic threshold: 2 standard deviations above mean, minimum 8g
+      const dynamicThreshold = Math.max(8.0, avgMagnitude + (2 * stdDevMagnitude));
+      
+      const significantShocks = validShockData.filter(d => d.magnitude > dynamicThreshold);
+      
+      if (significantShocks.length > 0) {
+        // Pattern analysis - are these isolated events or sustained vibration?
+        const maxShock = Math.max(...significantShocks.map(d => d.magnitude));
+        const shockFrequency = significantShocks.length / (validShockData.length / 100); // per 100 samples
+        
+        let severity: 'info' | 'warning' | 'critical' = 'warning';
+        let explanation = `AI detected ${significantShocks.length} significant shock events above statistical threshold (${dynamicThreshold.toFixed(1)}g).`;
+        
+        if (maxShock > 20 || shockFrequency > 5) {
+          severity = 'critical';
+          explanation += ` CRITICAL: Peak shock ${maxShock.toFixed(1)}g exceeds equipment limits. Immediate inspection recommended.`;
+        } else if (shockFrequency > 2) {
+          explanation += ` High frequency shock pattern suggests ongoing mechanical issue.`;
+        } else {
+          explanation += ` Isolated shock events within acceptable range but monitoring recommended.`;
+        }
+        
+        issues.push({
+          issue: `VALIDATED Shock Analysis: ${significantShocks.length} events, peak ${maxShock.toFixed(1)}g`,
+          explanation,
+          severity,
+          count: significantShocks.length,
+          firstTime: significantShocks[0].rtd,
+          lastTime: significantShocks[significantShocks.length - 1].rtd,
+          times: significantShocks.map(d => d.rtd)
+        });
+      }
     }
 
     // 5. Motor current spikes

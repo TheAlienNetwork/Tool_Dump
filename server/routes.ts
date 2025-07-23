@@ -37,10 +37,22 @@ const clearStaleCache = () => {
   console.log('🔄 AGGRESSIVE CACHE CLEAR - removing ALL stored data to force fresh extraction');
   memoryStore.clear();
   currentId = 1;
-  // Force garbage collection to ensure clean memory
-  if (global.gc) {
-    global.gc();
-  }
+  
+  // Clear any residual file handles or streams
+  process.nextTick(() => {
+    // Force multiple garbage collection cycles
+    if (global.gc) {
+      global.gc();
+      setTimeout(() => global.gc(), 100);
+      setTimeout(() => global.gc(), 500);
+    }
+    
+    // Clear any module-level caches
+    delete require.cache[require.resolve('./services/binaryParser')];
+    delete require.cache[require.resolve('./services/analysisEngine')];
+    
+    console.log('🧹 DEEP CACHE PURGE COMPLETE - All residual data cleared');
+  });
 };
 
 const upload = multer({ 
@@ -138,7 +150,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/memory-dumps/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const data = memoryStore.get(id);
+      const forceRefresh = req.query.refresh === 'true';
+      
+      let data = memoryStore.get(id);
+      
+      // Force refresh if requested or if data seems stale
+      if (forceRefresh || !data || !data.sensorData || data.sensorData.length === 0) {
+        console.log(`🔄 Force refreshing data for dump ID ${id}`);
+        // Clear this specific entry and let it be regenerated
+        memoryStore.delete(id);
+        data = memoryStore.get(id);
+      }
 
       if (!data) {
         return res.status(404).json({ message: "Memory dump not found" });
