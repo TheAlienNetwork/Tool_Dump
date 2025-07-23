@@ -1,4 +1,3 @@
-
 import { SensorData } from '@shared/schema';
 import { Issue } from './analysisEngine';
 
@@ -35,689 +34,763 @@ export class PDFGenerator {
   static async generateReport(reportData: ReportData): Promise<Buffer> {
     // Import jsPDF dynamically
     const { jsPDF } = await import('jspdf');
-    const pdf = new jsPDF();
-    
-    // Set up fonts and colors
-    pdf.setFont('helvetica');
-    
-    // Header with logo space
-    pdf.setFontSize(24);
-    pdf.setTextColor(41, 128, 185); // Blue color
-    pdf.text('The Tool Dump', 105, 30, { align: 'center' });
-    
-    pdf.setFontSize(14);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('Advanced Binary Dump Analysis Report', 105, 40, { align: 'center' });
-    
-    // Line separator
-    pdf.setLineWidth(0.5);
-    pdf.setDrawColor(41, 128, 185);
-    pdf.line(20, 45, 190, 45);
-    
-    let yPos = 60;
-    
-    // Executive Summary
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Executive Summary', 20, yPos);
-    yPos += 10;
-    
-    pdf.setFontSize(10);
-    pdf.text(`File Name: ${reportData.filename}`, 20, yPos);
-    yPos += 7;
-    pdf.text(`Generated: ${reportData.processedAt.toLocaleString()}`, 20, yPos);
-    yPos += 7;
-    pdf.text(`Overall Status: ${reportData.overallStatus.toUpperCase()}`, 20, yPos);
-    yPos += 7;
-    pdf.text(`Critical Issues: ${reportData.criticalIssues}`, 20, yPos);
-    yPos += 7;
-    pdf.text(`Warnings: ${reportData.warnings}`, 20, yPos);
-    yPos += 7;
-    pdf.text(`Total Data Points: ${reportData.sensorData.length}`, 20, yPos);
-    yPos += 15;
-    
-    // Device Information
-    if (reportData.deviceReport) {
-      pdf.setFontSize(16);
-      pdf.text('Device Information', 20, yPos);
-      yPos += 10;
-      
-      pdf.setFontSize(10);
-      
-      // MP Device (Enhanced User-Friendly Format)
-      if (reportData.deviceReport.mpSerialNumber || reportData.deviceReport.mpFirmwareVersion) {
-        pdf.setFontSize(13);
-        pdf.setTextColor(34, 139, 34); // Green for MP
-        pdf.text('Memory Pump (MP) Device:', 20, yPos);
-        yPos += 8;
-        
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Modern color palette
+    const colors = {
+      primary: [41, 128, 185],     // Professional blue
+      secondary: [52, 73, 94],     // Dark gray
+      accent: [46, 204, 113],      // Green
+      warning: [241, 196, 15],     // Yellow
+      danger: [231, 76, 60],       // Red
+      light: [236, 240, 241],      // Light gray
+      white: [255, 255, 255],
+      text: [44, 62, 80]           // Dark text
+    };
+
+    let currentPage = 1;
+    let yPos = 20;
+
+    // Helper function to add new page if needed
+    const checkNewPage = (requiredSpace: number) => {
+      if (yPos + requiredSpace > 270) {
+        pdf.addPage();
+        currentPage++;
+        yPos = 20;
+        return true;
+      }
+      return false;
+    };
+
+    // Helper function to add gradient background
+    const addGradientBackground = () => {
+      pdf.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+      pdf.rect(0, 0, 210, 297, 'F');
+    };
+
+    // Helper function to add header with logo space
+    const addHeader = (title: string, subtitle?: string) => {
+      // Header background
+      pdf.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+      pdf.rect(0, 0, 210, 35, 'F');
+
+      // Main title
+      pdf.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(24);
+      pdf.text(title, 105, 20, { align: 'center' });
+
+      if (subtitle) {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(subtitle, 105, 28, { align: 'center' });
+      }
+
+      yPos = 45;
+    };
+
+    // Helper function to add section header
+    const addSectionHeader = (title: string, icon?: string) => {
+      checkNewPage(15);
+
+      // Section background
+      pdf.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+      pdf.rect(15, yPos - 2, 180, 12, 'F');
+
+      pdf.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.text((icon ? icon + ' ' : '') + title, 20, yPos + 6);
+
+      yPos += 18;
+    };
+
+    // Helper function to add data card
+    const addDataCard = (title: string, value: string, unit: string, color: number[], x: number, width: number = 40) => {
+      // Card background
+      pdf.setFillColor(colors.white[0], colors.white[1], colors.white[2]);
+      pdf.rect(x, yPos, width, 20, 'F');
+
+      // Card border
+      pdf.setDrawColor(color[0], color[1], color[2]);
+      pdf.setLineWidth(0.5);
+      pdf.rect(x, yPos, width, 20);
+
+      // Color accent
+      pdf.setFillColor(color[0], color[1], color[2]);
+      pdf.rect(x, yPos, width, 3, 'F');
+
+      // Title
+      pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.text(title, x + 2, yPos + 8);
+
+      // Value
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text(value, x + 2, yPos + 14);
+
+      // Unit
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.text(unit, x + 2, yPos + 18);
+    };
+
+    // Helper function to create chart visualization
+    const addChart = (title: string, data: any[], chartType: 'line' | 'bar' | 'area' = 'line', width: number = 160, height: number = 60) => {
+      checkNewPage(height + 20);
+
+      // Chart title
+      pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text(title, 25, yPos);
+      yPos += 8;
+
+      if (data.length === 0) {
+        pdf.setFont('helvetica', 'italic');
         pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('No data available', 25, yPos + 20);
+        yPos += 40;
+        return;
+      }
+
+      const chartX = 25;
+      const chartY = yPos;
+
+      // Chart background
+      pdf.setFillColor(colors.white[0], colors.white[1], colors.white[2]);
+      pdf.rect(chartX, chartY, width, height, 'F');
+
+      // Chart border
+      pdf.setDrawColor(colors.light[0], colors.light[1], colors.light[2]);
+      pdf.setLineWidth(0.5);
+      pdf.rect(chartX, chartY, width, height);
+
+      // Grid lines
+      pdf.setDrawColor(240, 240, 240);
+      pdf.setLineWidth(0.2);
+      for (let i = 1; i < 5; i++) {
+        const gridY = chartY + (height / 5) * i;
+        pdf.line(chartX, gridY, chartX + width, gridY);
+      }
+      for (let i = 1; i < 8; i++) {
+        const gridX = chartX + (width / 8) * i;
+        pdf.line(gridX, chartY, gridX, chartY + height);
+      }
+
+      // Data processing
+      const values = data.filter(d => d !== null && d !== undefined && !isNaN(d) && isFinite(d));
+      if (values.length === 0) {
+        pdf.setFont('helvetica', 'italic');
+        pdf.setFontSize(10);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('No valid data points', chartX + 10, chartY + height/2);
+        yPos += height + 10;
+        return;
+      }
+
+      const maxVal = Math.max(...values);
+      const minVal = Math.min(...values);
+      const range = maxVal - minVal || 1;
+
+      // Sample data for visualization (limit to ~50 points)
+      const sampleStep = Math.max(1, Math.floor(values.length / 50));
+      const sampledData = values.filter((_, index) => index % sampleStep === 0);
+
+      // Draw chart based on type
+      if (chartType === 'line' || chartType === 'area') {
+        const points: [number, number][] = sampledData.map((value, index) => {
+          const x = chartX + (index / (sampledData.length - 1 || 1)) * width;
+          const y = chartY + height - ((value - minVal) / range) * height;
+          return [x, y];
+        });
+
+        if (chartType === 'area') {
+          // Fill area
+          pdf.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+          pdf.setGState(new pdf.GState({opacity: 0.3}));
+
+          if (points.length > 0) {
+            pdf.lines(
+              [
+                ...points.map(([x, y]) => [x - points[0][0], y - points[0][1]]),
+                [points[points.length - 1][0] - points[0][0], chartY + height - points[0][1]],
+                [0, chartY + height - points[0][1]]
+              ],
+              points[0][0], points[0][1], [1, 1], 'F'
+            );
+          }
+          pdf.setGState(new pdf.GState({opacity: 1}));
+        }
+
+        // Draw line
+        pdf.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        pdf.setLineWidth(1.5);
+
+        for (let i = 0; i < points.length - 1; i++) {
+          pdf.line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]);
+        }
+
+      } else if (chartType === 'bar') {
+        const barWidth = width / sampledData.length * 0.8;
+        const barSpacing = width / sampledData.length * 0.2;
+
+        pdf.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+
+        sampledData.forEach((value, index) => {
+          const barHeight = ((value - minVal) / range) * height;
+          const x = chartX + index * (barWidth + barSpacing) + barSpacing / 2;
+          const y = chartY + height - barHeight;
+
+          pdf.rect(x, y, barWidth - 2, barHeight, 'F');
+        });
+      }
+
+      // Chart labels
+      pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+
+      // Y-axis labels
+      for (let i = 0; i <= 4; i++) {
+        const value = minVal + (range / 4) * i;
+        const y = chartY + height - (height / 4) * i;
+        const label = value >= 1000 ? (value/1000).toFixed(1) + 'K' : value.toFixed(1);
+        pdf.text(label, chartX - 15, y + 1);
+      }
+
+      yPos += height + 15;
+    };
+
+    // Page 1: Cover Page
+    addGradientBackground();
+    addHeader('Advanced Binary Dump Analysis Report', 'AI-Powered Sensor Data Intelligence Platform');
+
+    // Executive summary cards
+    yPos += 10;
+    addDataCard('Overall Status', reportData.overallStatus.toUpperCase(), 'system health', 
+      reportData.overallStatus === 'critical' ? colors.danger : 
+      reportData.overallStatus === 'warning' ? colors.warning : colors.accent, 25);
+
+    addDataCard('Critical Issues', reportData.criticalIssues.toString(), 'alerts', colors.danger, 75);
+    addDataCard('Warnings', reportData.warnings.toString(), 'notices', colors.warning, 125);
+    addDataCard('Data Points', reportData.sensorData.length.toLocaleString(), 'records', colors.primary, 175, 30);
+
+    yPos += 30;
+
+    // File information
+    addSectionHeader('📄 File Information');
+
+    pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(11);
+
+    const fileInfo = [
+      ['File Name:', reportData.filename],
+      ['Processing Date:', reportData.processedAt.toLocaleString()],
+      ['Total Records:', reportData.sensorData.length.toLocaleString()],
+      ['Analysis Engine:', 'Advanced AI Pattern Recognition v2.0'],
+      ['Report Type:', 'Comprehensive Health Analysis']
+    ];
+
+    fileInfo.forEach(([label, value]) => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, 25, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(value, 80, yPos);
+      yPos += 6;
+    });
+
+    yPos += 10;
+
+    // Device Information Section
+    if (reportData.deviceReport) {
+      addSectionHeader('🔧 Device Information & Performance Metrics');
+
+      // MP Device Info
+      if (reportData.deviceReport.mpSerialNumber || reportData.deviceReport.mpFirmwareVersion) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
+        pdf.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+        pdf.text('Memory Pump (MP) Device', 25, yPos);
+        yPos += 8;
+
+        // MP Data cards
+        const mpCards = [];
         if (reportData.deviceReport.mpSerialNumber) {
-          pdf.text(`• Serial Number: MP S/N ${reportData.deviceReport.mpSerialNumber}`, 25, yPos);
-          yPos += 6;
+          mpCards.push(['S/N', reportData.deviceReport.mpSerialNumber, 'serial']);
         }
         if (reportData.deviceReport.mpFirmwareVersion) {
-          pdf.text(`• Firmware Version: ${reportData.deviceReport.mpFirmwareVersion}`, 25, yPos);
-          yPos += 6;
+          mpCards.push(['Firmware', reportData.deviceReport.mpFirmwareVersion, 'version']);
         }
         if (reportData.deviceReport.mpMaxTempFahrenheit) {
-          const tempStatus = (reportData.deviceReport.mpMaxTempFahrenheit > 130) ? ' (⚠ High Temp)' : ' (✓ Normal)';
-          pdf.text(`• Peak Operating Temperature: ${reportData.deviceReport.mpMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mpMaxTempFahrenheit?.toFixed(1)}°F)${tempStatus}`, 25, yPos);
-          yPos += 6;
+          const tempColor = reportData.deviceReport.mpMaxTempFahrenheit > 130 ? colors.danger : colors.accent;
+          mpCards.push([
+            'Peak Temp', 
+            `${reportData.deviceReport.mpMaxTempFahrenheit.toFixed(1)}°F`, 
+            `${reportData.deviceReport.mpMaxTempCelsius?.toFixed(1)}°C`
+          ]);
         }
-        
+
+        mpCards.forEach((card, index) => {
+          const x = 25 + (index * 55);
+          if (x + 50 <= 190) {
+            addDataCard(card[0], card[1], card[2], colors.accent, x, 50);
+          }
+        });
+
+        if (mpCards.length > 0) yPos += 25;
+
         // Additional MP metrics
-        if (reportData.deviceReport.motorOnTimeMinutes !== undefined) {
-          const hours = Math.floor(reportData.deviceReport.motorOnTimeMinutes / 60);
-          const mins = Math.round(reportData.deviceReport.motorOnTimeMinutes % 60);
-          pdf.text(`• Motor Operation: ${hours}h ${mins}m total runtime`, 25, yPos);
-          yPos += 6;
-        }
-        
-        if (reportData.deviceReport.commErrorsPercent !== undefined) {
-          const healthPercent = (100 - reportData.deviceReport.commErrorsPercent).toFixed(1);
-          const status = (reportData.deviceReport.commErrorsPercent < 5) ? ' (✓ Excellent)' : ' (⚠ Check Connection)';
-          pdf.text(`• Communication Health: ${healthPercent}%${status}`, 25, yPos);
-          yPos += 6;
-        }
-        
-        yPos += 8;
-      }
-      
-      // MDG Device (Enhanced User-Friendly Format)
-      if (reportData.deviceReport.mdgSerialNumber || reportData.deviceReport.mdgFirmwareVersion) {
-        pdf.setFontSize(13);
-        pdf.setTextColor(255, 140, 0); // Orange for MDG
-        pdf.text('Measurement During Drilling (MDG) Device:', 20, yPos);
-        yPos += 8;
-        
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        if (reportData.deviceReport.mdgSerialNumber) {
-          pdf.text(`• Serial Number: MDG S/N ${reportData.deviceReport.mdgSerialNumber}`, 25, yPos);
-          yPos += 6;
-        }
-        if (reportData.deviceReport.mdgFirmwareVersion) {
-          pdf.text(`• Firmware Version: ${reportData.deviceReport.mdgFirmwareVersion}`, 25, yPos);
-          yPos += 6;
-        }
-        if (reportData.deviceReport.mdgMaxTempFahrenheit) {
-          const tempStatus = (reportData.deviceReport.mdgMaxTempFahrenheit > 130) ? ' (⚠ High Temp)' : ' (✓ Normal)';
-          pdf.text(`• Peak Operating Temperature: ${reportData.deviceReport.mdgMaxTempCelsius?.toFixed(1)}°C (${reportData.deviceReport.mdgMaxTempFahrenheit?.toFixed(1)}°F)${tempStatus}`, 25, yPos);
-          yPos += 6;
-        }
-        
-        // Additional MDG metrics
-        if (reportData.deviceReport.mdgEdtTotalHours !== undefined) {
-          const days = Math.floor(reportData.deviceReport.mdgEdtTotalHours / 24);
-          const hours = Math.round(reportData.deviceReport.mdgEdtTotalHours % 24);
-          pdf.text(`• Total Operational Time: ${days} days, ${hours} hours`, 25, yPos);
-          yPos += 6;
-        }
-        
-        if (reportData.deviceReport.mdgExtremeShockIndex !== undefined) {
-          let shockLevel = 'Normal Operation';
-          let status = ' (✓ Good)';
-          if (reportData.deviceReport.mdgExtremeShockIndex > 100) {
-            shockLevel = 'High Vibration Environment';
-            status = ' (⚠ Monitor)';
-          }
-          if (reportData.deviceReport.mdgExtremeShockIndex > 500) {
-            shockLevel = 'Extreme Shock Environment';
-            status = ' (⚠ Critical)';
-          }
-          pdf.text(`• Shock Environment: ${shockLevel}${status}`, 25, yPos);
-          yPos += 6;
-        }
-        
-        yPos += 8;
-      }
-      
-      // Operation Summary (Enhanced)
-      if (reportData.deviceReport.circulationHours !== undefined || reportData.deviceReport.numberOfPulses !== undefined) {
-        pdf.setFontSize(13);
-        pdf.setTextColor(70, 130, 180); // Steel blue for summary
-        pdf.text('Operation Summary:', 20, yPos);
-        yPos += 8;
-        
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        
+        const mpMetrics = [];
         if (reportData.deviceReport.circulationHours !== undefined) {
           const days = Math.floor(reportData.deviceReport.circulationHours / 24);
           const hours = Math.round(reportData.deviceReport.circulationHours % 24);
-          pdf.text(`• Total Circulation Time: ${days} days, ${hours} hours (${reportData.deviceReport.circulationHours.toFixed(2)}h)`, 25, yPos);
-          yPos += 6;
+          mpMetrics.push(['Circulation Time', `${days}d ${hours}h`, 'runtime']);
         }
-        
-        if (reportData.deviceReport.numberOfPulses !== undefined) {
-          pdf.text(`• Operational Cycles: ${reportData.deviceReport.numberOfPulses.toLocaleString()} pulses recorded`, 25, yPos);
-          yPos += 6;
+        if (reportData.deviceReport.numberOfPulses) {
+          mpMetrics.push(['Pulses', reportData.deviceReport.numberOfPulses.toLocaleString(), 'cycles']);
         }
-        
+        if (reportData.deviceReport.motorOnTimeMinutes !== undefined) {
+          const hours = Math.floor(reportData.deviceReport.motorOnTimeMinutes / 60);
+          const mins = Math.round(reportData.deviceReport.motorOnTimeMinutes % 60);
+          mpMetrics.push(['Motor Time', `${hours}h ${mins}m`, 'operation']);
+        }
+
+        mpMetrics.forEach((metric, index) => {
+          const x = 25 + (index * 55);
+          if (x + 50 <= 190) {
+            addDataCard(metric[0], metric[1], metric[2], colors.primary, x, 50);
+          }
+        });
+
+        if (mpMetrics.length > 0) yPos += 25;
+      }
+
+      // MDG Device Info
+      if (reportData.deviceReport.mdgSerialNumber || reportData.deviceReport.mdgFirmwareVersion) {
+        checkNewPage(40);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
+        pdf.setTextColor(colors.warning[0], colors.warning[1], colors.warning[2]);
+        pdf.text('Measurement During Drilling (MDG) Device', 25, yPos);
         yPos += 8;
+
+        const mdgCards = [];
+        if (reportData.deviceReport.mdgSerialNumber) {
+          mdgCards.push(['S/N', reportData.deviceReport.mdgSerialNumber, 'serial']);
+        }
+        if (reportData.deviceReport.mdgFirmwareVersion) {
+          mdgCards.push(['Firmware', reportData.deviceReport.mdgFirmwareVersion, 'version']);
+        }
+        if (reportData.deviceReport.mdgMaxTempFahrenheit) {
+          mdgCards.push([
+            'Peak Temp', 
+            `${reportData.deviceReport.mdgMaxTempFahrenheit.toFixed(1)}°F`, 
+            `${reportData.deviceReport.mdgMaxTempCelsius?.toFixed(1)}°C`
+          ]);
+        }
+
+        mdgCards.forEach((card, index) => {
+          const x = 25 + (index * 55);
+          if (x + 50 <= 190) {
+            addDataCard(card[0], card[1], card[2], colors.warning, x, 50);
+          }
+        });
+
+        if (mdgCards.length > 0) yPos += 25;
       }
     }
-    
-    // Issues Analysis
+
+    // Page 2: AI Analysis Results
+    pdf.addPage();
+    currentPage++;
+    yPos = 20;
+    addHeader('🤖 AI Analysis Results', 'Advanced Pattern Recognition & Anomaly Detection');
+
     if (reportData.issues && reportData.issues.length > 0) {
-      if (yPos > 250) {
-        pdf.addPage();
-        yPos = 20;
-      }
-      
-      pdf.setFontSize(16);
-      pdf.text('Issues Analysis', 20, yPos);
-      yPos += 10;
-      
-      pdf.setFontSize(10);
-      for (const issue of reportData.issues.slice(0, 10)) { // Limit to first 10 issues
-        if (yPos > 270) {
-          pdf.addPage();
-          yPos = 20;
+      addSectionHeader('⚠️ Critical Findings & Recommendations');
+
+      // Issue summary cards
+      const criticalCount = reportData.issues.filter(i => i.severity === 'critical').length;
+      const warningCount = reportData.issues.filter(i => i.severity === 'warning').length;
+      const infoCount = reportData.issues.filter(i => i.severity === 'info').length;
+
+      addDataCard('Critical', criticalCount.toString(), 'issues', colors.danger, 25);
+      addDataCard('Warnings', warningCount.toString(), 'issues', colors.warning, 75);
+      addDataCard('Info', infoCount.toString(), 'notices', colors.primary, 125);
+      addDataCard('Total', reportData.issues.length.toString(), 'findings', colors.secondary, 175, 30);
+
+      yPos += 30;
+
+      // Detailed issues
+      reportData.issues.slice(0, 8).forEach((issue, index) => {
+        checkNewPage(25);
+
+        const issueColor = issue.severity === 'critical' ? colors.danger : 
+                          issue.severity === 'warning' ? colors.warning : colors.primary;
+
+        // Issue header
+        pdf.setFillColor(issueColor[0], issueColor[1], issueColor[2]);
+        pdf.setGState(new pdf.GState({opacity: 0.1}));
+        pdf.rect(20, yPos - 2, 170, 20, 'F');
+        pdf.setGState(new pdf.GState({opacity: 1}));
+
+        // Severity badge
+        pdf.setFillColor(issueColor[0], issueColor[1], issueColor[2]);
+        pdf.rect(22, yPos, 20, 6, 'F');
+        pdf.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8);
+        pdf.text(issue.severity.toUpperCase(), 32, yPos + 4, { align: 'center' });
+
+        // Issue title
+        pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.text(issue.issue, 45, yPos + 4);
+
+        // Issue details
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(100, 100, 100);
+
+        const explanation = issue.explanation.length > 140 ? 
+          issue.explanation.substring(0, 137) + '...' : issue.explanation;
+
+        const explanationLines = pdf.splitTextToSize(explanation, 165);
+        explanationLines.slice(0, 2).forEach((line: string, lineIndex: number) => {
+          pdf.text(line, 22, yPos + 10 + (lineIndex * 4));
+        });
+
+        // Occurrence info
+        if (issue.count > 1) {
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
+          pdf.text(`Occurrences: ${issue.count}`, 22, yPos + 18);
         }
-        
-        pdf.setTextColor(issue.severity === 'critical' ? 220 : 255, issue.severity === 'critical' ? 53 : 193, issue.severity === 'critical' ? 69 : 7);
-        pdf.text(`${issue.severity.toUpperCase()}: ${issue.issue}`, 20, yPos);
-        yPos += 7;
-        
-        if (issue.explanation) {
-          pdf.setTextColor(100, 100, 100);
-          pdf.text(`Explanation: ${issue.explanation}`, 25, yPos);
-          yPos += 7;
+
+        if (issue.firstTime) {
+          pdf.text(`First: ${new Date(issue.firstTime).toLocaleTimeString()}`, 80, yPos + 18);
         }
-        yPos += 3;
-      }
-    }
-    
-    // Comprehensive Sensor Data Analysis
-    if (reportData.sensorData && reportData.sensorData.length > 0) {
-      if (yPos > 200) {
-        pdf.addPage();
-        yPos = 20;
-      }
-      
-      pdf.setFontSize(16);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('Comprehensive Sensor Analysis', 20, yPos);
-      yPos += 10;
-      
-      pdf.setFontSize(10);
-      const validSensorData = reportData.sensorData.filter(d => d && typeof d === 'object');
-      
-      pdf.text(`Total Data Records: ${validSensorData.length.toLocaleString()}`, 20, yPos);
-      yPos += 7;
-      
-      // Temperature analysis
-      const temps = reportData.sensorData
-        .map(d => d.tempMP)
-        .filter(t => t !== null && t !== undefined) as number[];
-      
-      if (temps.length > 0) {
-        const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
-        const maxTemp = Math.max(...temps);
-        const minTemp = Math.min(...temps);
-        
-        pdf.text(`Temperature Analysis (${temps.length} readings):`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Average: ${avgTemp.toFixed(1)}°F`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  Maximum: ${maxTemp.toFixed(1)}°F`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  Minimum: ${minTemp.toFixed(1)}°F`, 25, yPos);
+
+        yPos += 25;
+      });
+
+      if (reportData.issues.length > 8) {
+        pdf.setFont('helvetica', 'italic');
+        pdf.setFontSize(9);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`... and ${reportData.issues.length - 8} more issues. See full analysis for complete details.`, 25, yPos);
         yPos += 10;
+      }
+    } else {
+      addSectionHeader('✅ System Status: Optimal');
+
+      pdf.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+      pdf.setGState(new pdf.GState({opacity: 0.1}));
+      pdf.rect(20, yPos, 170, 30, 'F');
+      pdf.setGState(new pdf.GState({opacity: 1}));
+
+      pdf.setTextColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.text('No Critical Issues Detected', 105, yPos + 12, { align: 'center' });
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text('All parameters are within normal operating ranges.', 105, yPos + 20, { align: 'center' });
+
+      yPos += 40;
+    }
+
+    // Page 3: Comprehensive Data Visualizations
+    pdf.addPage();
+    currentPage++;
+    yPos = 20;
+    addHeader('📊 Comprehensive Data Visualizations', 'Interactive Chart Analysis & Trends');
+
+    // Prepare data for visualizations
+    const validSensorData = reportData.sensorData.filter(d => d && typeof d === 'object');
+
+    if (validSensorData.length > 0) {
+      // Temperature Analysis
+      const tempData = validSensorData
+        .map(d => d.tempMP)
+        .filter(t => t !== null && t !== undefined && !isNaN(t as number) && isFinite(t as number) && (t as number) > -40 && (t as number) < 400) as number[];
+
+      if (tempData.length > 0) {
+        addChart('Temperature Analysis (°F)', tempData, 'area');
+
+        // Temperature statistics
+        const avgTemp = tempData.reduce((a, b) => a + b, 0) / tempData.length;
+        const maxTemp = Math.max(...tempData);
+        const minTemp = Math.min(...tempData);
+
+        addDataCard('Avg Temp', avgTemp.toFixed(1), '°F', colors.primary, 25);
+        addDataCard('Max Temp', maxTemp.toFixed(1), '°F', colors.danger, 75);
+        addDataCard('Min Temp', minTemp.toFixed(1), '°F', colors.accent, 125);
+        addDataCard('Readings', tempData.length.toLocaleString(), 'points', colors.secondary, 175, 30);
+
+        yPos += 25;
       }
 
       // Shock Analysis
-      const shockData = validSensorData.filter(d => 
-        (d.shockZ !== null && !isNaN(d.shockZ as number) && isFinite(d.shockZ as number)) ||
-        (d.shockX !== null && !isNaN(d.shockX as number) && isFinite(d.shockX as number)) ||
-        (d.shockY !== null && !isNaN(d.shockY as number) && isFinite(d.shockY as number))
-      );
+      const shockData = validSensorData
+        .map(d => d.shockZ !== null && Math.abs(d.shockZ as number) < 100 ? Math.abs(d.shockZ as number) : null)
+        .filter(s => s !== null) as number[];
+
       if (shockData.length > 0) {
-        const shockZData = shockData.filter(d => d.shockZ !== null).map(d => Math.abs(d.shockZ as number));
-        const shockXData = shockData.filter(d => d.shockX !== null).map(d => Math.abs(d.shockX as number));
-        const shockYData = shockData.filter(d => d.shockY !== null).map(d => Math.abs(d.shockY as number));
-        
-        pdf.text(`Shock Analysis:`, 20, yPos);
-        yPos += 7;
-        if (shockZData.length > 0) {
-          pdf.text(`  Axial Shock (Z): Max ${Math.max(...shockZData).toFixed(2)}g`, 25, yPos);
-          yPos += 6;
-        }
-        if (shockXData.length > 0) {
-          pdf.text(`  Lateral Shock (X): Max ${Math.max(...shockXData).toFixed(2)}g`, 25, yPos);
-          yPos += 6;
-        }
-        if (shockYData.length > 0) {
-          pdf.text(`  Lateral Shock (Y): Max ${Math.max(...shockYData).toFixed(2)}g`, 25, yPos);
-          yPos += 6;
-        }
-        yPos += 4;
+        checkNewPage(90);
+        addChart('Shock Analysis (g-force)', shockData, 'line');
+
+        const maxShock = Math.max(...shockData);
+        const avgShock = shockData.reduce((a, b) => a + b, 0) / shockData.length;
+        const highShockEvents = shockData.filter(s => s > 10).length;
+
+        addDataCard('Max Shock', maxShock.toFixed(2), 'g', colors.danger, 25);
+        addDataCard('Avg Shock', avgShock.toFixed(2), 'g', colors.warning, 75);
+        addDataCard('High Events', highShockEvents.toString(), '>10g', colors.danger, 125);
+        addDataCard('Total', shockData.length.toLocaleString(), 'readings', colors.primary, 175, 30);
+
+        yPos += 25;
+      }
+
+      // Battery Voltage Analysis
+      const batteryData = validSensorData
+        .map(d => (d.vBatt !== null && (d.vBatt as number) > 0 && (d.vBatt as number) < 50) ? d.vBatt as number : 
+                  (d.batteryVoltMP !== null && (d.batteryVoltMP as number) > 0 && (d.batteryVoltMP as number) < 50) ? d.batteryVoltMP as number : null)
+        .filter(v => v !== null) as number[];
+
+      if (batteryData.length > 0) {
+        checkNewPage(90);
+        addChart('Battery Voltage Analysis (V)', batteryData, 'area');
+
+        const avgVoltage = batteryData.reduce((a, b) => a + b, 0) / batteryData.length;
+        const minVoltage = Math.min(...batteryData);
+        const maxVoltage = Math.max(...batteryData);
+        const healthyReadings = batteryData.filter(v => v > 11.5 && v < 15.5).length;
+        const healthPercent = (healthyReadings / batteryData.length) * 100;
+
+        addDataCard('Avg Voltage', avgVoltage.toFixed(2), 'V', colors.accent, 25);
+        addDataCard('Min Voltage', minVoltage.toFixed(2), 'V', colors.warning, 75);
+        addDataCard('Health', healthPercent.toFixed(1), '%', colors.primary, 125);
+        addDataCard('Readings', batteryData.length.toLocaleString(), 'points', colors.secondary, 175, 30);
+
+        yPos += 25;
       }
 
       // RPM Analysis
-      const rpmData = validSensorData.filter(d => 
-        d.rotRpmAvg !== null && !isNaN(d.rotRpmAvg as number) && isFinite(d.rotRpmAvg as number) && (d.rotRpmAvg as number) > 0
-      );
+      const rpmData = validSensorData
+        .map(d => (d.rotRpmAvg !== null && (d.rotRpmAvg as number) > 0 && (d.rotRpmAvg as number) < 50000) ? d.rotRpmAvg as number : 
+                  (d.rotRpmMax !== null && (d.rotRpmMax as number) > 0 && (d.rotRpmMax as number) < 50000) ? d.rotRpmMax as number : null)
+        .filter(r => r !== null) as number[];
+
       if (rpmData.length > 0) {
-        const avgRpm = rpmData.reduce((sum, d) => sum + (d.rotRpmAvg as number), 0) / rpmData.length;
-        const maxRpm = Math.max(...rpmData.map(d => (d.rotRpmMax as number) || (d.rotRpmAvg as number)));
-        pdf.text(`Rotation Analysis:`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Average RPM: ${avgRpm.toFixed(0)}`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  Maximum RPM: ${maxRpm.toFixed(0)}`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  Active Rotation: ${((rpmData.length / validSensorData.length) * 100).toFixed(1)}%`, 25, yPos);
-        yPos += 10;
+        checkNewPage(90);
+        addChart('Rotation Speed Analysis (RPM)', rpmData, 'line');
+
+        const maxRpm = Math.max(...rpmData);
+        const avgRpm = rpmData.reduce((a, b) => a + b, 0) / rpmData.length;
+        const highRpmEvents = rpmData.filter(r => r > 4000).length;
+
+        addDataCard('Max RPM', maxRpm.toFixed(0), 'rpm', colors.danger, 25);
+        addDataCard('Avg RPM', avgRpm.toFixed(0), 'rpm', colors.primary, 75);
+        addDataCard('High Speed', highRpmEvents.toString(), '>4000', colors.warning, 125);
+        addDataCard('Active', rpmData.length.toLocaleString(), 'readings', colors.accent, 175, 30);
+
+        yPos += 25;
       }
 
-      // Survey Data Analysis (MDG)
-      const surveyData = validSensorData.filter(d => 
-        d.surveyINC !== null && !isNaN(d.surveyINC as number) && isFinite(d.surveyINC as number)
-      );
-      if (surveyData.length > 0) {
-        const avgInclination = surveyData.reduce((sum, d) => sum + (d.surveyINC as number), 0) / surveyData.length;
-        const azmData = surveyData.filter(d => d.surveyAZM !== null && !isNaN(d.surveyAZM as number) && isFinite(d.surveyAZM as number));
-        const avgAzimuth = azmData.length > 0 ? azmData.reduce((sum, d) => sum + (d.surveyAZM as number), 0) / azmData.length : 0;
-        
-        pdf.text(`Survey Data Analysis:`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Average Inclination: ${avgInclination.toFixed(1)}°`, 25, yPos);
-        yPos += 6;
-        if (azmData.length > 0) {
-          pdf.text(`  Average Azimuth: ${avgAzimuth.toFixed(1)}°`, 25, yPos);
-          yPos += 6;
-        }
-        yPos += 4;
+      // Motor Current Analysis
+      const motorData = validSensorData
+        .map(d => (d.motorAvg !== null && (d.motorAvg as number) >= 0 && (d.motorAvg as number) < 100) ? d.motorAvg as number : null)
+        .filter(m => m !== null) as number[];
+
+      if (motorData.length > 0) {
+        checkNewPage(90);
+        addChart('Motor Current Analysis (A)', motorData, 'area');
+
+        const maxCurrent = Math.max(...motorData);
+        const avgCurrent = motorData.reduce((a, b) => a + b, 0) / motorData.length;
+        const overCurrentEvents = motorData.filter(m => m > 2.0).length;
+
+        addDataCard('Max Current', maxCurrent.toFixed(3), 'A', colors.danger, 25);
+        addDataCard('Avg Current', avgCurrent.toFixed(3), 'A', colors.primary, 75);
+        addDataCard('Overcurrent', overCurrentEvents.toString(), '>2A', colors.warning, 125);
+        addDataCard('Samples', motorData.length.toLocaleString(), 'readings', colors.accent, 175, 30);
+
+        yPos += 25;
       }
 
-      // Environmental Data
-      const gammaData = validSensorData.filter(d => 
-        d.gamma !== null && !isNaN(d.gamma as number) && isFinite(d.gamma as number) && (d.gamma as number) > 0
-      );
+      // Gamma Radiation Analysis
+      const gammaData = validSensorData
+        .map(d => (d.gamma !== null && (d.gamma as number) >= 0 && (d.gamma as number) < 10000) ? d.gamma as number : null)
+        .filter(g => g !== null) as number[];
+
       if (gammaData.length > 0) {
-        const avgGamma = gammaData.reduce((sum, d) => sum + (d.gamma as number), 0) / gammaData.length;
-        const maxGamma = Math.max(...gammaData.map(d => d.gamma as number));
-        pdf.text(`Environmental Analysis:`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Gamma Radiation: Avg ${avgGamma.toFixed(2)} cps, Max ${maxGamma.toFixed(2)} cps`, 25, yPos);
-        yPos += 10;
+        checkNewPage(90);
+        addChart('Gamma Radiation Analysis (cps)', gammaData, 'bar');
+
+        const maxGamma = Math.max(...gammaData);
+        const avgGamma = gammaData.reduce((a, b) => a + b, 0) / gammaData.length;
+        const anomalousCounts = gammaData.filter(g => g < 15 || g > 45).length;
+
+        addDataCard('Max Gamma', maxGamma.toFixed(1), 'cps', colors.warning, 25);
+        addDataCard('Avg Gamma', avgGamma.toFixed(1), 'cps', colors.primary, 75);
+        addDataCard('Anomalies', anomalousCounts.toString(), 'events', colors.danger, 125);
+        addDataCard('Total', gammaData.length.toLocaleString(), 'readings', colors.accent, 175, 30);
+
+        yPos += 25;
       }
 
-      // Shock Count Analysis
-      const shockCountData = validSensorData.filter(d => 
-        (d.shockCountAxial50 !== null && !isNaN(d.shockCountAxial50 as number)) ||
-        (d.shockCountAxial100 !== null && !isNaN(d.shockCountAxial100 as number))
-      );
-      if (shockCountData.length > 0) {
-        const total50g = shockCountData.reduce((sum, d) => sum + ((d.shockCountAxial50 as number) || 0), 0);
-        const total100g = shockCountData.reduce((sum, d) => sum + ((d.shockCountAxial100 as number) || 0), 0);
-        pdf.text(`Shock Events Analysis:`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  50g Axial Shock Events: ${total50g.toLocaleString()}`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  100g Severe Shock Events: ${total100g.toLocaleString()}`, 25, yPos);
-        yPos += 10;
-      }
-
-      // Voltage Analysis
-      const voltageData = validSensorData.filter(d => 
-        d.vBatt !== null && !isNaN(d.vBatt as number) && isFinite(d.vBatt as number) && (d.vBatt as number) > 0 && (d.vBatt as number) < 50
-      );
-      if (voltageData.length > 0) {
-        const avgVoltage = voltageData.reduce((sum, d) => sum + (d.vBatt as number), 0) / voltageData.length;
-        const minVoltage = Math.min(...voltageData.map(d => d.vBatt as number));
-        pdf.text(`Power System Analysis:`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Battery Voltage: Avg ${avgVoltage.toFixed(2)}V, Min ${minVoltage.toFixed(2)}V`, 25, yPos);
-        yPos += 6;
-        
-        const stableReadings = voltageData.filter(d => (d.vBatt as number) > 10);
-        const stability = (stableReadings.length / voltageData.length) * 100;
-        pdf.text(`  Power Stability: ${stability.toFixed(1)}% readings above 10V`, 25, yPos);
-        yPos += 10;
-      }
-
-      // Battery voltage analysis
-      const voltages = reportData.sensorData
-        .map(d => d.batteryVoltMP)
-        .filter(v => v !== null && v !== undefined) as number[];
-      
-      if (voltages.length > 0) {
-        const avgVoltage = voltages.reduce((a, b) => a + b, 0) / voltages.length;
-        const minVoltage = Math.min(...voltages);
-        
-        pdf.text(`Battery Analysis (${voltages.length} readings):`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Average Voltage: ${avgVoltage.toFixed(2)}V`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  Minimum Voltage: ${minVoltage.toFixed(2)}V`, 25, yPos);
-        yPos += 10;
-      }
-
-      // Shock analysis for MDG data
-      const shocks = reportData.sensorData
-        .map(d => d.shockZ)
-        .filter(s => s !== null && s !== undefined) as number[];
-      
-      if (shocks.length > 0) {
-        const avgShock = shocks.reduce((a, b) => a + b, 0) / shocks.length;
-        const maxShock = Math.max(...shocks);
-        
-        pdf.text(`Shock Analysis (${shocks.length} readings):`, 20, yPos);
-        yPos += 7;
-        pdf.text(`  Average Shock: ${avgShock.toFixed(2)}g`, 25, yPos);
-        yPos += 6;
-        pdf.text(`  Maximum Shock: ${maxShock.toFixed(2)}g`, 25, yPos);
-        yPos += 10;
-      }
-
-      // Data visualization note
-      if (yPos > 250) {
-        pdf.addPage();
-        yPos = 20;
-      }
-      
+    } else {
+      pdf.setFont('helvetica', 'italic');
       pdf.setFontSize(12);
-      pdf.setTextColor(41, 128, 185);
-      pdf.text('📊 Data Visualizations', 20, yPos);
-      yPos += 8;
-      
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Interactive charts and detailed visualizations are available in the web application.', 20, yPos);
-      yPos += 6;
-      pdf.text('This report provides summary statistics. For comprehensive analysis,', 20, yPos);
-      yPos += 6;
-      pdf.text('access the full visualization dashboard with time-series plots,', 20, yPos);
-      yPos += 6;
-      pdf.text('histograms, and real-time data exploration tools.', 20, yPos);
-      yPos += 15;
+      pdf.setTextColor(150, 150, 150);
+      pdf.text('No visualization data available', 105, yPos + 50, { align: 'center' });
     }
-    
-    // Add comprehensive charts page to PDF
+
+    // Page 4: Technical Summary & Recommendations
     pdf.addPage();
-    let chartYPos = 20;
-    
-    pdf.setFontSize(18);
-    pdf.setTextColor(41, 128, 185);
-    pdf.text('Advanced Data Visualization & AI Analysis', 105, chartYPos, { align: 'center' });
-    chartYPos += 15;
-    
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('Comprehensive sensor data analysis with AI-detected anomalies and patterns', 105, chartYPos, { align: 'center' });
-    chartYPos += 25;
+    currentPage++;
+    yPos = 20;
+    addHeader('📋 Technical Summary & Recommendations', 'Expert Analysis & Action Items');
 
-    // Critical Issues Summary Box
-    if (reportData.issues && reportData.issues.length > 0) {
-      const criticalIssues = reportData.issues.filter(i => i.severity === 'critical');
-      const warningIssues = reportData.issues.filter(i => i.severity === 'warning');
-      
-      pdf.setFillColor(255, 240, 240); // Light red background
-      pdf.rect(20, chartYPos, 170, 25, 'F');
-      pdf.setDrawColor(220, 53, 69);
-      pdf.rect(20, chartYPos, 170, 25);
-      
-      pdf.setFontSize(12);
-      pdf.setTextColor(220, 53, 69);
-      pdf.text('🚨 AI ANALYSIS SUMMARY', 25, chartYPos + 8);
-      pdf.setFontSize(9);
-      pdf.setTextColor(100, 0, 0);
-      pdf.text(`Critical Issues: ${criticalIssues.length} | Warnings: ${warningIssues.length} | Total Analyzed: ${reportData.sensorData.length.toLocaleString()} records`, 25, chartYPos + 18);
-      
-      chartYPos += 35;
-    }
+    // Overall Health Score
+    addSectionHeader('🎯 Overall System Health Score');
 
-    // Temperature Analysis Chart
-    const tempData = reportData.sensorData.filter(d => d.tempMP !== null && d.tempMP > 0);
-    if (tempData.length > 0) {
-      pdf.setFontSize(14);
-      pdf.text('Temperature Analysis', 20, chartYPos);
-      chartYPos += 15;
-      
-      const temps = tempData.map(d => d.tempMP as number);
-      const minTemp = Math.min(...temps);
-      const maxTemp = Math.max(...temps);
-      const avgTemp = temps.reduce((sum, val) => sum + val, 0) / temps.length;
-      
-      // Temperature chart visualization
-      const chartWidth = 150;
-      const chartHeight = 40;
-      const startX = 25;
-      const startY = chartYPos;
-      
-      // Chart border and grid
-      pdf.setDrawColor(200, 200, 200);
-      pdf.rect(startX, startY, chartWidth, chartHeight);
-      
-      // Draw temperature trend line
-      const sampleCount = Math.min(50, tempData.length);
-      const sampleStep = Math.max(1, Math.floor(tempData.length / sampleCount));
-      
-      pdf.setDrawColor(220, 53, 69); // Red for temperature
-      pdf.setLineWidth(1);
-      
-      for (let i = 0; i < sampleCount - 1; i++) {
-        const currentTemp = tempData[i * sampleStep].tempMP as number;
-        const nextTemp = tempData[Math.min((i + 1) * sampleStep, tempData.length - 1)].tempMP as number;
-        
-        const x1 = startX + (i / (sampleCount - 1)) * chartWidth;
-        const y1 = startY + chartHeight - ((currentTemp - minTemp) / (maxTemp - minTemp || 1)) * chartHeight;
-        const x2 = startX + ((i + 1) / (sampleCount - 1)) * chartWidth;
-        const y2 = startY + chartHeight - ((nextTemp - minTemp) / (maxTemp - minTemp || 1)) * chartHeight;
-        
-        pdf.line(x1, y1, x2, y2);
-      }
-      
-      pdf.setFontSize(10);
-      chartYPos += chartHeight + 10;
-      pdf.text(`Range: ${minTemp.toFixed(1)}°F - ${maxTemp.toFixed(1)}°F | Average: ${avgTemp.toFixed(1)}°F`, 25, chartYPos);
-      chartYPos += 20;
-    }
+    const healthScore = reportData.criticalIssues === 0 ? 
+      (reportData.warnings === 0 ? 95 : 85 - (reportData.warnings * 5)) : 
+      60 - (reportData.criticalIssues * 10);
 
-    // Shock Analysis Chart  
-    const shockData = reportData.sensorData.filter(d => 
-      (d.shockZ !== null && Math.abs(d.shockZ as number) < 100) ||
-      (d.shockX !== null && Math.abs(d.shockX as number) < 100) ||
-      (d.shockY !== null && Math.abs(d.shockY as number) < 100)
-    );
-    
-    if (shockData.length > 0 && chartYPos < 220) {
-      pdf.setFontSize(14);
-      pdf.text('Shock Analysis', 20, chartYPos);
-      chartYPos += 15;
-      
-      const shockValues = shockData.map(d => 
-        Math.max(Math.abs(d.shockZ as number || 0), Math.abs(d.shockX as number || 0), Math.abs(d.shockY as number || 0))
-      ).filter(val => val > 0 && val < 100);
-      
-      if (shockValues.length > 0) {
-        const maxShock = Math.max(...shockValues);
-        const avgShock = shockValues.reduce((sum, val) => sum + val, 0) / shockValues.length;
-        
-        // Shock histogram
-        const histogramBins = 8;
-        const binWidth = 18;
-        const binHeight = 30;
-        
-        pdf.setDrawColor(200, 200, 200);
-        pdf.rect(25, chartYPos, histogramBins * binWidth, binHeight);
-        
-        for (let i = 0; i < histogramBins; i++) {
-          const binMin = (i / histogramBins) * maxShock;
-          const binMax = ((i + 1) / histogramBins) * maxShock;
-          const binCount = shockValues.filter(val => val >= binMin && val < binMax).length;
-          const barHeight = (binCount / shockValues.length) * binHeight;
-          
-          const x = 25 + i * binWidth;
-          const y = chartYPos + binHeight - barHeight;
-          
-          pdf.setFillColor(255, 193, 7); // Yellow for shock
-          pdf.rect(x, y, binWidth - 2, barHeight, 'F');
-        }
-        
-        pdf.setFontSize(10);
-        chartYPos += binHeight + 10;
-        pdf.text(`Max Shock: ${maxShock.toFixed(2)}g | Average: ${avgShock.toFixed(2)}g | Events: ${shockValues.length}`, 25, chartYPos);
-        chartYPos += 20;
-      }
-    }
+    const scoreColor = healthScore >= 90 ? colors.accent : 
+                      healthScore >= 70 ? colors.warning : colors.danger;
 
-    // Battery Voltage Chart
-    const voltageData = reportData.sensorData.filter(d => 
-      d.vBatt !== null && (d.vBatt as number) > 5 && (d.vBatt as number) < 20
-    );
-    
-    if (voltageData.length > 0 && chartYPos < 200) {
-      pdf.setFontSize(14);
-      pdf.text('Battery Voltage Trend', 20, chartYPos);
-      chartYPos += 15;
-      
-      const voltages = voltageData.map(d => d.vBatt as number);
-      const minVolt = Math.min(...voltages);
-      const maxVolt = Math.max(...voltages);
-      const avgVolt = voltages.reduce((sum, val) => sum + val, 0) / voltages.length;
-      
-      // Voltage trend chart
-      const vChartWidth = 150;
-      const vChartHeight = 30;
-      
-      pdf.setDrawColor(200, 200, 200);
-      pdf.rect(25, chartYPos, vChartWidth, vChartHeight);
-      
-      const vSampleCount = Math.min(30, voltageData.length);
-      const vSampleStep = Math.max(1, Math.floor(voltageData.length / vSampleCount));
-      
-      pdf.setDrawColor(40, 167, 69); // Green for voltage
-      pdf.setLineWidth(1);
-      
-      for (let i = 0; i < vSampleCount - 1; i++) {
-        const currentVolt = voltageData[i * vSampleStep].vBatt as number;
-        const nextVolt = voltageData[Math.min((i + 1) * vSampleStep, voltageData.length - 1)].vBatt as number;
-        
-        const x1 = 25 + (i / (vSampleCount - 1)) * vChartWidth;
-        const y1 = chartYPos + vChartHeight - ((currentVolt - minVolt) / (maxVolt - minVolt || 1)) * vChartHeight;
-        const x2 = 25 + ((i + 1) / (vSampleCount - 1)) * vChartWidth;
-        const y2 = chartYPos + vChartHeight - ((nextVolt - minVolt) / (maxVolt - minVolt || 1)) * vChartHeight;
-        
-        pdf.line(x1, y1, x2, y2);
-      }
-      
-      pdf.setFontSize(10);
-      chartYPos += vChartHeight + 10;
-      pdf.text(`Voltage: ${minVolt.toFixed(2)}V - ${maxVolt.toFixed(2)}V | Average: ${avgVolt.toFixed(2)}V`, 25, chartYPos);
-      chartYPos += 20;
-    }
+// Health score visualization
+    pdf.setFillColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+    pdf.setGState(new pdf.GState({opacity: 0.2}));
+    pdf.rect(25, yPos, 160, 25, 'F');
+    pdf.setGState(new pdf.GState({opacity: 1}));
 
-    // Motor Performance Analysis Chart (if space allows)
-    const motorData = reportData.sensorData.filter(d => 
-      d.motorAvg !== null && (d.motorAvg as number) > 0 && (d.motorAvg as number) < 100
-    );
-    
-    if (motorData.length > 0 && chartYPos < 180) {
-      pdf.setFontSize(14);
-      pdf.text('Motor Performance Analysis', 20, chartYPos);
-      chartYPos += 15;
-      
-      const motorValues = motorData.map(d => d.motorAvg as number);
-      const minMotor = Math.min(...motorValues);
-      const maxMotor = Math.max(...motorValues);
-      const avgMotor = motorValues.reduce((sum, val) => sum + val, 0) / motorValues.length;
-      
-      // Motor performance trend chart
-      const mChartWidth = 150;
-      const mChartHeight = 25;
-      
-      pdf.setDrawColor(200, 200, 200);
-      pdf.rect(25, chartYPos, mChartWidth, mChartHeight);
-      
-      const mSampleCount = Math.min(25, motorData.length);
-      const mSampleStep = Math.max(1, Math.floor(motorData.length / mSampleCount));
-      
-      pdf.setDrawColor(147, 51, 234); // Purple for motor
-      pdf.setLineWidth(1);
-      
-      for (let i = 0; i < mSampleCount - 1; i++) {
-        const currentMotor = motorData[i * mSampleStep].motorAvg as number;
-        const nextMotor = motorData[Math.min((i + 1) * mSampleStep, motorData.length - 1)].motorAvg as number;
-        
-        const x1 = 25 + (i / (mSampleCount - 1)) * mChartWidth;
-        const y1 = chartYPos + mChartHeight - ((currentMotor - minMotor) / (maxMotor - minMotor || 1)) * mChartHeight;
-        const x2 = 25 + ((i + 1) / (mSampleCount - 1)) * mChartWidth;
-        const y2 = chartYPos + mChartHeight - ((nextMotor - minMotor) / (maxMotor - minMotor || 1)) * mChartHeight;
-        
-        pdf.line(x1, y1, x2, y2);
-      }
-      
-      pdf.setFontSize(10);
-      chartYPos += mChartHeight + 10;
-      pdf.text(`Motor Current: ${minMotor.toFixed(2)}A - ${maxMotor.toFixed(2)}A | Average: ${avgMotor.toFixed(2)}A`, 25, chartYPos);
-      chartYPos += 15;
-    }
+    pdf.setTextColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(24);
+    pdf.text(`${Math.max(0, healthScore)}/100`, 105, yPos + 15, { align: 'center' });
 
-    // Add new page for AI analysis summary if needed
-    if (reportData.issues && reportData.issues.length > 0) {
-      pdf.addPage();
-      let aiYPos = 20;
-      
-      pdf.setFontSize(16);
-      pdf.setTextColor(220, 53, 69);
-      pdf.text('🤖 AI ANALYSIS & CRITICAL FINDINGS', 20, aiYPos);
-      aiYPos += 15;
-      
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Advanced AI algorithms analyzed ${reportData.sensorData.length.toLocaleString()} data points`, 20, aiYPos);
-      aiYPos += 10;
-      
-      // List critical issues with timestamps
-      reportData.issues.slice(0, 8).forEach((issue, index) => {
-        if (aiYPos > 250) return; // Prevent overflow
-        
-        const color = issue.severity === 'critical' ? [220, 53, 69] : issue.severity === 'warning' ? [245, 158, 11] : [59, 130, 246];
-        pdf.setTextColor(color[0], color[1], color[2]);
-        pdf.setFontSize(11);
-        pdf.text(`${issue.severity.toUpperCase()}: ${issue.issue}`, 20, aiYPos);
-        aiYPos += 8;
-        
-        pdf.setTextColor(100, 100, 100);
-        pdf.setFontSize(9);
-        const explanation = issue.explanation.length > 85 ? 
-          issue.explanation.substring(0, 82) + '...' : issue.explanation;
-        pdf.text(explanation, 25, aiYPos);
-        aiYPos += 6;
-        
-        if (issue.firstTime) {
-          pdf.text(`First detected: ${new Date(issue.firstTime).toLocaleString()}`, 25, aiYPos);
-          aiYPos += 6;
-        }
-        
-        aiYPos += 5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(12);
+    const healthStatus = healthScore >= 90 ? 'EXCELLENT' : 
+                        healthScore >= 70 ? 'GOOD' : 
+                        healthScore >= 50 ? 'FAIR' : 'POOR';
+    pdf.text(healthStatus, 105, yPos + 22, { align: 'center' });
+
+    yPos += 35;
+
+    // Recommendations
+    addSectionHeader('💡 Expert Recommendations');
+
+    const recommendations = [];
+
+    if (reportData.criticalIssues > 0) {
+      recommendations.push({
+        priority: 'IMMEDIATE',
+        action: 'Address Critical Issues',
+        description: `${reportData.criticalIssues} critical issue(s) require immediate attention to prevent equipment damage or failure.`,
+        color: colors.danger
       });
     }
 
+    if (reportData.warnings > 0) {
+      recommendations.push({
+        priority: 'HIGH',
+        action: 'Preventive Maintenance',
+        description: `${reportData.warnings} warning(s) detected. Schedule maintenance at next opportunity.`,
+        color: colors.warning
+      });
+    }
+
+    if (validSensorData.length > 50000) {
+      recommendations.push({
+        priority: 'MEDIUM',
+        action: 'Data Archive',
+        description: `Large dataset (${validSensorData.length.toLocaleString()} records) - consider archiving for historical analysis.`,
+        color: colors.primary
+      });
+    }
+
+    recommendations.push({
+      priority: 'LOW',
+      action: 'Routine Monitoring',
+      description: 'Continue regular data collection and analysis to maintain optimal performance.',
+      color: colors.accent
+    });
+
+    recommendations.forEach((rec, index) => {
+      checkNewPage(20);
+
+      // Priority badge
+      pdf.setFillColor(rec.color[0], rec.color[1], rec.color[2]);
+      pdf.rect(25, yPos, 25, 8, 'F');
+      pdf.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.text(rec.priority, 37.5, yPos + 5, { align: 'center' });
+
+      // Action title
+      pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.text(rec.action, 55, yPos + 5);
+
+      // Description
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      const descLines = pdf.splitTextToSize(rec.description, 130);
+      descLines.slice(0, 2).forEach((line: string, lineIndex: number) => {
+        pdf.text(line, 25, yPos + 12 + (lineIndex * 5));
+      });
+
+      yPos += 20;
+    });
+
     // Footer on last page
+    yPos = 280;
+    pdf.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+    pdf.rect(0, yPos, 210, 17, 'F');
+
+    pdf.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+    pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(`Advanced AI Report generated by The Tool Dump - ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
-    
+    pdf.text(`Advanced AI Report • The Tool Dump Analytics Platform • Generated: ${new Date().toLocaleString()}`, 105, yPos + 8, { align: 'center' });
+    pdf.text(`Page ${currentPage} • Confidential Technical Analysis`, 105, yPos + 13, { align: 'center' });
+
     return Buffer.from(pdf.output('arraybuffer'));
+  }
+
+  static getReportMimeType(): string {
+    return 'application/pdf';
+  }
+
+  static getReportExtension(): string {
+    return 'pdf';
   }
 
   private static generateFormattedReport(data: ReportData): string {
     const lines: string[] = [];
-    
+
     // Header
     lines.push('═'.repeat(80));
     lines.push('                    NEURAL DRILL BINARY DUMP REPORT');
     lines.push('                         Advanced Analytics Report');
     lines.push('═'.repeat(80));
     lines.push('');
-    
+
     // Executive Summary
     lines.push('📋 EXECUTIVE SUMMARY');
     lines.push('─'.repeat(50));
@@ -728,12 +801,12 @@ export class PDFGenerator {
     lines.push(`⚡ Warnings: ${data.warnings}`);
     lines.push(`📊 Total Data Points: ${data.sensorData.length}`);
     lines.push('');
-    
+
     // Device Information
     if (data.deviceReport) {
       lines.push('🔧 DEVICE INFORMATION');
       lines.push('─'.repeat(50));
-      
+
       // MP Device
       if (data.deviceReport.mpSerialNumber || data.deviceReport.mpFirmwareVersion) {
         lines.push('');
@@ -757,7 +830,7 @@ export class PDFGenerator {
           lines.push(`   • Motor On Time: ${data.deviceReport.motorOnTimeMinutes.toFixed(1)} min`);
         }
       }
-      
+
       // MDG Device
       if (data.deviceReport.mdgSerialNumber || data.deviceReport.mdgFirmwareVersion) {
         lines.push('');
@@ -780,22 +853,22 @@ export class PDFGenerator {
       }
       lines.push('');
     }
-    
+
     // Issues Analysis
     if (data.issues.length > 0) {
       lines.push('🚨 DETECTED ISSUES & ANALYSIS');
       lines.push('─'.repeat(50));
-      
+
       data.issues.forEach((issue, index) => {
-        const severityIcon = issue.severity === 'critical' ? '🔴' : 
+        const severityIcon = issue.severity === 'critical' ? '🔴' :
                             issue.severity === 'warning' ? '🟡' : '🔵';
-        
+
         lines.push('');
         lines.push(`${severityIcon} Issue #${index + 1}: ${issue.issue}`);
         lines.push(`   Severity: ${issue.severity.toUpperCase()}`);
         lines.push(`   Occurrences: ${issue.count}`);
         lines.push(`   Analysis: ${issue.explanation}`);
-        
+
         if (issue.firstTime && issue.lastTime) {
           lines.push(`   First Detected: ${issue.firstTime.toLocaleString()}`);
           lines.push(`   Last Detected: ${issue.lastTime.toLocaleString()}`);
@@ -809,19 +882,19 @@ export class PDFGenerator {
       lines.push('All parameters are within normal operating ranges.');
       lines.push('');
     }
-    
+
     // Data Analytics Summary
     if (data.sensorData.length > 0) {
       lines.push('');
       lines.push('📊 SENSOR DATA ANALYTICS');
       lines.push('─'.repeat(50));
-      
+
       const tempData = data.sensorData.filter(d => d.tempMP !== null).map(d => d.tempMP!);
       const voltageData = data.sensorData.filter(d => d.batteryVoltMP !== null).map(d => d.batteryVoltMP!);
       const shockData = data.sensorData.filter(d => d.shockZ !== null).map(d => d.shockZ!);
       const motorData = data.sensorData.filter(d => d.motorAvg !== null).map(d => d.motorAvg!);
       const gammaData = data.sensorData.filter(d => d.gamma !== null).map(d => d.gamma!);
-      
+
       if (tempData.length > 0) {
         const avgTemp = tempData.reduce((a, b) => a + b) / tempData.length;
         const maxTemp = tempData.reduce((max, temp) => Math.max(max, temp), -Infinity);
@@ -832,7 +905,7 @@ export class PDFGenerator {
         lines.push(`   • Average: ${avgTemp.toFixed(1)}°F`);
         lines.push(`   • Status: ${maxTemp > 130 ? '🔴 CRITICAL' : maxTemp > 100 ? '🟡 WARNING' : '✅ NORMAL'}`);
       }
-      
+
       if (voltageData.length > 0) {
         const avgVoltage = voltageData.reduce((a, b) => a + b) / voltageData.length;
         const maxVoltage = voltageData.reduce((max, volt) => Math.max(max, volt), -Infinity);
@@ -843,7 +916,7 @@ export class PDFGenerator {
         lines.push(`   • Average: ${avgVoltage.toFixed(2)}V`);
         lines.push(`   • Status: ${minVoltage < 11.5 ? '🔴 LOW' : maxVoltage > 15.5 ? '🟡 HIGH' : '✅ NORMAL'}`);
       }
-      
+
       if (shockData.length > 0) {
         const avgShock = shockData.reduce((a, b) => a + b) / shockData.length;
         const maxShock = shockData.reduce((max, shock) => Math.max(max, shock), -Infinity);
@@ -853,7 +926,7 @@ export class PDFGenerator {
         lines.push(`   • Average: ${avgShock.toFixed(1)}g`);
         lines.push(`   • Status: ${maxShock > 6.0 ? '🔴 EXCEEDED THRESHOLD' : '✅ WITHIN LIMITS'}`);
       }
-      
+
       if (motorData.length > 0) {
         const avgMotor = motorData.reduce((a, b) => a + b) / motorData.length;
         const maxMotor = motorData.reduce((max, motor) => Math.max(max, motor), -Infinity);
@@ -863,7 +936,7 @@ export class PDFGenerator {
         lines.push(`   • Average: ${avgMotor.toFixed(2)}A`);
         lines.push(`   • Status: ${maxMotor > 2.0 ? '🔴 OVERCURRENT' : '✅ NORMAL'}`);
       }
-      
+
       if (gammaData.length > 0) {
         const avgGamma = gammaData.reduce((a, b) => a + b) / gammaData.length;
         const maxGamma = gammaData.reduce((max, gamma) => Math.max(max, gamma), -Infinity);
@@ -875,12 +948,12 @@ export class PDFGenerator {
         lines.push(`   • Status: ${minGamma < 15 || maxGamma > 45 ? '🟡 OUT OF RANGE' : '✅ NORMAL'}`);
       }
     }
-    
+
     // Recommendations
     lines.push('');
     lines.push('💡 RECOMMENDATIONS');
     lines.push('─'.repeat(50));
-    
+
     if (data.criticalIssues > 0) {
       lines.push('🔴 IMMEDIATE ACTION REQUIRED:');
       lines.push('   • Review all critical issues listed above');
@@ -897,14 +970,14 @@ export class PDFGenerator {
       lines.push('   • Maintain regular monitoring schedule');
       lines.push('   • Archive this report for historical analysis');
     }
-    
+
     // Footer
     lines.push('');
     lines.push('═'.repeat(80));
     lines.push(`Report generated by Neural Drill Analytics System v2.0`);
     lines.push(`© ${new Date().getFullYear()} Advanced Drilling Analytics Platform`);
     lines.push('═'.repeat(80));
-    
+
     return lines.join('\n');
   }
 
