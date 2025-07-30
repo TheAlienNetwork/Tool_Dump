@@ -22,9 +22,9 @@ interface DeviceReportProps {
 }
 
 export function DeviceReport({ memoryDump }: DeviceReportProps) {
-  const { data: memoryDumpDetails, isLoading } = useQuery({
+  const { data: memoryDumpDetails, isLoading, error } = useQuery({
     queryKey: ['/api/memory-dumps', memoryDump.id, 'device-report', memoryDump?.filename, memoryDump?.uploadedAt],
-    enabled: !!memoryDump.id,
+    enabled: !!memoryDump.id && memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -48,6 +48,20 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="glass-morphism rounded-xl p-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <HardDrive className="h-6 w-6 text-red-500" />
+          <h3 className="text-xl font-semibold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
+            Device Report - Error
+          </h3>
+        </div>
+        <p className="text-slate-400">Error loading device report: {error instanceof Error ? error.message : 'Unknown error'}</p>
+      </div>
+    );
+  }
+
   const deviceReport = (memoryDumpDetails as any)?.deviceReport;
 
   if (!deviceReport) {
@@ -59,7 +73,8 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
             Device Report
           </h3>
         </div>
-        <p className="text-slate-400">No device report data available.</p>
+        <p className="text-slate-400">Processing device report data...</p>
+        <p className="text-slate-500 text-sm mt-2">Data is being extracted from {memoryDump.filename}. Please wait a moment.</p>
       </div>
     );
   }

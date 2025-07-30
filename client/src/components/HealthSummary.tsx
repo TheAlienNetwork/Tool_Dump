@@ -12,12 +12,12 @@ interface HealthSummaryProps {
 export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
   const { data: analysisResults, isLoading: analysisLoading } = useQuery({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'analysis', memoryDump?.filename, memoryDump?.uploadedAt],
-    enabled: memoryDump?.status === 'completed',
+    enabled: !!memoryDump?.id && memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    staleTime: 0, // Always fetch fresh analysis for new uploads
-    gcTime: 0, // Don't cache analysis data
+    staleTime: 0, // Always fetch fresh data for new dumps
+    gcTime: 0, // Don't cache analysis results - always fresh
   });
 
   const handleDownloadReport = async () => {

@@ -1,31 +1,23 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MemoryDumpDetails, SensorData } from "@/lib/types";
-import { Download, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MemoryDump, MemoryDumpDetails } from "@/lib/types";
+import { Database, Activity, AlertTriangle } from "lucide-react";
 
 interface DataTableProps {
-  memoryDump: {
-    id: number;
-    status: string;
-  } | null;
+  memoryDump: MemoryDump | null;
 }
 
 export default function DataTable({ memoryDump }: DataTableProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
-
-  const { data: dumpDetails, isLoading } = useQuery<MemoryDumpDetails>({
-    queryKey: ['/api/memory-dumps', memoryDump?.id],
+  const { data: dumpDetails, isLoading, error } = useQuery<MemoryDumpDetails>({
+    queryKey: ['/api/memory-dumps', memoryDump?.id, 'table-data', memoryDump?.filename, memoryDump?.uploadedAt],
     enabled: memoryDump?.status === 'completed',
-    refetchInterval: false,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 0, // Always fetch fresh data for new dumps
+    gcTime: 0, // Don't cache table data - always fresh
   });
 
   if (!memoryDump) {
@@ -37,11 +29,12 @@ export default function DataTable({ memoryDump }: DataTableProps) {
               <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
                 Binary Memory Dump Analysis
               </CardTitle>
-              <p className="text-slate-400 text-sm">Raw sensor data and measurements</p>
+              <p className="text-slate-400 text-sm">Detailed sensor data table view</p>
             </CardHeader>
             <CardContent className="p-8 text-center">
               <div className="glass-morphism rounded-xl p-8">
-                <p className="text-slate-400 text-lg">Select a memory dump to view detailed analysis</p>
+                <Database className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">Select a completed memory dump to view data table</p>
               </div>
             </CardContent>
           </Card>
@@ -49,39 +42,6 @@ export default function DataTable({ memoryDump }: DataTableProps) {
       </section>
     );
   }
-
-  const handleExportCSV = () => {
-    if (!dumpDetails?.sensorData) return;
-
-    const headers = [
-      'Timestamp', 'Temp (°F)', 'Battery (V)', 'Shock Z (g)', 
-      'Motor Avg (A)', 'Gamma', 'Flow Status', 'Reset'
-    ];
-
-    const csvContent = [
-      headers.join(','),
-      ...dumpDetails.sensorData.map(row => [
-        new Date(row.rtd).toISOString(),
-        row.tempMP?.toFixed(1) || '',
-        row.batteryVoltMP?.toFixed(2) || '',
-        row.shockZ?.toFixed(1) || '',
-        row.motorAvg?.toFixed(1) || '',
-        row.gamma || '',
-        row.flowStatus || '',
-        row.resetMP || ''
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `neural_drill_data_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
 
   if (isLoading) {
     return (
@@ -93,14 +53,10 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 Binary Memory Dump Analysis
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="animate-pulse space-y-4">
-                <div className="h-6 bg-dark-600 rounded-lg w-1/4"></div>
-                <div className="space-y-3">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={`loading-row-${i}`} className="h-16 bg-dark-600 rounded-lg"></div>
-                  ))}
-                </div>
+            <CardContent className="p-8 text-center">
+              <div className="glass-morphism rounded-xl p-8">
+                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-slate-400 text-lg">Loading sensor data table...</p>
               </div>
             </CardContent>
           </Card>
@@ -109,7 +65,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     );
   }
 
-  if (!dumpDetails?.sensorData) {
+  if (error || !dumpDetails?.sensorData) {
     return (
       <section>
         <div className="gradient-border">
@@ -121,7 +77,11 @@ export default function DataTable({ memoryDump }: DataTableProps) {
             </CardHeader>
             <CardContent className="p-8 text-center">
               <div className="glass-morphism rounded-xl p-8">
-                <p className="text-slate-400 text-lg">No sensor data available for this dump</p>
+                <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">Error loading data table</p>
+                <p className="text-slate-500 text-sm mt-2">
+                  {error instanceof Error ? error.message : 'No sensor data available'}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -130,130 +90,153 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     );
   }
 
-  const sensorData = dumpDetails.sensorData;
-  const totalPages = Math.ceil(sensorData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = sensorData.slice(startIndex, endIndex);
-
-  const formatValue = (value: number | undefined | null, decimals: number = 1): string => {
-    return value != null ? value.toFixed(decimals) : '-';
-  };
-
-  const getValueColor = (value: number | undefined | null, thresholds: { high?: number; low?: number }): string => {
-    if (value == null) return 'text-gray-40';
-    if (thresholds.high && value > thresholds.high) return 'text-red-50';
-    if (thresholds.low && value < thresholds.low) return 'text-red-50';
-    return 'text-gray-30';
-  };
+  // Sample first 100 records for table display (performance optimization)
+  const displayData = dumpDetails.sensorData.slice(0, 100);
+  const totalRecords = dumpDetails.sensorData.length;
 
   return (
     <section>
       <div className="gradient-border">
-        <Card className="bg-dark-800/50 backdrop-blur-xl border-0 overflow-hidden">
+        <Card className="bg-dark-800/50 backdrop-blur-xl border-0">
           <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+              Binary Memory Dump Analysis
+            </CardTitle>
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
-                  Binary Memory Dump Analysis
-                </CardTitle>
-                <p className="text-slate-400 text-sm mt-1">Raw sensor data extracted from binary dump ({sensorData.length.toLocaleString()} records)</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Button 
-                  onClick={handleExportCSV}
-                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export CSV
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700/50 backdrop-blur-sm"
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
+              <p className="text-slate-400 text-sm">Sensor data extracted from {memoryDump.filename}</p>
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
+                  Showing 100 of {totalRecords.toLocaleString()} records
+                </Badge>
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                  {memoryDump.fileType} Data
+                </Badge>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-80 hover:bg-transparent">
-                  <TableHead className="text-gray-10 font-medium">Timestamp</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Temp (°F)</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Battery (V)</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Shock Z (g)</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Motor Avg (A)</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Gamma</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Flow Status</TableHead>
-                  <TableHead className="text-gray-10 font-medium">Reset</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentData.map((row, index) => (
-                  <TableRow key={`${memoryDump?.id}-${new Date(row.rtd).getTime()}-${index}`} className="border-gray-80 hover:bg-gray-80/50">
-                    <TableCell className="font-mono text-xs text-gray-30">
-                      {new Date(row.rtd).toLocaleString()}
-                    </TableCell>
-                    <TableCell className={getValueColor(row.tempMP, { high: 130, low: 100 })}>
-                      {formatValue(row.tempMP, 1)}
-                    </TableCell>
-                    <TableCell className={getValueColor(row.batteryVoltMP, { high: 15.5, low: 11.5 })}>
-                      {formatValue(row.batteryVoltMP, 2)}
-                    </TableCell>
-                    <TableCell className={getValueColor(row.shockZ, { high: 6.0 })}>
-                      {formatValue(row.shockZ, 1)}
-                    </TableCell>
-                    <TableCell className={getValueColor(row.motorAvg, { high: 2.0 })}>
-                      {formatValue(row.motorAvg, 1)}
-                    </TableCell>
-                    <TableCell className={getValueColor(row.gamma, { high: 45, low: 15 })}>
-                      {row.gamma || '-'}
-                    </TableCell>
-                    <TableCell className="text-gray-30">
-                      {row.flowStatus || '-'}
-                    </TableCell>
-                    <TableCell className="text-gray-30">
-                      {row.resetMP || 0}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <CardContent>
+            <div className="glass-morphism rounded-xl p-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                      <TableHead className="text-slate-300 font-semibold">Timestamp</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Temperature (°F)</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Battery Voltage</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Motor Current</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Flow Status</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Vibration Z</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">RPM Avg</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Gamma</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayData.map((record, index) => (
+                      <TableRow key={`${record.rtd?.getTime() || Date.now()}-${index}-${record.tempMP || 'null'}`} className="border-slate-700 hover:bg-slate-800/30 transition-colors">
+                        <TableCell className="text-slate-300 font-mono text-sm">
+                          {record.rtd ? new Date(record.rtd).toLocaleString() : 'Invalid Date'}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.tempMP !== null && record.tempMP !== undefined && !isNaN(record.tempMP) && isFinite(record.tempMP) ? (
+                            <Badge className={`${
+                              record.tempMP > 130 ? 'bg-red-500/20 text-red-400' : 
+                              record.tempMP > 100 ? 'bg-yellow-500/20 text-yellow-400' : 
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {record.tempMP.toFixed(1)}°F
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.batteryVoltMP !== null && record.batteryVoltMP !== undefined && !isNaN(record.batteryVoltMP) && isFinite(record.batteryVoltMP) ? (
+                            <Badge className={`${
+                              record.batteryVoltMP < 11.5 ? 'bg-red-500/20 text-red-400' : 
+                              record.batteryVoltMP > 15.5 ? 'bg-yellow-500/20 text-yellow-400' : 
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {record.batteryVoltMP.toFixed(2)}V
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.motorAvg !== null && record.motorAvg !== undefined && !isNaN(record.motorAvg) && isFinite(record.motorAvg) ? (
+                            <Badge className={`${
+                              record.motorAvg > 2.0 ? 'bg-orange-500/20 text-orange-400' : 
+                              'bg-blue-500/20 text-blue-400'
+                            }`}>
+                              {record.motorAvg.toFixed(2)}A
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.flowStatus ? (
+                            <Badge className={`${
+                              record.flowStatus === 'On' ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                            }`}>
+                              {record.flowStatus}
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.maxZ !== null && record.maxZ !== undefined && !isNaN(record.maxZ) && isFinite(record.maxZ) ? (
+                            <Badge className={`${
+                              Math.abs(record.maxZ) > 5 ? 'bg-red-500/20 text-red-400' : 
+                              Math.abs(record.maxZ) > 2 ? 'bg-yellow-500/20 text-yellow-400' : 
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {record.maxZ.toFixed(2)}g
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.rotRpmAvg !== null && record.rotRpmAvg !== undefined && !isNaN(record.rotRpmAvg) && isFinite(record.rotRpmAvg) ? (
+                            <Badge className="bg-cyan-500/20 text-cyan-400">
+                              {record.rotRpmAvg.toFixed(0)} RPM
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {record.gamma !== null && record.gamma !== undefined && !isNaN(record.gamma) && isFinite(record.gamma) ? (
+                            <Badge className={`${
+                              record.gamma > 45 ? 'bg-red-500/20 text-red-400' : 
+                              record.gamma < 15 ? 'bg-yellow-500/20 text-yellow-400' : 
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {record.gamma.toFixed(1)} cps
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500">N/A</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4 text-xs text-gray-40">
-            <span>
-              Showing {startIndex + 1} to {Math.min(endIndex, sensorData.length)} of {sensorData.length} records
-            </span>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="bg-gray-80 border-gray-70 text-gray-10 hover:bg-gray-70 disabled:opacity-50"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
-              <span className="px-2">Page {currentPage} of {totalPages}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="bg-gray-80 border-gray-70 text-gray-10 hover:bg-gray-70 disabled:opacity-50"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              {totalRecords > 100 && (
+                <div className="mt-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <div className="flex items-center space-x-2">
+                    <Activity className="w-4 h-4 text-blue-400" />
+                    <p className="text-blue-400 text-sm font-medium">
+                      Performance Note: Showing first 100 records of {totalRecords.toLocaleString()} total records for optimal display performance.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
           </CardContent>
         </Card>
       </div>
