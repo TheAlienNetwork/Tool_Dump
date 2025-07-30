@@ -10,8 +10,17 @@ interface DataTableProps {
 }
 
 export default function DataTable({ memoryDump }: DataTableProps) {
-  const { data: dumpDetails, isLoading, error } = useQuery<MemoryDumpDetails>({
+  const { data: tableData, isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'table-data', memoryDump?.filename, memoryDump?.uploadedAt],
+    queryFn: async () => {
+      if (!memoryDump?.id) throw new Error('No memory dump selected');
+      
+      const response = await fetch(`/api/memory-dumps/${memoryDump.id}/table-data/${encodeURIComponent(memoryDump.filename)}/${encodeURIComponent(memoryDump.uploadedAt)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch table data: ${response.statusText}`);
+      }
+      return response.json();
+    },
     enabled: memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -65,7 +74,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     );
   }
 
-  if (error || !dumpDetails?.sensorData) {
+  if (error || !tableData || tableData.length === 0) {
     return (
       <section>
         <div className="gradient-border">
@@ -91,8 +100,8 @@ export default function DataTable({ memoryDump }: DataTableProps) {
   }
 
   // Sample first 100 records for table display (performance optimization)
-  const displayData = dumpDetails.sensorData.slice(0, 100);
-  const totalRecords = dumpDetails.sensorData.length;
+  const displayData = tableData.slice(0, 100);
+  const totalRecords = tableData.length;
 
   return (
     <section>

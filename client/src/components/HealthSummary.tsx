@@ -12,6 +12,15 @@ interface HealthSummaryProps {
 export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
   const { data: analysisResults, isLoading: analysisLoading } = useQuery({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'analysis', memoryDump?.filename, memoryDump?.uploadedAt],
+    queryFn: async () => {
+      if (!memoryDump?.id) throw new Error('No memory dump selected');
+      
+      const response = await fetch(`/api/memory-dumps/${memoryDump.id}/analysis/${encodeURIComponent(memoryDump.filename)}/${encodeURIComponent(memoryDump.uploadedAt)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch analysis: ${response.statusText}`);
+      }
+      return response.json();
+    },
     enabled: !!memoryDump?.id && memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
     refetchOnMount: true,

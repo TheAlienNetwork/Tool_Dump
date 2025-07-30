@@ -215,7 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Table data not found" });
       }
 
-      // Return first 1000 records for table display
+      // Return first 1000 records for table display with all necessary fields
       const tableData = data.sensorData.slice(0, 1000).map(record => ({
         rtd: record.rtd,
         tempMP: record.tempMP,
@@ -223,9 +223,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         batteryCurrMP: record.batteryCurrMP,
         motorAvg: record.motorAvg,
         flowStatus: record.flowStatus,
-        gamma: record.gamma
+        gamma: record.gamma,
+        maxZ: record.maxZ,
+        rotRpmAvg: record.rotRpmAvg
       }));
 
+      console.log(`📊 Returning ${tableData.length} table records for ${req.params.filename}`);
       res.json(tableData);
     } catch (error) {
       console.error("Error fetching table data:", error);
