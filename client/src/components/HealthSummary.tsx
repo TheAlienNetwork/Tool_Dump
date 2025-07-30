@@ -10,22 +10,21 @@ interface HealthSummaryProps {
 }
 
 export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
-  const { data: analysisResults, isLoading } = useQuery<AnalysisResults>({
-    queryKey: ['/api/memory-dumps', memoryDump.id, 'analysis'],
-    enabled: memoryDump.status === 'completed',
-    refetchInterval: false,
+  const { data: analysisResults, isLoading: analysisLoading } = useQuery({
+    queryKey: ['/api/memory-dumps', memoryDump?.id, 'analysis', memoryDump?.filename, memoryDump?.uploadedAt],
+    enabled: memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    staleTime: Infinity, // Never consider data stale
-    gcTime: Infinity, // Keep data in cache forever
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 0, // Always fetch fresh analysis for new uploads
+    gcTime: 0, // Don't cache analysis data
   });
 
   const handleDownloadReport = async () => {
     try {
       const response = await fetch(`/api/memory-dumps/${memoryDump.id}/report`);
       if (!response.ok) throw new Error('Failed to download PDF report');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -86,7 +85,7 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
     }
   };
 
-  if (isLoading) {
+  if (analysisLoading) {
     return (
       <Card className="bg-gray-90 border-gray-80">
         <CardContent className="p-6">
@@ -216,7 +215,7 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
                 <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                   Detected Issues
                 </h3>
-                
+
                 {analysisResults.issues.map((issue, index) => {
                   // Enhanced temperature formatting to handle extreme values
                   const formatTemperature = (tempStr: string) => {
@@ -232,7 +231,7 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
                   };
 
                   const formattedIssue = formatTemperature(issue.issue);
-                  
+
                   return (
                     <div key={index} className="glass-morphism rounded-xl p-6 hover:bg-white/10 transition-all duration-300 border border-slate-700/50">
                       <div className="flex items-start justify-between">

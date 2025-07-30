@@ -23,7 +23,7 @@ interface DeviceReportProps {
 
 export function DeviceReport({ memoryDump }: DeviceReportProps) {
   const { data: memoryDumpDetails, isLoading } = useQuery({
-    queryKey: ['/api/memory-dumps', memoryDump.id],
+    queryKey: ['/api/memory-dumps', memoryDump.id, 'device-report', memoryDump?.filename, memoryDump?.uploadedAt],
     enabled: !!memoryDump.id,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -102,6 +102,21 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
               Device Report Information
             </span>
           </CardTitle>
+          <div className="flex flex-col space-y-2">
+            <p className="text-slate-400 text-sm">Hardware diagnostics and operational statistics from latest bin file</p>
+            {memoryDump && (
+              <div className="flex items-center space-x-4 text-xs">
+                <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+                  Source: {memoryDump.filename || `Dump ID ${memoryDump.id}`}
+                </span>
+                {memoryDump.uploadedAt && (
+                  <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                    Extracted: {new Date(memoryDump.uploadedAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-8">
           {/* MP Device Information */}

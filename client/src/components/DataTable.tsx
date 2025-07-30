@@ -57,7 +57,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
       'Timestamp', 'Temp (°F)', 'Battery (V)', 'Shock Z (g)', 
       'Motor Avg (A)', 'Gamma', 'Flow Status', 'Reset'
     ];
-    
+
     const csvContent = [
       headers.join(','),
       ...dumpDetails.sensorData.map(row => [
@@ -193,8 +193,8 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentData.map((row) => (
-                  <TableRow key={row.id} className="border-gray-80 hover:bg-gray-80/50">
+                {currentData.map((row, index) => (
+                  <TableRow key={`${memoryDump?.id}-${new Date(row.rtd).getTime()}-${index}`} className="border-gray-80 hover:bg-gray-80/50">
                     <TableCell className="font-mono text-xs text-gray-30">
                       {new Date(row.rtd).toLocaleString()}
                     </TableCell>
