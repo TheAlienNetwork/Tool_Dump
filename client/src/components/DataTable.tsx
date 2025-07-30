@@ -141,7 +141,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                   </TableHeader>
                   <TableBody>
                     {displayData.map((record, index) => (
-                      <TableRow key={`${record.rtd?.getTime() || Date.now()}-${index}-${record.tempMP || 'null'}`} className="border-slate-700 hover:bg-slate-800/30 transition-colors">
+                      <TableRow key={`${record.rtd || Date.now()}-${index}-${record.tempMP || 'null'}`} className="border-slate-700 hover:bg-slate-800/30 transition-colors">
                         <TableCell className="text-slate-300 font-mono text-sm">
                           {record.rtd ? new Date(record.rtd).toLocaleString() : 'Invalid Date'}
                         </TableCell>
