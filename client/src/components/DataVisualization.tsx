@@ -169,10 +169,25 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
              value !== undefined && 
              !isNaN(value) && 
              isFinite(value) && 
+             Math.abs(value) < 1e10 && // Filter out extreme scientific notation
              (typeof value === 'number' ? Math.abs(value) > 0.001 : true);
     });
     
     return validValues.length >= minCount;
+  };
+
+  // Enhanced data filtering for reliable chart display
+  const getCleanChartData = (data: any[], fields: string[]) => {
+    return data.map(item => {
+      const cleanItem = { ...item };
+      fields.forEach(field => {
+        const value = cleanItem[field];
+        if (value === null || value === undefined || !isFinite(value) || Math.abs(value) > 1e10) {
+          cleanItem[field] = null;
+        }
+      });
+      return cleanItem;
+    });
   };
 
   // Now handle the conditional rendering after all hooks are defined
@@ -305,21 +320,22 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   }));
   const mdgData = chartData.filter(d => d.accelAX !== null);
 
-  // Only show charts with valid data
-  const showTemperatureChart = hasValidData('tempMP');
-  const showAccelerationChart = hasValidData('accelAX') || hasValidData('accelAY') || hasValidData('accelAZ');
-  const showShockChart = hasValidData('shockX') || hasValidData('shockY') || hasValidData('shockZ');
-  const showRPMChart = hasValidData('rotRpmAvg') || hasValidData('rotRpmMax');
-  const showVoltageChart = hasValidData('vBatt') || hasValidData('v5VD') || hasValidData('v3_3VD');
-  const showCurrentChart = hasValidData('iSupply') || hasValidData('i3_3VD') || hasValidData('i5VD');
-  const showPowerChart = hasValidData('pSupply') || hasValidData('p3_3VD') || hasValidData('p5VD');
-  const showSurveyChart = hasValidData('surveyINC') || hasValidData('surveyAZM');
-  const showGammaChart = hasValidData('gamma');
-  const showShockCountChart = hasValidData('shockCountAxial50') || hasValidData('shockCountAxial100');
-  const showPumpChart = mpData.length > 0 && hasValidData('flowStatus');
-  const showInclinationChart = hasValidData('surveyINC');
-  const showAzimuthChart = hasValidData('surveyAZM');
-  const showEnvChart = hasValidData('gamma') || hasValidData('vBatt');
+  // Only show charts with valid data - Enhanced validation
+  const showTemperatureChart = hasValidData('tempMP', 10);
+  const showAccelerationChart = hasValidData('accelAX', 5) || hasValidData('accelAY', 5) || hasValidData('accelAZ', 5);
+  const showShockChart = hasValidData('shockX', 3) || hasValidData('shockY', 3) || hasValidData('shockZ', 3);
+  const showRPMChart = hasValidData('rotRpmAvg', 5) || hasValidData('rotRpmMax', 5);
+  const showVoltageChart = hasValidData('vBatt', 5) || hasValidData('v5VD', 5) || hasValidData('v3_3VD', 5);
+  const showCurrentChart = hasValidData('iBatt', 5) || hasValidData('i3_3VD', 5) || hasValidData('i5VD', 5);
+  const showSurveyChart = hasValidData('surveyINC', 3) || hasValidData('surveyAZM', 3) || hasValidData('surveyTGF', 3);
+  const showGammaChart = hasValidData('gamma', 5);
+  const showShockCountChart = hasValidData('shockCountAxial50', 1) || hasValidData('shockCountAxial100', 1);
+  const showPumpChart = mpData.length > 0 && hasValidData('flowStatus', 1);
+  const showInclinationChart = hasValidData('surveyINC', 3);
+  const showAzimuthChart = hasValidData('surveyAZM', 3);
+  const showEnvChart = hasValidData('gamma', 5) || hasValidData('vBatt', 5);
+  
+  console.log(`📊 CHART VISIBILITY: Temp=${showTemperatureChart}, Accel=${showAccelerationChart}, Shock=${showShockChart}, RPM=${showRPMChart}, Survey=${showSurveyChart}, Gamma=${showGammaChart}`);
 
   // Calculate pump stats
   const pumpOnTime = mpData.reduce((acc, d) => acc + (d.flowStatus === 1 ? 1 : 0), 0);
@@ -1334,31 +1350,73 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* 12. System Voltage (MDG) */}
+                {/* 12. System Voltages (MDG) - Smart Units */}
+                {showVoltageChart && (
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Cpu className="w-5 h-5 text-green-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">System Voltage (MDG)</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">System Voltages (MDG) - Smart Units</h3>
                   </div>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mdgData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
-                        <Legend />
-                        <Line type="monotone" dataKey="v3_3VA_DI" stroke="#EF4444" strokeWidth={1} name="3.3VA_DI" dot={false} />
-                        <Line type="monotone" dataKey="v5VD" stroke="#10B981" strokeWidth={1} name="5VD" dot={false} />
-                        <Line type="monotone" dataKey="v3_3VD" stroke="#3B82F6" strokeWidth={1} name="3.3VD" dot={false} />
-                        <Line type="monotone" dataKey="v1_9VD" stroke="#F59E0B" strokeWidth={1} name="1.9VD" dot={false} />
-                        <Line type="monotone" dataKey="v1_5VD" stroke="#8B5CF6" strokeWidth={1} name="1.5VD" dot={false} />
-                        <Line type="monotone" dataKey="v1_8VA" stroke="#EC4899" strokeWidth={1} name="1.8VA" dot={false} />
-                        <Line type="monotone" dataKey="v3_3VA" stroke="#06B6D4" strokeWidth={1} name="3.3VA" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {(() => {
+                    // Filter and validate voltage data
+                    const validVoltageData = mdgData.filter(d => 
+                      (d.v3_3VA_DI !== null && d.v3_3VA_DI !== undefined && isFinite(d.v3_3VA_DI) && d.v3_3VA_DI > 0 && d.v3_3VA_DI < 10) ||
+                      (d.v5VD !== null && d.v5VD !== undefined && isFinite(d.v5VD) && d.v5VD > 0 && d.v5VD < 10) ||
+                      (d.v3_3VD !== null && d.v3_3VD !== undefined && isFinite(d.v3_3VD) && d.v3_3VD > 0 && d.v3_3VD < 10) ||
+                      (d.v1_9VD !== null && d.v1_9VD !== undefined && isFinite(d.v1_9VD) && d.v1_9VD > 0 && d.v1_9VD < 5) ||
+                      (d.v1_5VD !== null && d.v1_5VD !== undefined && isFinite(d.v1_5VD) && d.v1_5VD > 0 && d.v1_5VD < 5) ||
+                      (d.v1_8VA !== null && d.v1_8VA !== undefined && isFinite(d.v1_8VA) && d.v1_8VA > 0 && d.v1_8VA < 5) ||
+                      (d.v3_3VA !== null && d.v3_3VA !== undefined && isFinite(d.v3_3VA) && d.v3_3VA > 0 && d.v3_3VA < 10)
+                    );
+                    
+                    console.log(`⚡ VOLTAGE CHART: ${validVoltageData.length} valid records from ${mdgData.length} MDG records`);
+                    
+                    if (validVoltageData.length === 0) {
+                      return (
+                        <div className="h-80 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-slate-400 text-lg mb-2">No Valid Voltage Data</div>
+                            <div className="text-slate-500 text-sm">System voltage measurements not available in this dataset</div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={validVoltageData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                            <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                              formatter={(value: any, name: string) => {
+                                if (typeof value === 'number' && isFinite(value)) {
+                                  // Smart unit display
+                                  if (value < 0.01) {
+                                    return [`${(value * 1000).toFixed(1)}mV`, name];
+                                  }
+                                  return [`${value.toFixed(3)}V`, name];
+                                }
+                                return ['N/A', name];
+                              }}
+                            />
+                            <Legend />
+                            <Line type="monotone" dataKey="v3_3VA_DI" stroke="#EF4444" strokeWidth={2} name="3.3VA_DI" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="v5VD" stroke="#10B981" strokeWidth={2} name="5VD" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="v3_3VD" stroke="#3B82F6" strokeWidth={2} name="3.3VD" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="v1_9VD" stroke="#F59E0B" strokeWidth={2} name="1.9VD" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="v1_5VD" stroke="#8B5CF6" strokeWidth={2} name="1.5VD" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="v1_8VA" stroke="#EC4899" strokeWidth={2} name="1.8VA" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="v3_3VA" stroke="#06B6D4" strokeWidth={2} name="3.3VA" dot={false} connectNulls={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
                 </div>
+                )}
 
                 {/* 13. Battery Voltage (MDG) */}
                 <div className="glass-morphism rounded-xl p-6">
@@ -1505,27 +1563,63 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                   </div>
                 </div>
 
-                {/* 20. Survey vs CINC CAZM (MDG) */}
+                {/* 20. Survey vs CINC CAZM (MDG) - Enhanced with Data Validation */}
+                {showSurveyChart && (
                 <div className="glass-morphism rounded-xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Compass className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Survey vs CINC CAZM (MDG)</h3>
+                    <h3 className="text-lg font-semibold text-slate-200">Survey Data - Enhanced Angles (MDG)</h3>
                   </div>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mdgData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Degrees', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
-                        <Legend />
-                        <Line type="monotone" dataKey="surveyINC" stroke="#10B981" strokeWidth={2} name="Survey INC" dot={false} />
-                        <Line type="monotone" dataKey="surveyCINC" stroke="#3B82F6" strokeWidth={2} name="Survey CINC" dot={false} />
-                        <Line type="monotone" dataKey="surveyAZM" stroke="#F59E0B" strokeWidth={2} name="Survey AZM" dot={false} />
-                        <Line type="monotone" dataKey="surveyCAZM" stroke="#8B5CF6" strokeWidth={2} name="Survey CAZM" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {(() => {
+                    // Filter and validate survey data
+                    const validSurveyData = mdgData.filter(d => 
+                      (d.surveyINC !== null && d.surveyINC !== undefined && isFinite(d.surveyINC) && Math.abs(d.surveyINC) <= 180) ||
+                      (d.surveyAZM !== null && d.surveyAZM !== undefined && isFinite(d.surveyAZM) && Math.abs(d.surveyAZM) <= 360) ||
+                      (d.surveyTGF !== null && d.surveyTGF !== undefined && isFinite(d.surveyTGF) && d.surveyTGF > 0) ||
+                      (d.surveyTMF !== null && d.surveyTMF !== undefined && isFinite(d.surveyTMF) && d.surveyTMF > 0)
+                    );
+                    
+                    console.log(`📊 SURVEY CHART: ${validSurveyData.length} valid records from ${mdgData.length} MDG records`);
+                    
+                    if (validSurveyData.length === 0) {
+                      return (
+                        <div className="h-80 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-slate-400 text-lg mb-2">No Valid Survey Data</div>
+                            <div className="text-slate-500 text-sm">Survey measurements not available in this dataset</div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={validSurveyData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                            <YAxis stroke="#9CA3AF" fontSize={12} label={{ value: 'Degrees', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                              formatter={(value: any, name: string) => {
+                                if (typeof value === 'number' && isFinite(value)) {
+                                  return [`${value.toFixed(2)}°`, name];
+                                }
+                                return ['N/A', name];
+                              }}
+                            />
+                            <Legend />
+                            <Line type="monotone" dataKey="surveyINC" stroke="#10B981" strokeWidth={2} name="Survey INC (°)" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="surveyCINC" stroke="#3B82F6" strokeWidth={2} name="Survey CINC (°)" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="surveyAZM" stroke="#F59E0B" strokeWidth={2} name="Survey AZM (°)" dot={false} connectNulls={false} />
+                            <Line type="monotone" dataKey="surveyCAZM" stroke="#8B5CF6" strokeWidth={2} name="Survey CAZM (°)" dot={false} connectNulls={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
+                </div>
+                )}
 
                   {/* Survey Data Analysis */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">

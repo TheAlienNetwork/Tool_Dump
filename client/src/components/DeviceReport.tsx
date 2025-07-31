@@ -35,10 +35,12 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
     },
     enabled: !!memoryDump?.id && memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    staleTime: 0, // Always fetch fresh data for new dumps
-    gcTime: 0, // Don't cache device reports - always fresh
+    refetchOnMount: false, // Prevent excessive requests
+    refetchOnReconnect: false,
+    staleTime: 30000, // Cache for 30 seconds to prevent infinite requests
+    gcTime: 60000, // Keep in cache for 1 minute
+    retry: 2, // Only retry twice on failure
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   if (isLoading) {
