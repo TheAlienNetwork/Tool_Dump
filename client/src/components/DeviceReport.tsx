@@ -43,16 +43,18 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
 
   if (isLoading) {
     return (
-      <div className="glass-morphism rounded-xl p-8 animate-pulse">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-6 h-6 bg-dark-600 rounded"></div>
-          <div className="h-6 bg-dark-600 rounded w-48"></div>
+      <div className="glass-morphism rounded-xl p-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <HardDrive className="h-6 w-6 text-blue-500" />
+          <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+            Device Report
+          </h3>
         </div>
-        <div className="space-y-4">
-          <div className="h-4 bg-dark-600 rounded w-3/4"></div>
-          <div className="h-4 bg-dark-600 rounded w-1/2"></div>
-          <div className="h-4 bg-dark-600 rounded w-2/3"></div>
+        <div className="flex items-center space-x-3">
+          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-400">Processing device report data...</p>
         </div>
+        <p className="text-slate-500 text-sm mt-2">Data is being extracted from {memoryDump.filename}. Please wait a moment.</p>
       </div>
     );
   }
@@ -66,7 +68,8 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
             Device Report - Error
           </h3>
         </div>
-        <p className="text-slate-400">Error loading device report: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <p className="text-red-400">Error loading device report: {error.message}</p>
+        <p className="text-slate-500 text-sm mt-2">Please try refreshing or uploading the file again.</p>
       </div>
     );
   }

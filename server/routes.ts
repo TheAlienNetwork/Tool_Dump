@@ -259,10 +259,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const data = memoryStore.get(id);
 
-      if (!data || !data.deviceReport) {
+      console.log(`📋 Device report request for dump ID ${id}`);
+      
+      if (!data) {
+        console.log(`❌ No data found for dump ID ${id}`);
+        return res.status(404).json({ error: "Memory dump not found" });
+      }
+
+      if (!data.deviceReport) {
+        console.log(`❌ No device report found for dump ID ${id}, available keys:`, Object.keys(data));
         return res.status(404).json({ error: "Device report not found" });
       }
 
+      console.log(`✅ Returning device report for dump ID ${id}:`, data.deviceReport);
       res.json(data.deviceReport);
     } catch (error) {
       console.error("Error fetching device report:", error);
