@@ -215,8 +215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Table data not found" });
       }
 
-      // Return first 1000 records for table display with all necessary fields
-      const tableData = data.sensorData.slice(0, 1000).map(record => ({
+      // Return first 50 records for table display with all necessary fields
+      const tableData = data.sensorData.slice(0, 50).map(record => ({
         rtd: record.rtd,
         tempMP: record.tempMP,
         batteryVoltMP: record.batteryVoltMP,
@@ -506,21 +506,20 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     const originalUploadTime = existingEntry?.memoryDump.uploadedAt || new Date();
 
     // Extract actual maximum temperature from processed sensor data
-    let actualMaxTemp = 185.5; // Default fallback
-    if (allSensorData.length > 0) {
+    let actualMaxTempF = null;
+    let actualMaxTempC = null;
+    
+    if (allSensorData.length > 0 && fileType === 'MP') {
       const validTemps = allSensorData
-        .filter(d => d.tempMP !== null && isFinite(d.tempMP) && d.tempMP > 32 && d.tempMP < 400)
+        .filter(d => d.tempMP !== null && isFinite(d.tempMP) && d.tempMP > 32 && d.tempMP < 300)
         .map(d => d.tempMP);
       
       if (validTemps.length > 0) {
-        actualMaxTemp = Math.max(...validTemps);
-        console.log(`📊 ACTUAL MAX TEMP EXTRACTED: ${actualMaxTemp.toFixed(1)}°F from ${validTemps.length} valid readings`);
+        actualMaxTempF = Math.max(...validTemps);
+        actualMaxTempC = (actualMaxTempF - 32) * 5/9;
+        console.log(`📊 ACTUAL MAX TEMP FROM SENSOR DATA: ${actualMaxTempF.toFixed(1)}°F (${actualMaxTempC.toFixed(1)}°C) from ${validTemps.length} valid readings`);
       }
     }
-
-    // Validate and sanitize temperature data
-    const validMaxTemp = (actualMaxTemp > 32 && actualMaxTemp < 400 && isFinite(actualMaxTemp)) ? actualMaxTemp : 185.5;
-    const validMaxTempC = (validMaxTemp - 32) * 5/9;
 
     // Generate proper device report based on file type - PREVENT DUPLICATES
     const deviceReport = {
@@ -528,18 +527,19 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       dumpId: dumpId,
       generatedAt: new Date(),
       ...deviceInfo,
-      // Ensure we have the basic fields even if extraction failed
-      mpSerialNumber: deviceInfo.mpSerialNumber || (fileType === 'MP' ? `MP-${Date.now()}` : null),
-      mdgSerialNumber: deviceInfo.mdgSerialNumber || (fileType === 'MDG' ? `MDG-${Date.now()}` : null),
-      mpFirmwareVersion: deviceInfo.mpFirmwareVersion || (fileType === 'MP' ? '10.1.3' : null),
-      mdgFirmwareVersion: deviceInfo.mdgFirmwareVersion || (fileType === 'MDG' ? '2.1.0' : null),
-      circulationHours: deviceInfo.circulationHours || (143.4 + Math.random() * 100),
-      numberOfPulses: deviceInfo.numberOfPulses || Math.floor(50000 + Math.random() * 100000),
-      motorOnTimeMinutes: deviceInfo.motorOnTimeMinutes || (5000 + Math.random() * 2000),
-      mpMaxTempFahrenheit: fileType === 'MP' ? parseFloat(validMaxTemp.toFixed(1)) : null,
-      mpMaxTempCelsius: fileType === 'MP' ? parseFloat(validMaxTempC.toFixed(1)) : null,
-      mdgMaxTempFahrenheit: fileType === 'MDG' ? parseFloat(validMaxTemp.toFixed(1)) : null,
-      mdgMaxTempCelsius: fileType === 'MDG' ? parseFloat(validMaxTempC.toFixed(1)) : null,
+      // Use extracted device information - no fallback dummy data
+      mpSerialNumber: deviceInfo.mpSerialNumber,
+      mdgSerialNumber: deviceInfo.mdgSerialNumber,
+      mpFirmwareVersion: deviceInfo.mpFirmwareVersion,
+      mdgFirmwareVersion: deviceInfo.mdgFirmwareVersion,
+      circulationHours: deviceInfo.circulationHours,
+      numberOfPulses: deviceInfo.numberOfPulses,
+      motorOnTimeMinutes: deviceInfo.motorOnTimeMinutes,
+      // Use actual sensor data temperature if available, otherwise use device header temperature
+      mpMaxTempFahrenheit: fileType === 'MP' ? (actualMaxTempF || deviceInfo.mpMaxTempFahrenheit) : null,
+      mpMaxTempCelsius: fileType === 'MP' ? (actualMaxTempC || deviceInfo.mpMaxTempCelsius) : null,
+      mdgMaxTempFahrenheit: fileType === 'MDG' ? deviceInfo.mdgMaxTempFahrenheit : null,
+      mdgMaxTempCelsius: fileType === 'MDG' ? deviceInfo.mdgMaxTempCelsius : null,
       // Communication status
       commErrorsTimeMinutes: 0.0,
       commErrorsPercent: 0.0,

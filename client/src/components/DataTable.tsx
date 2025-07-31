@@ -14,7 +14,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'table-data', memoryDump?.filename, memoryDump?.uploadedAt],
     queryFn: async () => {
       if (!memoryDump?.id) throw new Error('No memory dump selected');
-      
+
       const response = await fetch(`/api/memory-dumps/${memoryDump.id}/table-data/${encodeURIComponent(memoryDump.filename)}/${encodeURIComponent(memoryDump.uploadedAt)}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch table data: ${response.statusText}`);
