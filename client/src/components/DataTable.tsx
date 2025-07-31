@@ -241,12 +241,22 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-2">
                     <span className="text-sm text-slate-400">Page</span>
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50 px-2 py-1">
-                      {currentPage}
-                    </Badge>
-                    <span className="text-sm text-slate-400">of {totalPages}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={totalPages}
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = parseInt(e.target.value);
+                        if (page >= 1 && page <= totalPages) {
+                          setCurrentPage(page);
+                        }
+                      }}
+                      className="w-16 px-2 py-1 text-sm bg-slate-700 border border-slate-600 rounded text-slate-300 text-center focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-sm text-slate-400">of {totalPages.toLocaleString()}</span>
                   </div>
                   <Button
                     onClick={goToNextPage}

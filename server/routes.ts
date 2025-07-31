@@ -245,17 +245,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Sensor data not found" });
       }
 
-      // Return all records for pagination
+      // Return all records with comprehensive sensor data fields
       const tableData = data.sensorData.map(record => ({
         rtd: record.rtd,
         tempMP: record.tempMP,
+        resetMP: record.resetMP,
         batteryVoltMP: record.batteryVoltMP,
         batteryCurrMP: record.batteryCurrMP,
+        motorMin: record.motorMin,
         motorAvg: record.motorAvg,
+        motorMax: record.motorMax,
+        motorHall: record.motorHall,
+        actuationTime: record.actuationTime,
         flowStatus: record.flowStatus,
-        gamma: record.gamma,
+        maxX: record.maxX,
+        maxY: record.maxY,
         maxZ: record.maxZ,
-        rotRpmAvg: record.rotRpmAvg
+        threshold: record.threshold,
+        accelAX: record.accelAX,
+        accelAY: record.accelAY,
+        accelAZ: record.accelAZ,
+        shockX: record.shockX,
+        shockY: record.shockY,
+        shockZ: record.shockZ,
+        shockCountAxial50: record.shockCountAxial50,
+        shockCountAxial100: record.shockCountAxial100,
+        shockCountLat50: record.shockCountLat50,
+        shockCountLat100: record.shockCountLat100,
+        rotRpmMin: record.rotRpmMin,
+        rotRpmAvg: record.rotRpmAvg,
+        rotRpmMax: record.rotRpmMax,
+        v3_3VA_DI: record.v3_3VA_DI,
+        v5VD: record.v5VD,
+        v3_3VD: record.v3_3VD,
+        v1_9VD: record.v1_9VD,
+        v1_5VD: record.v1_5VD,
+        v1_8VA: record.v1_8VA,
+        v3_3VA: record.v3_3VA,
+        vBatt: record.vBatt,
+        i5VD: record.i5VD,
+        i3_3VD: record.i3_3VD,
+        iBatt: record.iBatt,
+        gamma: record.gamma,
+        accelStabX: record.accelStabX,
+        accelStabY: record.accelStabY,
+        accelStabZ: record.accelStabZ,
+        accelStabZH: record.accelStabZH,
+        surveyTGF: record.surveyTGF,
+        surveyTMF: record.surveyTMF,
+        surveyDipA: record.surveyDipA,
+        surveyINC: record.surveyINC,
+        surveyCINC: record.surveyCINC,
+        surveyAZM: record.surveyAZM,
+        surveyCAZM: record.surveyCAZM
       }));
 
       console.log(`📊 Returning ${tableData.length} full table records for ${req.params.filename}`);
