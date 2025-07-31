@@ -5,7 +5,7 @@ import DataVisualization from "@/components/DataVisualization";
 import { DeviceReport } from "@/components/DeviceReport";
 import { DeviceStatusReport } from "@/components/DeviceStatusReport";
 import { DataTable } from "@/components/DataTable";
-import { DataComparison } from "@/components/DataComparison";
+import DataComparison from "@/components/DataComparison";
 import { HealthSummary } from "@/components/HealthSummary";
 import type { MemoryDump } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
