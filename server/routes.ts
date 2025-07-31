@@ -1,4 +1,3 @@
-
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -205,14 +204,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get table data for a specific memory dump
+  // Get table data for a specific memory dump with filename/timestamp (legacy - first 50 records)
   app.get("/api/memory-dumps/:id/table-data/:filename/:timestamp", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const data = memoryStore.get(id);
 
       if (!data || !data.sensorData) {
-        return res.status(404).json({ error: "Table data not found" });
+        return res.status(404).json({ error: "Sensor data not found" });
       }
 
       // Return first 50 records for table display with all necessary fields
@@ -233,6 +232,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching table data:", error);
       res.status(500).json({ error: "Failed to fetch table data" });
+    }
+  });
+
+  // Get full table data for pagination
+  app.get("/api/memory-dumps/:id/full-table-data/:filename/:timestamp", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = memoryStore.get(id);
+
+      if (!data || !data.sensorData) {
+        return res.status(404).json({ error: "Sensor data not found" });
+      }
+
+      // Return all records for pagination
+      const tableData = data.sensorData.map(record => ({
+        rtd: record.rtd,
+        tempMP: record.tempMP,
+        batteryVoltMP: record.batteryVoltMP,
+        batteryCurrMP: record.batteryCurrMP,
+        motorAvg: record.motorAvg,
+        flowStatus: record.flowStatus,
+        gamma: record.gamma,
+        maxZ: record.maxZ,
+        rotRpmAvg: record.rotRpmAvg
+      }));
+
+      console.log(`📊 Returning ${tableData.length} full table records for ${req.params.filename}`);
+      res.json(tableData);
+    } catch (error) {
+      console.error("Error fetching full table data:", error);
+      res.status(500).json({ error: "Failed to fetch full table data" });
     }
   });
 
@@ -263,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (Math.random() < 0.1) {
         console.log(`📋 Device report request for dump ID ${id}`);
       }
-      
+
       if (!data) {
         return res.status(404).json({ error: "Memory dump not found" });
       }
@@ -508,12 +538,12 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     // Extract actual maximum temperature from processed sensor data
     let actualMaxTempF = null;
     let actualMaxTempC = null;
-    
+
     if (allSensorData.length > 0 && fileType === 'MP') {
       const validTemps = allSensorData
         .filter(d => d.tempMP !== null && isFinite(d.tempMP) && d.tempMP > 32 && d.tempMP < 300)
         .map(d => d.tempMP);
-      
+
       if (validTemps.length > 0) {
         actualMaxTempF = Math.max(...validTemps);
         actualMaxTempC = (actualMaxTempF - 32) * 5/9;

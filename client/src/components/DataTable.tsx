@@ -2,14 +2,46 @@ import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { MemoryDump, MemoryDumpDetails } from "@/lib/types";
 import { Database, Activity, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 
 interface DataTableProps {
   memoryDump: MemoryDump | null;
 }
 
+// Helper function to format values with units and handle N/A
+function formatValue(value: number | string | null | undefined, type: string): string {
+  if (value === null || value === undefined || isNaN(Number(value))) {
+    return "N/A";
+  }
+
+  const numValue = Number(value);
+
+  switch (type) {
+    case 'temperature':
+      return `${numValue.toFixed(1)} °F`;
+    case 'voltage':
+      return `${numValue.toFixed(2)} V`;
+    case 'current':
+      return `${numValue.toFixed(3)} A`;
+    case 'gamma':
+      return `${numValue.toFixed(1)} cps`;
+    case 'maxZ':
+      return `${numValue.toFixed(3)} g`;
+    case 'rpm':
+      return `${Math.round(numValue)} RPM`;
+    default:
+      return String(value);
+  }
+}
+
 export default function DataTable({ memoryDump }: DataTableProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50; // Display 50 records per page
+
   const { data: tableData, isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'table-data', memoryDump?.filename, memoryDump?.uploadedAt],
     queryFn: async () => {
@@ -99,9 +131,18 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     );
   }
 
-  // Sample first 100 records for table display (performance optimization)
-  const displayData = tableData.slice(0, 100);
+  // Pagination calculations
   const totalRecords = tableData.length;
+  const totalPages = Math.ceil(totalRecords / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalRecords);
+  const displayData = tableData.slice(startIndex, endIndex);
+
+  // Pagination control functions
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToPrevPage = () => setCurrentPage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
+  const goToLastPage = () => setCurrentPage(totalPages);
 
   return (
     <section>
@@ -115,7 +156,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
               <p className="text-slate-400 text-sm">Sensor data extracted from {memoryDump.filename}</p>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
-                  Showing 100 of {totalRecords.toLocaleString()} records
+                  Showing {startIndex + 1}-{endIndex} of {totalRecords.toLocaleString()} records
                 </Badge>
                 <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
                   {memoryDump.fileType} Data
@@ -130,104 +171,47 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                   <TableHeader>
                     <TableRow className="border-slate-700 hover:bg-slate-800/50">
                       <TableHead className="text-slate-300 font-semibold">Timestamp</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Temperature (°F)</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Temperature</TableHead>
                       <TableHead className="text-slate-300 font-semibold">Battery Voltage</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Battery Current</TableHead>
                       <TableHead className="text-slate-300 font-semibold">Motor Current</TableHead>
                       <TableHead className="text-slate-300 font-semibold">Flow Status</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Vibration Z</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">RPM Avg</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Gamma</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Gamma Radiation</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Max Vibration Z</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">RPM Average</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayData.map((record, index) => (
-                      <TableRow key={`${record.rtd || Date.now()}-${index}-${record.tempMP || 'null'}`} className="border-slate-700 hover:bg-slate-800/30 transition-colors">
+                      <TableRow key={index} className="border-slate-700 hover:bg-slate-800/30">
                         <TableCell className="text-slate-300 font-mono text-sm">
-                          {record.rtd ? new Date(record.rtd).toLocaleString() : 'Invalid Date'}
+                          {new Date(record.rtd).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.tempMP, 'temperature')}
+                        </TableCell>
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.batteryVoltMP, 'voltage')}
+                        </TableCell>
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.batteryCurrMP, 'current')}
+                        </TableCell>
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.motorAvg, 'current')}
                         </TableCell>
                         <TableCell className="text-slate-300">
-                          {record.tempMP !== null && record.tempMP !== undefined && !isNaN(record.tempMP) && isFinite(record.tempMP) ? (
-                            <Badge className={`${
-                              record.tempMP > 130 ? 'bg-red-500/20 text-red-400' : 
-                              record.tempMP > 100 ? 'bg-yellow-500/20 text-yellow-400' : 
-                              'bg-green-500/20 text-green-400'
-                            }`}>
-                              {record.tempMP.toFixed(1)}°F
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
+                          <Badge className={record.flowStatus === 'On' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
+                            {record.flowStatus || 'N/A'}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="text-slate-300">
-                          {record.batteryVoltMP !== null && record.batteryVoltMP !== undefined && !isNaN(record.batteryVoltMP) && isFinite(record.batteryVoltMP) ? (
-                            <Badge className={`${
-                              record.batteryVoltMP < 11.5 ? 'bg-red-500/20 text-red-400' : 
-                              record.batteryVoltMP > 15.5 ? 'bg-yellow-500/20 text-yellow-400' : 
-                              'bg-green-500/20 text-green-400'
-                            }`}>
-                              {record.batteryVoltMP.toFixed(2)}V
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.gamma, 'gamma')}
                         </TableCell>
-                        <TableCell className="text-slate-300">
-                          {record.motorAvg !== null && record.motorAvg !== undefined && !isNaN(record.motorAvg) && isFinite(record.motorAvg) ? (
-                            <Badge className={`${
-                              record.motorAvg > 2.0 ? 'bg-orange-500/20 text-orange-400' : 
-                              'bg-blue-500/20 text-blue-400'
-                            }`}>
-                              {record.motorAvg.toFixed(2)}A
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.maxZ, 'maxZ')}
                         </TableCell>
-                        <TableCell className="text-slate-300">
-                          {record.flowStatus ? (
-                            <Badge className={`${
-                              record.flowStatus === 'On' ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
-                            }`}>
-                              {record.flowStatus}
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-slate-300">
-                          {record.maxZ !== null && record.maxZ !== undefined && !isNaN(record.maxZ) && isFinite(record.maxZ) ? (
-                            <Badge className={`${
-                              Math.abs(record.maxZ) > 5 ? 'bg-red-500/20 text-red-400' : 
-                              Math.abs(record.maxZ) > 2 ? 'bg-yellow-500/20 text-yellow-400' : 
-                              'bg-green-500/20 text-green-400'
-                            }`}>
-                              {record.maxZ.toFixed(2)}g
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-slate-300">
-                          {record.rotRpmAvg !== null && record.rotRpmAvg !== undefined && !isNaN(record.rotRpmAvg) && isFinite(record.rotRpmAvg) ? (
-                            <Badge className="bg-cyan-500/20 text-cyan-400">
-                              {record.rotRpmAvg.toFixed(0)} RPM
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-slate-300">
-                          {record.gamma !== null && record.gamma !== undefined && !isNaN(record.gamma) && isFinite(record.gamma) ? (
-                            <Badge className={`${
-                              record.gamma > 45 ? 'bg-red-500/20 text-red-400' : 
-                              record.gamma < 15 ? 'bg-yellow-500/20 text-yellow-400' : 
-                              'bg-green-500/20 text-green-400'
-                            }`}>
-                              {record.gamma.toFixed(1)} cps
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-500">N/A</span>
-                          )}
+                        <TableCell className="text-slate-300 font-medium">
+                          {formatValue(record.rotRpmAvg, 'rpm')}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -235,16 +219,53 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 </Table>
               </div>
 
-              {totalRecords > 100 && (
-                <div className="mt-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                  <div className="flex items-center space-x-2">
-                    <Activity className="w-4 h-4 text-blue-400" />
-                    <p className="text-blue-400 text-sm font-medium">
-                      Performance Note: Showing first 100 records of {totalRecords.toLocaleString()} total records for optimal display performance.
-                    </p>
-                  </div>
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-700">
+                <div className="text-sm text-slate-400">
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalRecords)} of {totalRecords.toLocaleString()} records
                 </div>
-              )}
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={goToFirstPage}
+                    disabled={currentPage === 1}
+                    size="sm"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    size="sm"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm text-slate-400">Page</span>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50 px-2 py-1">
+                      {currentPage}
+                    </Badge>
+                    <span className="text-sm text-slate-400">of {totalPages}</span>
+                  </div>
+                  <Button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    size="sm"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={goToLastPage}
+                    disabled={currentPage === totalPages}
+                    size="sm"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
