@@ -1,0 +1,535 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+1:25:15 PM [express] serving on port 5000
+Memory usage: RSS 428MB, Heap 89MB
+1:25:28 PM [express] GET /api/memory-dumps 200 in 2ms :: []
+1:25:28 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:30 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:30 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:32 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:32 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:34 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:34 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+Memory usage: RSS 453MB, Heap 117MB
+1:25:36 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:36 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:38 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:38 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:40 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:40 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:42 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:42 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:44 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:44 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+Memory usage: RSS 284MB, Heap 118MB
+1:25:46 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:46 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:49 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+1:25:49 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:51 PM [express] GET /api/memory-dumps 304 in 0ms :: []
+1:25:51 PM [express] GET /api/memory-dumps 304 in 1ms :: []
+🔄 AGGRESSIVE CACHE CLEAR - removing ALL stored data to force fresh extraction
+🔄 FORCING FRESH DATA - all cache cleared to prevent stale device info
+📥 NEW UPLOAD: MemoryDump_MDG_20250730_091135.bin assigned ID 1 at 2025-07-31T13:25:52.783Z
+🚀 Starting in-memory processing for MemoryDump_MDG_20250730_091135.bin
+🔍 Extracting fresh device info for MemoryDump_MDG_20250730_091135.bin (MDG)
+Extracting device info from MDG header (256 bytes)...
+Found potential MDG serial number: 2560 at offset 2
+📊 FILE-SPECIFIC DEVICE STATS for MemoryDump_MDG_20250730_091135.bin: S/N=2560, Circulation=114.1hrs, Pulses=88082, Motor=4314min
+Device info extracted successfully:
+  MDG S/N: 2560
+  Firmware: 9.1.2
+  Max Temp: 101.12°C (214.02°F)
+  Circulation Hours: 114.1
+  Number of Pulses: 88082
+📋 Device info extracted: {
+  dumpId: 0,
+  mpSerialNumber: null,
+  mpFirmwareVersion: null,
+  mpMaxTempCelsius: null,
+  mpMaxTempFahrenheit: null,
+  mdgSerialNumber: '2560',
+  mdgFirmwareVersion: '9.1.2',
+  mdgMaxTempCelsius: 101.12,
+  mdgMaxTempFahrenheit: 214.02,
+  circulationHours: 114.1,
+  numberOfPulses: 88082,
+  motorOnTimeMinutes: 4314,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: 32.8,
+  mdgExtremeShockIndex: 0.04
+}
+Starting streaming parse of MDG file: MemoryDump_MDG_20250730_091135.bin (19.72 MB)
+Processing MDG file in batches of 5000. Total records: 161564
+📊 Processing batch 1 with 5000 records...
+📥 NEW UPLOAD: MemoryDump_MP_20250730_090216.bin assigned ID 2 at 2025-07-31T13:25:52.876Z
+🚀 Starting in-memory processing for MemoryDump_MP_20250730_090216.bin
+🔍 Extracting fresh device info for MemoryDump_MP_20250730_090216.bin (MP)
+Extracting device info from MP header (256 bytes)...
+Found MP serial number 2560 at offset 7
+📊 FILE-SPECIFIC DEVICE STATS for MemoryDump_MP_20250730_090216.bin: S/N=2560, Circulation=143.4hrs, Pulses=110083, Motor=5486.2min
+Device info extracted successfully:
+  MP S/N: 2560
+  Firmware: 10.1.3
+  Max Temp: 105.7°C (222.26°F)
+  Circulation Hours: 143.4
+  Number of Pulses: 110083
+📋 Device info extracted: {
+  dumpId: 0,
+  mpSerialNumber: '2560',
+  mpFirmwareVersion: '10.1.3',
+  mpMaxTempCelsius: 105.7,
+  mpMaxTempFahrenheit: 222.26,
+  mdgSerialNumber: null,
+  mdgFirmwareVersion: null,
+  mdgMaxTempCelsius: null,
+  mdgMaxTempFahrenheit: null,
+  circulationHours: 143.4,
+  numberOfPulses: 110083,
+  motorOnTimeMinutes: 5486.2,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: null,
+  mdgExtremeShockIndex: null
+}
+Starting streaming parse of MP file: MemoryDump_MP_20250730_090216.bin (12.45 MB)
+Processing MP file in batches of 5000. Total records: 203928
+📊 Processing batch 1 with 5000 records...
+🧹 DEEP CACHE PURGE COMPLETE - All residual data cleared
+📊 Processing batch 2 with 5000 records...
+📊 Processing batch 2 with 5000 records...
+📊 Processing batch 3 with 5000 records...
+📊 Processing batch 3 with 5000 records...
+📊 Processing batch 4 with 5000 records...
+📊 Processing batch 4 with 5000 records...
+📊 Processing batch 5 with 5000 records...
+📊 Processing batch 5 with 5000 records...
+📊 Processing batch 6 with 5000 records...
+📊 Processing batch 6 with 5000 records...
+📊 Processing batch 7 with 5000 records...
+📊 Processing batch 7 with 5000 records...
+📊 Processing batch 8 with 5000 records...
+📊 Processing batch 8 with 5000 records...
+📊 Processing batch 9 with 5000 records...
+📊 Processing batch 9 with 5000 records...
+📊 Processing batch 10 with 5000 records...
+📊 Processing batch 10 with 5000 records...
+📊 Processing batch 11 with 5000 records...
+📊 Processing batch 11 with 5000 records...
+📊 Processing batch 12 with 5000 records...
+📊 Processing batch 12 with 5000 records...
+📊 Processing batch 13 with 5000 records...
+📊 Processing batch 13 with 5000 records...
+📊 Processing batch 14 with 5000 records...
+📊 Processing batch 14 with 5000 records...
+📊 Processing batch 15 with 5000 records...
+📊 Processing batch 15 with 5000 records...
+📊 Processing batch 16 with 5000 records...
+📊 Processing batch 16 with 5000 records...
+📊 Processing batch 17 with 5000 records...
+📊 Processing batch 17 with 5000 records...
+📊 Processing batch 18 with 5000 records...
+📊 Processing batch 18 with 5000 records...
+📊 Processing batch 19 with 5000 records...
+📊 Processing batch 19 with 5000 records...
+📊 Processing batch 20 with 5000 records...
+📊 Processing batch 20 with 5000 records...
+📊 Processing batch 21 with 5000 records...
+📊 Processing batch 21 with 5000 records...
+📊 Processing batch 22 with 5000 records...
+📊 Processing batch 22 with 5000 records...
+📊 Processing batch 23 with 5000 records...
+📊 Processing batch 23 with 5000 records...
+📊 Processing batch 24 with 5000 records...
+📊 Processing batch 24 with 5000 records...
+📊 Processing batch 25 with 5000 records...
+📊 Processing batch 25 with 5000 records...
+📊 Processing batch 26 with 5000 records...
+📊 Processing batch 26 with 5000 records...
+📊 Processing batch 27 with 5000 records...
+📊 Processing batch 27 with 5000 records...
+📊 Processing batch 28 with 5000 records...
+📊 Processing batch 28 with 5000 records...
+📊 Processing batch 29 with 5000 records...
+📊 Processing batch 29 with 5000 records...
+📊 Processing batch 30 with 5000 records...
+📊 Processing batch 30 with 5000 records...
+📊 Processing batch 31 with 5000 records...
+📊 Processing batch 31 with 5000 records...
+📊 Processing batch 32 with 5000 records...
+📊 Processing batch 32 with 5000 records...
+📊 Processing batch 33 with 1564 records...
+📊 Processing batch 33 with 5000 records...
+✅ MDG FILE PROCESSING COMPLETE: 161564 records processed in 33 batches
+📊 Processing batch 34 with 5000 records...
+Completed streaming parse of MDG file: MemoryDump_MDG_20250730_091135.bin
+📊 Processing batch 35 with 5000 records...
+✅ Processed 161564 total records for MemoryDump_MDG_20250730_091135.bin
+🔬 Starting fresh AI analysis for MemoryDump_MDG_20250730_091135.bin with 161564 records
+🎉 Successfully completed processing MemoryDump_MDG_20250730_091135.bin with 161564 records
+📊 Analysis: operational status with 0 critical issues
+📊 Processing batch 36 with 5000 records...
+📊 Processing batch 37 with 5000 records...
+📊 Processing batch 38 with 5000 records...
+📊 Processing batch 39 with 5000 records...
+📊 Processing batch 40 with 5000 records...
+📊 Processing batch 41 with 3928 records...
+✅ MP FILE PROCESSING COMPLETE: 203928 records processed in 41 batches
+Completed streaming parse of MP file: MemoryDump_MP_20250730_090216.bin
+✅ Processed 203928 total records for MemoryDump_MP_20250730_090216.bin
+🔬 Starting fresh AI analysis for MemoryDump_MP_20250730_090216.bin with 203928 records
+🎉 Successfully completed processing MemoryDump_MP_20250730_090216.bin with 203928 records
+📊 Analysis: critical status with 1 critical issues
+1:25:59 PM [express] POST /api/memory-dumps/upload 200 in 7519ms :: {"results":[{"id":1,"filename":"…
+Memory usage: RSS 668MB, Heap 495MB
+1:25:59 PM [express] GET /api/memory-dumps 200 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:25:59 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+📊 Returning 1000 table records for MemoryDump_MP_20250730_090216.bin
+1:25:59 PM [express] GET /api/memory-dumps/2/table-data/MemoryDump_MP_20250730_090216.bin/2025-07-31…
+1:25:59 PM [express] GET /api/memory-dumps/2/analysis/MemoryDump_MP_20250730_090216.bin/2025-07-31T1…
+📋 Device report request for dump ID 2
+✅ Returning device report for dump ID 2: {
+  id: 2,
+  dumpId: 0,
+  generatedAt: 2025-07-31T13:25:59.652Z,
+  mpSerialNumber: '2560',
+  mpFirmwareVersion: '10.1.3',
+  mpMaxTempCelsius: 85.3,
+  mpMaxTempFahrenheit: 185.5,
+  mdgSerialNumber: null,
+  mdgFirmwareVersion: null,
+  mdgMaxTempCelsius: null,
+  mdgMaxTempFahrenheit: null,
+  circulationHours: 143.4,
+  numberOfPulses: 110083,
+  motorOnTimeMinutes: 5486.2,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: null,
+  mdgExtremeShockIndex: null
+}
+1:25:59 PM [express] GET /api/memory-dumps/2/device-report/MemoryDump_MP_20250730_090216.bin/2025-07…
+Sampled 10197 records from 203928 total records for visualization
+1:26:00 PM [express] GET /api/memory-dumps/2/analysis 200 in 0ms :: {"id":2,"dumpId":2,"overallStatu…
+1:26:00 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:00 PM [express] GET /api/memory-dumps/2 200 in 306ms :: {"memoryDump":{"id":2,"filename":"Memor…
+1:26:00 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+📊 Returning 1000 table records for MemoryDump_MP_20250730_090216.bin
+1:26:00 PM [express] GET /api/memory-dumps/2/table-data/MemoryDump_MP_20250730_090216.bin/2025-07-31…
+📋 Device report request for dump ID 2
+✅ Returning device report for dump ID 2: {
+  id: 2,
+  dumpId: 0,
+  generatedAt: 2025-07-31T13:25:59.652Z,
+  mpSerialNumber: '2560',
+  mpFirmwareVersion: '10.1.3',
+  mpMaxTempCelsius: 85.3,
+  mpMaxTempFahrenheit: 185.5,
+  mdgSerialNumber: null,
+  mdgFirmwareVersion: null,
+  mdgMaxTempCelsius: null,
+  mdgMaxTempFahrenheit: null,
+  circulationHours: 143.4,
+  numberOfPulses: 110083,
+  motorOnTimeMinutes: 5486.2,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: null,
+  mdgExtremeShockIndex: null
+}
+1:26:00 PM [express] GET /api/memory-dumps/2/device-report/MemoryDump_MP_20250730_090216.bin/2025-07…
+1:26:00 PM [express] GET /api/memory-dumps/2/analysis/MemoryDump_MP_20250730_090216.bin/2025-07-31T1…
+Sampled 10197 records from 203928 total records for visualization
+1:26:00 PM [express] GET /api/memory-dumps/2 304 in 173ms :: {"memoryDump":{"id":2,"filename":"Memor…
+📋 Device report request for dump ID 2
+✅ Returning device report for dump ID 2: {
+  id: 2,
+  dumpId: 0,
+  generatedAt: 2025-07-31T13:25:59.652Z,
+  mpSerialNumber: '2560',
+  mpFirmwareVersion: '10.1.3',
+  mpMaxTempCelsius: 85.3,
+  mpMaxTempFahrenheit: 185.5,
+  mdgSerialNumber: null,
+  mdgFirmwareVersion: null,
+  mdgMaxTempCelsius: null,
+  mdgMaxTempFahrenheit: null,
+  circulationHours: 143.4,
+  numberOfPulses: 110083,
+  motorOnTimeMinutes: 5486.2,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: null,
+  mdgExtremeShockIndex: null
+}
+1:26:00 PM [express] GET /api/memory-dumps/2/device-report/MemoryDump_MP_20250730_090216.bin/2025-07…
+1:26:00 PM [express] GET /api/memory-dumps/2/analysis 304 in 1ms :: {"id":2,"dumpId":2,"overallStatu…
+1:26:00 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+📊 Returning 1000 table records for MemoryDump_MP_20250730_090216.bin
+1:26:00 PM [express] GET /api/memory-dumps/2/table-data/MemoryDump_MP_20250730_090216.bin/2025-07-31…
+1:26:00 PM [express] GET /api/memory-dumps/2/analysis/MemoryDump_MP_20250730_090216.bin/2025-07-31T1…
+Sampled 10197 records from 203928 total records for visualization
+1:26:01 PM [express] GET /api/memory-dumps/2 304 in 735ms :: {"memoryDump":{"id":2,"filename":"Memor…
+📊 Returning 1000 table records for MemoryDump_MP_20250730_090216.bin
+1:26:01 PM [express] GET /api/memory-dumps/2/table-data/MemoryDump_MP_20250730_090216.bin/2025-07-31…
+1:26:01 PM [express] GET /api/memory-dumps/2/analysis 304 in 0ms :: {"id":2,"dumpId":2,"overallStatu…
+1:26:01 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:01 PM [express] GET /api/memory-dumps/2/analysis/MemoryDump_MP_20250730_090216.bin/2025-07-31T1…
+📋 Device report request for dump ID 2
+✅ Returning device report for dump ID 2: {
+  id: 2,
+  dumpId: 0,
+  generatedAt: 2025-07-31T13:25:59.652Z,
+  mpSerialNumber: '2560',
+  mpFirmwareVersion: '10.1.3',
+  mpMaxTempCelsius: 85.3,
+  mpMaxTempFahrenheit: 185.5,
+  mdgSerialNumber: null,
+  mdgFirmwareVersion: null,
+  mdgMaxTempCelsius: null,
+  mdgMaxTempFahrenheit: null,
+  circulationHours: 143.4,
+  numberOfPulses: 110083,
+  motorOnTimeMinutes: 5486.2,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: null,
+  mdgExtremeShockIndex: null
+}
+1:26:01 PM [express] GET /api/memory-dumps/2/device-report/MemoryDump_MP_20250730_090216.bin/2025-07…
+Sampled 10197 records from 203928 total records for visualization
+1:26:02 PM [express] GET /api/memory-dumps/2 304 in 230ms :: {"memoryDump":{"id":2,"filename":"Memor…
+1:26:02 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:02 PM [express] GET /api/memory-dumps/2/analysis 304 in 1ms :: {"id":2,"dumpId":2,"overallStatu…
+1:26:02 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:02 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:02 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+📊 Returning 1000 table records for MemoryDump_MP_20250730_090216.bin
+1:26:02 PM [express] GET /api/memory-dumps/2/table-data/MemoryDump_MP_20250730_090216.bin/2025-07-31…
+1:26:02 PM [express] GET /api/memory-dumps/2/analysis/MemoryDump_MP_20250730_090216.bin/2025-07-31T1…
+📋 Device report request for dump ID 2
+✅ Returning device report for dump ID 2: {
+  id: 2,
+  dumpId: 0,
+  generatedAt: 2025-07-31T13:25:59.652Z,
+  mpSerialNumber: '2560',
+  mpFirmwareVersion: '10.1.3',
+  mpMaxTempCelsius: 85.3,
+  mpMaxTempFahrenheit: 185.5,
+  mdgSerialNumber: null,
+  mdgFirmwareVersion: null,
+  mdgMaxTempCelsius: null,
+  mdgMaxTempFahrenheit: null,
+  circulationHours: 143.4,
+  numberOfPulses: 110083,
+  motorOnTimeMinutes: 5486.2,
+  commErrorsTimeMinutes: 0,
+  commErrorsPercent: 0,
+  hallStatusTimeMinutes: 0,
+  hallStatusPercent: 0,
+  mdgEdtTotalHours: null,
+  mdgExtremeShockIndex: null
+}
+1:26:02 PM [express] GET /api/memory-dumps/2/device-report/MemoryDump_MP_20250730_090216.bin/2025-07…
+Sampled 10197 records from 203928 total records for visualization
+1:26:02 PM [express] GET /api/memory-dumps/2 304 in 201ms :: {"memoryDump":{"id":2,"filename":"Memor…
+1:26:02 PM [express] GET /api/memory-dumps/2/analysis 304 in 1ms :: {"id":2,"dumpId":2,"overallStatu…
+1:26:05 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:05 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 720MB, Heap 461MB
+1:26:09 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:09 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:12 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:12 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:14 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:14 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:16 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:16 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:19 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:19 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 366MB
+1:26:21 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:21 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:23 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:24 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:27 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:28 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 367MB
+1:26:31 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:32 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:35 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:36 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 367MB
+1:26:40 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:41 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:45 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:45 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:49 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 367MB
+1:26:50 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:52 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:53 PM [express] GET /api/memory-dumps 304 in 10ms :: [{"id":2,"filename":"MemoryDump_MP_2025073…
+1:26:55 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:55 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:57 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:26:58 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 367MB
+1:27:00 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:01 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:03 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:06 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:08 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 367MB
+1:27:09 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:11 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:12 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:14 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:14 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:16 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:16 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:18 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:19 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 518MB, Heap 367MB
+1:27:21 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:22 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:24 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:25 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:27 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:27 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 519MB, Heap 367MB
+1:27:30 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:30 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:32 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:33 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:35 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:36 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:38 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 519MB, Heap 367MB
+1:27:40 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:41 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:42 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:43 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:44 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:45 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:46 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:48 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:49 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 519MB, Heap 368MB
+1:27:51 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:52 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:54 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:54 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:56 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:27:57 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 520MB, Heap 368MB
+1:28:00 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:01 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:04 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:06 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:08 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 520MB, Heap 368MB
+1:28:09 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:11 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:13 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:14 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:15 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:16 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:17 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:18 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:19 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 520MB, Heap 368MB
+1:28:20 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:23 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:24 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:26 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:27 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+Memory usage: RSS 520MB, Heap 368MB
+1:28:29 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:31 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:33 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:34 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:35 PM [express] GET /api/memory-dumps 304 in 0ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:37 PM [vite] hmr update /src/components/DataVisualization.tsx, /src/index.css?v=-00rgPYpS1anjH9hSu4tQ
+1:28:37 PM [express] GET /api/memory-dumps 304 in 1ms :: [{"id":2,"filename":"MemoryDump_MP_20250730…
+1:28:38 PM [vite] Internal server error: /home/runner/workspace/client/src/components/DataVisualization.tsx: Expected corresponding JSX closing tag for <>. (1675:16)
+
+  1673 |                     </div>
+  1674 |                   </div>
+> 1675 |                 </div>
+       |                 ^
+  1676 |               </>
+  1677 |             )}
+  1678 |
+  Plugin: vite:react-babel
+  File: /home/runner/workspace/client/src/components/DataVisualization.tsx:1675:16
+  1673|                      </div>
+  1674|                    </div>
+  1675|                  </div>
+     |                  ^
+  1676|                </>
+  1677|              )}
+      at toParseError (/home/runner/workspace/node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at raise (/home/runner/workspace/node_modules/@babel/parser/src/tokenizer/index.ts:1497:19)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:517:16)
+      at jsxParseElement (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:559:19)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:573:21)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:714:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:693:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:655:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3735:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:401:23)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:298:21)
+      at fn (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3588:23)
+      at tryParse (/home/runner/workspace/node_modules/@babel/parser/src/parser/util.ts:174:20)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3587:20)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:252:12)
+      at allowInAnd (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3117:12)
+      at parseMaybeAssignAllowIn (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:251:17)
+      at parseParenAndDistinguishExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1771:16)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1131:21)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:714:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:693:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:655:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3735:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+      at parseExprOpBaseRightExpr (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:569:12)
+      at parseExprOpRightExpr (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:554:21)
+      at parseExprOp (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:485:27)
+      at parseExprOp (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:2797:20)
+      at parseExprOp (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:506:21)
+      at parseExprOp (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:2797:20)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:407:17)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:298:21)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3607:22)
+      at parseExpressionBase (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:221:23)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:212:39)
+      at allowInAnd (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3117:12)
+      at parseExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:212:17)
+      at jsxParseExpressionContainer (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:376:33)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:500:24)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+      at jsxParseElement (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:559:19)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:573:21)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:714:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:693:21)
