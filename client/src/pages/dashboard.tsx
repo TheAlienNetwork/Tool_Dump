@@ -7,6 +7,7 @@ import DataTable from "@/components/DataTable";
 import DataComparison from "@/components/DataComparison";
 import { DeviceReport } from "@/components/DeviceReport";
 import { MemoryDump } from "@/lib/types";
+import DeviceStatusReport from "@/components/DeviceStatusReport";
 
 export default function Dashboard() {
   const [selectedDump, setSelectedDump] = useState<MemoryDump | null>(null);
@@ -140,6 +141,12 @@ export default function Dashboard() {
                 memoryDumps={memoryDumps} 
                 selectedDump={selectedDump} 
               />
+            </section>
+          )}
+
+          {selectedDump && selectedDump.status === 'completed' && (
+            <section className="space-y-8">
+              <DeviceStatusReport memoryDump={selectedDump} />
             </section>
           )}
         </div>

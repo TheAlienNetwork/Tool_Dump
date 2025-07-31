@@ -3,6 +3,7 @@ import type { DeviceReport as DeviceReportType, MemoryDump } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
 import { 
   ChevronDown,
   ChevronRight,
@@ -14,7 +15,15 @@ import {
   AlertTriangle,
   Thermometer,
   Clock,
-  Zap
+  Zap,
+  Wifi,
+  WifiOff,
+  Activity,
+  Radio,
+  Signal,
+  AlertCircle,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 
 interface DeviceReportProps {
@@ -22,6 +31,13 @@ interface DeviceReportProps {
 }
 
 export function DeviceReport({ memoryDump }: DeviceReportProps) {
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+    communication: true,
+    hall: true,
+    pulses: true,
+    status: true
+  });
+
   const { data: deviceReportData, isLoading, error } = useQuery({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'device-report', memoryDump?.filename, memoryDump?.uploadedAt],
     queryFn: async () => {
@@ -42,6 +58,13 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
     retry: 2,
     retryDelay: 1000,
   });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   if (isLoading) {
     return (
