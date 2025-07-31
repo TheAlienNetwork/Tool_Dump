@@ -499,6 +499,10 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
     const existingEntry = memoryStore.get(dumpId);
     const originalUploadTime = existingEntry?.memoryDump.uploadedAt || new Date();
 
+    // Validate and sanitize temperature data
+    const validMaxTemp = (maxTemp > -Infinity && maxTemp < 1000 && isFinite(maxTemp)) ? maxTemp : 185.5;
+    const validMaxTempC = (validMaxTemp - 32) * 5/9;
+
     // Generate proper device report based on file type
     const deviceReport = {
       id: dumpId,
@@ -513,8 +517,10 @@ async function processFileInMemory(dumpId: number, filePath: string, filename: s
       circulationHours: deviceInfo.circulationHours || Math.random() * 500,
       numberOfPulses: deviceInfo.numberOfPulses || Math.floor(Math.random() * 200000),
       motorOnTimeMinutes: deviceInfo.motorOnTimeMinutes || Math.random() * 10000,
-      mpMaxTempFahrenheit: maxTemp > -Infinity ? maxTemp : 185.5,
-      mpMaxTempCelsius: maxTemp > -Infinity ? (maxTemp - 32) * 5/9 : 85.3
+      mpMaxTempFahrenheit: parseFloat(validMaxTemp.toFixed(1)),
+      mpMaxTempCelsius: parseFloat(validMaxTempC.toFixed(1)),
+      mdgMaxTempFahrenheit: fileType === 'MDG' ? parseFloat(validMaxTemp.toFixed(1)) : null,
+      mdgMaxTempCelsius: fileType === 'MDG' ? parseFloat(validMaxTempC.toFixed(1)) : null
     };
 
     const processedData: ProcessedData = {

@@ -92,7 +92,13 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
   }
 
   const formatValue = (value: number | null, unit?: string, precision = 2) => {
-    if (value === null) return "N/A";
+    if (value === null || value === undefined) return "N/A";
+    
+    // Handle extreme values (scientific notation issues)
+    if (!isFinite(value) || Math.abs(value) > 1e10) {
+      return "N/A";
+    }
+    
     return `${value.toFixed(precision)}${unit ? ` ${unit}` : ""}`;
   };
 
@@ -102,7 +108,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
   };
 
   const getTemperatureStatus = (tempF: number | null) => {
-    if (!tempF) return "unknown";
+    if (!tempF || !isFinite(tempF) || Math.abs(tempF) > 1e10) return "unknown";
     if (tempF > 130) return "critical";
     if (tempF > 100) return "warning";
     return "normal";
