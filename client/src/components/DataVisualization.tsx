@@ -237,7 +237,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
   });
 
   // Create error markers for critical issues
-  const createErrorMarkers = (issues: any[], dataKey: string, yAxisId: string = 'left') => {
+  const createErrorMarkers = (issues: any[], dataKey: string, yAxisId: string = undefined) => {
     if (!issues || issues.length === 0) return null;
 
     const relevantIssues = issues.filter(issue => 
@@ -254,7 +254,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
         stroke="#dc2626" 
         strokeWidth={2}
         strokeDasharray="5 5"
-        yAxisId={yAxisId}
+        {...(yAxisId && { yAxisId })}
         label={{ 
           value: `⚠️ ${issue.severity.toUpperCase()}`, 
           position: 'top',
@@ -503,7 +503,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             formatter={createTooltipFormatter('temperature')}
                           />
                           <Legend />
-                          {createErrorMarkers(analysisResults?.issues, 'tempMP', 'left')}
+                          {createErrorMarkers(analysisResults?.issues, 'tempMP')}
                           <Area 
                             type="monotone" 
                             dataKey="tempMP" 
@@ -770,7 +770,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                             formatter={createTooltipFormatter('shock')}
                           />
                           <Legend />
-                          {createErrorMarkers(analysisResults?.issues, 'shockZ', 'left')}
+                          {createErrorMarkers(analysisResults?.issues, 'shockZ')}
                           <Area type="monotone" dataKey="shockZ" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} name="Shock Z" />
                         </AreaChart>
                       </ResponsiveContainer>
