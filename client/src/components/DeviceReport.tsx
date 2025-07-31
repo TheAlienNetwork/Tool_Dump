@@ -82,23 +82,8 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
             Device Report
           </h3>
         </div>
-        
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400">Extracting device information from binary data...</p>
-        </div>
-        
-        <div className="bg-dark-700/30 rounded-lg p-4 border border-blue-500/20">
-          <p className="text-slate-300 text-sm mb-2">📂 Processing: {memoryDump.filename}</p>
-          <p className="text-slate-400 text-xs">🔧 Analyzing hardware diagnostics and operational parameters</p>
-          <p className="text-slate-400 text-xs">⏱️ This may take a few moments for large files</p>
-        </div>
-        
-        <div className="mt-4 text-center">
-          <p className="text-slate-500 text-sm">
-            Device reports contain serial numbers, firmware versions, temperature data, and operational statistics
-          </p>
-        </div>
+        <p className="text-slate-400">Processing device report data...</p>
+        <p className="text-slate-500 text-sm mt-2">Data is being extracted from {memoryDump.filename}. Please wait a moment.</p>
       </div>
     );
   }

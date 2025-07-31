@@ -1,3 +1,4 @@
+
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -252,50 +253,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced device report endpoint with better data extraction
-  app.get('/api/memory-dumps/:id/device-report/:filename/:timestamp', async (req, res) => {
+  // Get device report for a specific memory dump with filename/timestamp
+  app.get("/api/memory-dumps/:id/device-report/:filename/:timestamp", async (req, res) => {
     try {
-      const { id, filename, timestamp } = req.params;
-      console.log(`📊 Enhanced Device report request: ID=${id}, filename=${decodeURIComponent(filename)}, timestamp=${decodeURIComponent(timestamp)}`);
+      const id = parseInt(req.params.id);
+      const data = memoryStore.get(id);
 
-      const data = memoryStore.get(parseInt(id));
-
-      if (!data) {
-        console.log(`❌ Memory dump not found for ID: ${id}`);
-        return res.status(404).json({ error: 'Memory dump not found' });
+      if (!data || !data.deviceReport) {
+        return res.status(404).json({ error: "Device report not found" });
       }
 
-      if (data.memoryDump.status !== 'completed') {
-        console.log(`⏳ Memory dump still processing: ${data.memoryDump.status}`);
-        return res.status(200).json({ 
-          deviceReport: null, 
-          status: data.memoryDump.status,
-          message: 'Device report will be available once processing completes'
-        });
-      }
-
-      const sensorData = data.sensorData;
-
-      console.log(`📊 Found ${sensorData.length} sensor records for device report`);
-
-      if (sensorData.length === 0) {
-        return res.status(200).json({ 
-          deviceReport: null,
-          message: 'No sensor data available for device report generation'
-        });
-      }
-
-      // Enhanced device report generation with more comprehensive data
-      const deviceReport = generateEnhancedDeviceReport(sensorData, data.memoryDump);
-
-      console.log(`✅ Generated device report with ${Object.keys(deviceReport).length} data fields`);
-      res.json({ deviceReport });
+      res.json(data.deviceReport);
     } catch (error) {
-      console.error('❌ Device report generation error:', error);
-      res.status(500).json({ 
-        error: 'Failed to generate device report',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      console.error("Error fetching device report:", error);
+      res.status(500).json({ error: "Failed to fetch device report" });
     }
   });
 
@@ -383,163 +354,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
-}
-
-// Enhanced device report generation with comprehensive data extraction
-function generateEnhancedDeviceReport(sensorData: any[], memoryDump: any) {
-  console.log(`🔧 Generating enhanced device report from ${sensorData.length} sensor records`);
-
-  const deviceReport: any = {
-    // Initialize all fields to prevent undefined issues
-    mpSerialNumber: null,
-    mpFirmwareVersion: null,
-    mpMaxTempFahrenheit: null,
-    mpMaxTempCelsius: null,
-    mdgSerialNumber: null,
-    mdgFirmwareVersion: null,
-    mdgMaxTempFahrenheit: null,
-    mdgMaxTempCelsius: null,
-    circulationHours: null,
-    numberOfPulses: null,
-    motorOnTimeMinutes: null,
-    commErrorsTimeMinutes: null,
-    commErrorsPercent: null,
-    hallStatusTimeMinutes: null,
-    hallStatusPercent: null,
-    mdgEdtTotalHours: null,
-    mdgExtremeShockIndex: null
-  };
-
-  // Determine file type from filename
-  const isMP = memoryDump.filename?.includes('_MP_') || false;
-  const isMDG = memoryDump.filename?.includes('_MDG_') || false;
-
-  console.log(`📂 File type detection: MP=${isMP}, MDG=${isMDG}, filename=${memoryDump.filename}`);
-
-  // Extract MP-specific data
-  if (isMP && sensorData.length > 0) {
-    // Temperature analysis (MP)
-    const validTemps = sensorData.filter(d => 
-      d.tempMP !== null && 
-      typeof d.tempMP === 'number' && 
-      !isNaN(d.tempMP) && 
-      isFinite(d.tempMP) &&
-      d.tempMP > -40 && d.tempMP < 400
-    );
-
-    if (validTemps.length > 0) {
-      const maxTempF = Math.max(...validTemps.map(d => d.tempMP));
-      deviceReport.mpMaxTempFahrenheit = maxTempF;
-      deviceReport.mpMaxTempCelsius = (maxTempF - 32) * 5 / 9;
-      console.log(`🌡️ MP Max temperature: ${maxTempF.toFixed(1)}°F`);
-    }
-
-    // Motor operational data
-    const motorOnData = sensorData.filter(d => d.flowStatus === 'On');
-    if (motorOnData.length > 0) {
-      deviceReport.motorOnTimeMinutes = (motorOnData.length * 2) / 60; // Assuming 2-second intervals
-      console.log(`⚙️ Motor on time: ${deviceReport.motorOnTimeMinutes.toFixed(1)} minutes`);
-    }
-
-    // Circulation hours (total operational time)
-    const totalHours = (sensorData.length * 2) / 3600; // Convert to hours
-    deviceReport.circulationHours = totalHours;
-
-    // Pulse counting (flow events)
-    const pulseEvents = sensorData.filter(d => d.flowStatus === 'On').length;
-    deviceReport.numberOfPulses = pulseEvents;
-
-    // Communication errors analysis
-    const invalidData = sensorData.filter(d => 
-      d.tempMP === null || isNaN(d.tempMP) || !isFinite(d.tempMP)
-    );
-    if (invalidData.length > 0) {
-      deviceReport.commErrorsTimeMinutes = (invalidData.length * 2) / 60;
-      deviceReport.commErrorsPercent = (invalidData.length / sensorData.length) * 100;
-    } else {
-      deviceReport.commErrorsTimeMinutes = 0;
-      deviceReport.commErrorsPercent = 0;
-    }
-
-    // Hall sensor status
-    const hallData = sensorData.filter(d => 
-      d.motorHall !== null && !isNaN(d.motorHall) && isFinite(d.motorHall)
-    );
-    if (hallData.length > 0) {
-      deviceReport.hallStatusTimeMinutes = (hallData.length * 2) / 60;
-      deviceReport.hallStatusPercent = (hallData.length / sensorData.length) * 100;
-    }
-
-    // Synthetic serial number and firmware (since not in binary data)
-    deviceReport.mpSerialNumber = `MP-${memoryDump.filename?.substring(12, 20) || 'UNKNOWN'}`;
-    deviceReport.mpFirmwareVersion = "v2.1.0"; // Default version
-
-    console.log(`✅ MP device report completed`);
-  }
-
-  // Extract MDG-specific data
-  if (isMDG && sensorData.length > 0) {
-    // Temperature analysis (MDG) - use battery or system temp if available
-    const validMdgTemps = sensorData.filter(d => 
-      d.vBatt !== null && typeof d.vBatt === 'number' && !isNaN(d.vBatt)
-    );
-
-    if (validMdgTemps.length > 0) {
-      // Estimate temperature from voltage patterns (simplified approach)
-      const avgVoltage = validMdgTemps.reduce((sum, d) => sum + d.vBatt, 0) / validMdgTemps.length;
-      const estimatedTempF = 70 + (avgVoltage - 12) * 10; // Rough estimation
-      deviceReport.mdgMaxTempFahrenheit = Math.max(estimatedTempF, 75);
-      deviceReport.mdgMaxTempCelsius = (deviceReport.mdgMaxTempFahrenheit - 32) * 5 / 9;
-      console.log(`🌡️ MDG estimated max temperature: ${deviceReport.mdgMaxTempFahrenheit.toFixed(1)}°F`);
-    }
-
-    // EDT (Electronic Data Transfer) total hours
-    const totalMdgHours = (sensorData.length * 2) / 3600;
-    deviceReport.mdgEdtTotalHours = totalMdgHours;
-
-    // Extreme shock index calculation
-    const shockData = sensorData.filter(d => 
-      (d.shockZ !== null && Math.abs(d.shockZ) > 0) ||
-      (d.shockX !== null && Math.abs(d.shockX) > 0) ||
-      (d.shockY !== null && Math.abs(d.shockY) > 0)
-    );
-
-    if (shockData.length > 0) {
-      const shockMagnitudes = shockData.map(d => {
-        const x = d.shockX || 0;
-        const y = d.shockY || 0;
-        const z = d.shockZ || 0;
-        return Math.sqrt(x*x + y*y + z*z);
-      });
-      const maxShock = Math.max(...shockMagnitudes);
-      const avgShock = shockMagnitudes.reduce((sum, val) => sum + val, 0) / shockMagnitudes.length;
-      deviceReport.mdgExtremeShockIndex = (maxShock + avgShock) / 2;
-      console.log(`💥 MDG shock index: ${deviceReport.mdgExtremeShockIndex.toFixed(2)}`);
-    } else {
-      deviceReport.mdgExtremeShockIndex = 0;
-    }
-
-    // Synthetic serial number and firmware
-    deviceReport.mdgSerialNumber = `MDG-${memoryDump.filename?.substring(12, 20) || 'UNKNOWN'}`;
-    deviceReport.mdgFirmwareVersion = "v3.2.1"; // Default version
-
-    console.log(`✅ MDG device report completed`);
-  }
-
-  // Clean up null values and provide meaningful defaults
-  Object.keys(deviceReport).forEach(key => {
-    if (deviceReport[key] === null) {
-      delete deviceReport[key];
-    }
-  });
-
-  console.log(`📊 Final device report contains: ${Object.keys(deviceReport).join(', ')}`);
-  return deviceReport;
-}
-
-// Legacy function for compatibility
-function generateDeviceReport(sensorData: any[], memoryDump: any) {
-  return {};
 }
 
 // Fast in-memory processing

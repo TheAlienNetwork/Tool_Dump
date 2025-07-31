@@ -84,20 +84,7 @@ export class AnalysisEngine {
           
           issues.push({
             issue: `CRITICAL: Sustained high temperature - Peak ${peakTemp.toFixed(1)}°F (${((peakTemp - 32) * 5/9).toFixed(1)}°C)`,
-            explanation: `🤖 ADVANCED AI ANALYSIS: Detected ${sustainedEvents.length} sustained thermal event(s). Longest event: ${eventDuration.toFixed(0)}s duration with ${longestEvent.length} consecutive readings above ${criticalTempThreshold}°F. 
-            
-RISK ASSESSMENT:
-• Equipment damage probability: HIGH (${peakTemp > 250 ? '90%' : '70%'})
-• Recommended action: IMMEDIATE shutdown and inspection
-• Likely causes: Insufficient cooling, blocked ventilation, mechanical friction, electrical faults
-• Temperature exceeded NEMA standards by ${(peakTemp - criticalTempThreshold).toFixed(1)}°F
-• Thermal stress may cause: Seal degradation, metal expansion, electronic component failure
-            
-IMMEDIATE ACTIONS REQUIRED:
-1. Check cooling system operation
-2. Inspect for mechanical binding
-3. Verify electrical connections
-4. Monitor temperature trends closely`,
+            explanation: `AI detected ${sustainedEvents.length} sustained thermal event(s). Longest event: ${eventDuration.toFixed(0)}s duration with ${longestEvent.length} consecutive readings above ${criticalTempThreshold}°F. Risk of equipment damage or failure. Immediate inspection required.`,
             severity: 'critical',
             count: highTempData.length,
             firstTime: longestEvent[0].rtd,
