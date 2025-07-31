@@ -1618,8 +1618,6 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                       </div>
                     );
                   })()}
-                </div>
-                )}
 
                   {/* Survey Data Analysis */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -1673,6 +1671,7 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                     </div>
                   </div>
                 </div>
+                )}
               </>
             )}
 
