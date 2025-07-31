@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,28 +15,55 @@ interface DataTableProps {
   memoryDump: MemoryDump | null;
 }
 
-// Helper function to format values with units and handle N/A
+// Enhanced helper function to format values with units and handle N/A
 function formatValue(value: number | string | null | undefined, type: string): string {
-  if (value === null || value === undefined || isNaN(Number(value))) {
+  if (value === null || value === undefined || value === '' || (typeof value === 'number' && (isNaN(value) || !isFinite(value)))) {
     return "N/A";
   }
 
   const numValue = Number(value);
+  
+  // Handle extremely small scientific notation values
+  if (typeof numValue === 'number' && Math.abs(numValue) < 0.0001 && numValue !== 0) {
+    return "~0.000";
+  }
 
   switch (type) {
     case 'temperature':
-      return `${numValue.toFixed(1)} °F`;
+      if (numValue < -100 || numValue > 1000) return "N/A";
+      return `${numValue.toFixed(1)}°F (${((numValue - 32) * 5/9).toFixed(1)}°C)`;
     case 'voltage':
-      return `${numValue.toFixed(2)} V`;
+      if (Math.abs(numValue) < 0.001) return "0.000 V";
+      return `${numValue.toFixed(3)} V`;
     case 'current':
+      if (Math.abs(numValue) < 0.001) return "0.000 A";
       return `${numValue.toFixed(3)} A`;
     case 'gamma':
+      if (numValue < 0) return "N/A";
       return `${numValue.toFixed(1)} cps`;
-    case 'maxZ':
+    case 'acceleration':
+    case 'shock':
+    case 'vibration':
+      if (Math.abs(numValue) < 0.001) return "0.000 g";
       return `${numValue.toFixed(3)} g`;
     case 'rpm':
+      if (numValue < 0) return "N/A";
       return `${Math.round(numValue)} RPM`;
+    case 'percentage':
+      return `${numValue.toFixed(1)}%`;
+    case 'pressure':
+      return `${numValue.toFixed(2)} psi`;
+    case 'angle':
+      return `${numValue.toFixed(2)}°`;
+    case 'time':
+      return `${numValue.toFixed(2)} s`;
+    case 'flow':
+      return numValue > 0 ? "Active" : "Inactive";
     default:
+      if (typeof numValue === 'number') {
+        if (Math.abs(numValue) < 0.001) return "0.000";
+        return numValue.toFixed(3);
+      }
       return String(value);
   }
 }
@@ -48,6 +76,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
+  // Move useQuery to be always called (before any conditional returns)
   const { data: tableData, isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'full-table-data', memoryDump?.filename, memoryDump?.uploadedAt],
     queryFn: async () => {
@@ -67,6 +96,61 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     gcTime: 0, // Don't cache table data - always fresh
   });
 
+  // Move all useMemo hooks here (before any conditional returns)
+  const filteredData = useMemo(() => {
+    if (!tableData) return [];
+    let data = [...tableData];
+
+    if (globalFilter) {
+      data = data.filter(item =>
+        Object.values(item).some(value =>
+          String(value).toLowerCase().includes(globalFilter.toLowerCase())
+        )
+      );
+    }
+
+    for (const column in columnFilters) {
+      const filterValue = columnFilters[column];
+      if (filterValue) {
+        data = data.filter(item =>
+          String(item[column]).toLowerCase().includes(filterValue.toLowerCase())
+        );
+      }
+    }
+
+    return data;
+  }, [tableData, globalFilter, columnFilters]);
+
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return filteredData;
+
+    const sorted = [...filteredData].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      if (aValue === null || aValue === undefined) return sortDirection === "asc" ? -1 : 1;
+      if (bValue === null || bValue === undefined) return sortDirection === "asc" ? 1 : -1;
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+
+      return sortDirection === "asc" ? aString.localeCompare(bString) : bString.localeCompare(aString);
+    });
+
+    return sorted;
+  }, [filteredData, sortColumn, sortDirection]);
+
+  const totalRecords = sortedData.length;
+  const totalPages = Math.ceil(totalRecords / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalRecords);
+  const displayData = sortedData.slice(startIndex, endIndex);
+
+  // Now handle conditional rendering after all hooks are defined
   if (!memoryDump) {
     return (
       <section>
@@ -136,61 +220,6 @@ export default function DataTable({ memoryDump }: DataTableProps) {
       </section>
     );
   }
-
-  // Filter data based on global filter and column filters
-  const filteredData = useMemo(() => {
-    let data = [...tableData];
-
-    if (globalFilter) {
-      data = data.filter(item =>
-        Object.values(item).some(value =>
-          String(value).toLowerCase().includes(globalFilter.toLowerCase())
-        )
-      );
-    }
-
-    for (const column in columnFilters) {
-      const filterValue = columnFilters[column];
-      if (filterValue) {
-        data = data.filter(item =>
-          String(item[column]).toLowerCase().includes(filterValue.toLowerCase())
-        );
-      }
-    }
-
-    return data;
-  }, [tableData, globalFilter, columnFilters]);
-
-  // Sort the filtered data
-  const sortedData = useMemo(() => {
-    if (!sortColumn) return filteredData;
-
-    const sorted = [...filteredData].sort((a, b) => {
-      const aValue = a[sortColumn];
-      const bValue = b[sortColumn];
-
-      if (aValue === null || aValue === undefined) return sortDirection === "asc" ? -1 : 1;
-      if (bValue === null || bValue === undefined) return sortDirection === "asc" ? 1 : -1;
-
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-      }
-
-      const aString = String(aValue).toLowerCase();
-      const bString = String(bValue).toLowerCase();
-
-      return sortDirection === "asc" ? aString.localeCompare(bString) : bString.localeCompare(aString);
-    });
-
-    return sorted;
-  }, [filteredData, sortColumn, sortDirection]);
-
-  // Pagination calculations
-  const totalRecords = sortedData.length;
-  const totalPages = Math.ceil(totalRecords / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalRecords);
-  const displayData = sortedData.slice(startIndex, endIndex);
 
   // Pagination control functions
   const goToFirstPage = () => setCurrentPage(1);
@@ -268,54 +297,22 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                      <TableHead className="text-slate-300 font-semibold">
-                        Index
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Timestamp
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Temperature
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Battery Voltage
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Battery Current
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Motor Current
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Flow Status
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Gamma Radiation
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Max Vibration Z
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        RPM Average
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Acceleration X
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Acceleration Y
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Acceleration Z
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Shock X
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Shock Y
-                      </TableHead>
-                      <TableHead className="text-slate-300 font-semibold">
-                        Shock Z
-                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Record #</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Timestamp</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Temperature</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Battery Voltage</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Battery Current</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Motor Current</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Flow Status</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Gamma Radiation</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Max Vibration Z</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">RPM Average</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Acceleration X</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Acceleration Y</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Acceleration Z</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Shock X</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Shock Y</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Shock Z</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -323,11 +320,11 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                       const actualIndex = startIndex + index + 1;
                       return (
                         <TableRow key={actualIndex} className="border-slate-700 hover:bg-slate-800/30">
-                          <TableCell className="text-slate-300 font-mono text-sm">
-                            {actualIndex.toLocaleString()}
+                          <TableCell className="text-slate-300 font-mono text-sm font-bold">
+                            #{actualIndex.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-slate-300 font-mono text-sm">
-                            {new Date(record.rtd).toLocaleString()}
+                            {record.rtd ? new Date(record.rtd).toLocaleString() : 'N/A'}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
                             {formatValue(record.tempMP, 'temperature')}
@@ -342,36 +339,36 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                             {formatValue(record.motorAvg, 'current')}
                           </TableCell>
                           <TableCell className="text-slate-300">
-                            <Badge className={record.flowStatus === 'On' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
-                              {record.flowStatus || 'N/A'}
+                            <Badge className={record.flowStatus === 'On' || record.flowStatus === 'Active' || record.flowStatus > 0 ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
+                              {formatValue(record.flowStatus, 'flow')}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
                             {formatValue(record.gamma, 'gamma')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.maxZ, 'maxZ')}
+                            {formatValue(record.maxZ, 'vibration')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
                             {formatValue(record.rotRpmAvg, 'rpm')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.accelAX, 'maxZ')}
+                            {formatValue(record.accelAX, 'acceleration')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.accelAY, 'maxZ')}
+                            {formatValue(record.accelAY, 'acceleration')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.accelAZ, 'maxZ')}
+                            {formatValue(record.accelAZ, 'acceleration')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.shockX, 'maxZ')}
+                            {formatValue(record.shockX, 'shock')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.shockY, 'maxZ')}
+                            {formatValue(record.shockY, 'shock')}
                           </TableCell>
                           <TableCell className="text-slate-300 font-medium">
-                            {formatValue(record.shockZ, 'maxZ')}
+                            {formatValue(record.shockZ, 'shock')}
                           </TableCell>
                         </TableRow>
                       );
