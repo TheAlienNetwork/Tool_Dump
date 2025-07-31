@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import FileUpload from "@/components/FileUpload";
-import HealthSummary from "@/components/HealthSummary";
 import DataVisualization from "@/components/DataVisualization";
-import DataTable from "@/components/DataTable";
-import DataComparison from "@/components/DataComparison";
 import { DeviceReport } from "@/components/DeviceReport";
-import { MemoryDump } from "@/lib/types";
-import DeviceStatusReport from "@/components/DeviceStatusReport";
+import { DeviceStatusReport } from "@/components/DeviceStatusReport";
+import { DataTable } from "@/components/DataTable";
+import { DataComparison } from "@/components/DataComparison";
+import { HealthSummary } from "@/components/HealthSummary";
+import type { MemoryDump } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, AlertTriangle, XCircle, Clock, FileText, BarChart3, Activity, Zap, FolderOpen } from "lucide-react";
 
 export default function Dashboard() {
   const [selectedDump, setSelectedDump] = useState<MemoryDump | null>(null);
@@ -58,6 +62,8 @@ export default function Dashboard() {
   const formatTime = (date: Date) => {
     return date.toISOString().replace('T', ' ').substr(0, 19) + ' UTC';
   };
+
+  const completedDumps = memoryDumps.filter((dump: MemoryDump) => dump.status === 'completed');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
@@ -117,38 +123,99 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {selectedDump && (
-            <section className="space-y-8">
-              <HealthSummary memoryDump={selectedDump} />
-            </section>
-          )}
+          {/* Main Content Area */}
+        <div className="flex-1 space-y-8">
+          {completedDumps.length > 0 ? (
+            <Tabs defaultValue={completedDumps.length > 1 ? "combined" : completedDumps[0]?.id.toString()} className="w-full">
+              <TabsList className="grid w-full grid-cols-auto bg-dark-800/50 backdrop-blur-xl border border-slate-700/50">
+                {/* Combined Report Tab - only show if multiple files */}
+                {completedDumps.length > 1 && (
+                  <TabsTrigger 
+                    value="combined" 
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-indigo-500/20 data-[state=active]:text-purple-400"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <BarChart3 className="w-4 h-4" />
+                      <span>Combined Report</span>
+                    </div>
+                  </TabsTrigger>
+                )}
 
-          {selectedDump && (
-            <section className="space-y-8">
-              <DeviceReport memoryDump={selectedDump} />
-            </section>
-          )}
+                {/* Individual File Tabs */}
+                {completedDumps.map((dump) => (
+                  <TabsTrigger 
+                    key={dump.id} 
+                    value={dump.id.toString()}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/20 data-[state=active]:to-cyan-500/20 data-[state=active]:text-blue-400"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <FolderOpen className="w-4 h-4" />
+                      <span>{dump.filename?.split('_')[1] || `File ${dump.id}`}</span>
+                    </div>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-          {selectedDump && (
-            <section className="space-y-8">
-              <DataVisualization memoryDump={selectedDump} />
-            </section>
-          )}
+              {/* Combined Report Content */}
+              {completedDumps.length > 1 && (
+                <TabsContent value="combined" className="space-y-6">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                        Combined Analysis
+                      </h2>
+                      <p className="text-slate-400 text-sm">Cross-file comparison and analysis of {completedDumps.length} files</p>
+                    </div>
+                  </div>
+                  <DataComparison memoryDumps={completedDumps} />
+                  <HealthSummary memoryDumps={completedDumps} />
+                </TabsContent>
+              )}
 
-          {selectedDump && memoryDumps.length > 1 && (
-            <section className="space-y-8">
-              <DataComparison 
-                memoryDumps={memoryDumps} 
-                selectedDump={selectedDump} 
-              />
-            </section>
-          )}
+              {/* Individual File Content */}
+              {completedDumps.map((dump) => (
+                <TabsContent key={dump.id} value={dump.id.toString()} className="space-y-8">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                        {dump.filename || `Memory Dump ${dump.id}`}
+                      </h2>
+                      <p className="text-slate-400 text-sm">
+                        Individual analysis report • {dump.fileType} • {new Date(dump.uploadedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
 
-          {selectedDump && selectedDump.status === 'completed' && (
-            <section className="space-y-8">
-              <DeviceStatusReport memoryDump={selectedDump} />
-            </section>
+                  {/* Device Report */}
+                  <DeviceReport memoryDump={dump} />
+
+                  {/* Device Status Report */}
+                  <DeviceStatusReport memoryDump={dump} />
+
+                  {/* Data Visualization */}
+                  <DataVisualization memoryDump={dump} />
+
+                  {/* Data Table */}
+                  <DataTable memoryDump={dump} />
+                </TabsContent>
+              ))}
+            </Tabs>
+          ) : (
+            <div className="text-center py-12">
+              <div className="glass-morphism rounded-xl p-8 max-w-md mx-auto">
+                <Activity className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-300 mb-2">No Data Available</h3>
+                <p className="text-slate-400">Upload binary files to begin analysis</p>
+              </div>
+            </div>
           )}
+        </div>
         </div>
       </div>
     </div>

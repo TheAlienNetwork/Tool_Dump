@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +48,7 @@ export function DeviceStatusReport({ memoryDump }: DeviceStatusReportProps) {
         throw new Error(`Failed to fetch status data: ${response.statusText}`);
       }
       const data = await response.json();
-      
+
       // Analyze data for status information
       const totalRecords = data.length;
       const communicationErrors = data.filter((record: any) => record.resetMP > 0).length;
@@ -57,18 +56,18 @@ export function DeviceStatusReport({ memoryDump }: DeviceStatusReportProps) {
       const avgMotorHall = data.reduce((sum: number, record: any) => sum + (record.motorHall || 0), 0) / totalRecords;
       const totalPulses = data.reduce((sum: number, record: any) => sum + (record.motorHall || 0), 0);
       const pulseErrors = data.filter((record: any) => record.motorHall === 0 && record.motorAvg > 0).length;
-      
+
       // Calculate delta values
       const tempDeltas = [];
       const voltageDeltas = [];
       const currentDeltas = [];
-      
+
       for (let i = 1; i < data.length; i++) {
         tempDeltas.push(Math.abs(data[i].tempMP - data[i-1].tempMP));
         voltageDeltas.push(Math.abs(data[i].batteryVoltMP - data[i-1].batteryVoltMP));
         currentDeltas.push(Math.abs(data[i].batteryCurrMP - data[i-1].batteryCurrMP));
       }
-      
+
       return {
         totalRecords,
         communicationErrors,
@@ -178,7 +177,7 @@ export function DeviceStatusReport({ memoryDump }: DeviceStatusReportProps) {
                   <div className="text-2xl font-bold text-green-400">{statusData.totalRecords.toLocaleString()}</div>
                   <div className="text-green-300 text-sm">Total data points</div>
                 </div>
-                
+
                 <div className={`rounded-lg p-4 border ${statusData.communicationErrors > 0 
                   ? 'bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20' 
                   : 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20'}`}>
