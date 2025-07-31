@@ -159,20 +159,8 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
   // Extract device report data - handle both direct data and nested structure
   const deviceReport = data?.deviceReport || data;
 
-  if (!deviceReport) {
-    return (
-      <div className="glass-morphism rounded-xl p-8">
-        <div className="flex items-center space-x-3 mb-4">
-          <HardDrive className="h-6 w-6 text-blue-500" />
-          <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-            Device Report
-          </h3>
-        </div>
-        <p className="text-slate-400">Processing device report data...</p>
-        <p className="text-slate-500 text-sm mt-2">Data is being extracted from {memoryDump.filename}. Please wait a moment.</p>
-      </div>
-    );
-  }
+  // Always show the report, even if data is still loading
+  const hasValidData = deviceReport && (deviceReport.mpSerialNumber || deviceReport.mdgSerialNumber);
 
   const formatValue = (value: number | null, unit?: string, precision = 2) => {
     if (value === null || value === undefined) return "N/A";
