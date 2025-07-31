@@ -24,7 +24,6 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Chip,
   Battery,
   BarChart3
 } from "lucide-react";
@@ -240,7 +239,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
                 <div className="glass-morphism rounded-xl p-6 border border-blue-500/20">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                      <Chip className="w-5 h-5 text-blue-400" />
+                      <Cpu className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-blue-400">Device Identifier</h3>
