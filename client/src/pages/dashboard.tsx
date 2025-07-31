@@ -4,6 +4,7 @@ import FileUpload from "@/components/FileUpload";
 import HealthSummary from "@/components/HealthSummary";
 import DataVisualization from "@/components/DataVisualization";
 import DataTable from "@/components/DataTable";
+import DataComparison from "@/components/DataComparison";
 import { DeviceReport } from "@/components/DeviceReport";
 import { MemoryDump } from "@/lib/types";
 
@@ -130,6 +131,15 @@ export default function Dashboard() {
           {selectedDump && (
             <section className="space-y-8">
               <DataVisualization memoryDump={selectedDump} />
+            </section>
+          )}
+
+          {selectedDump && memoryDumps.length > 1 && (
+            <section className="space-y-8">
+              <DataComparison 
+                memoryDumps={memoryDumps} 
+                selectedDump={selectedDump} 
+              />
             </section>
           )}
         </div>

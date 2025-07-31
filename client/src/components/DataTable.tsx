@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Filter, Search } from "lucide-react";
 import { MemoryDump, MemoryDumpDetails } from "@/lib/types";
 import { Database, Activity, AlertTriangle } from "lucide-react";
-import { useState } from "react";
 
 interface DataTableProps {
   memoryDump: MemoryDump | null;
@@ -41,6 +42,10 @@ function formatValue(value: number | string | null | undefined, type: string): s
 export default function DataTable({ memoryDump }: DataTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50; // Display 50 records per page
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const { data: tableData, isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'full-table-data', memoryDump?.filename, memoryDump?.uploadedAt],
@@ -131,18 +136,84 @@ export default function DataTable({ memoryDump }: DataTableProps) {
     );
   }
 
+  // Filter data based on global filter and column filters
+  const filteredData = useMemo(() => {
+    let data = [...tableData];
+
+    if (globalFilter) {
+      data = data.filter(item =>
+        Object.values(item).some(value =>
+          String(value).toLowerCase().includes(globalFilter.toLowerCase())
+        )
+      );
+    }
+
+    for (const column in columnFilters) {
+      const filterValue = columnFilters[column];
+      if (filterValue) {
+        data = data.filter(item =>
+          String(item[column]).toLowerCase().includes(filterValue.toLowerCase())
+        );
+      }
+    }
+
+    return data;
+  }, [tableData, globalFilter, columnFilters]);
+
+  // Sort the filtered data
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return filteredData;
+
+    const sorted = [...filteredData].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      if (aValue === null || aValue === undefined) return sortDirection === "asc" ? -1 : 1;
+      if (bValue === null || bValue === undefined) return sortDirection === "asc" ? 1 : -1;
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+
+      return sortDirection === "asc" ? aString.localeCompare(bString) : bString.localeCompare(aString);
+    });
+
+    return sorted;
+  }, [filteredData, sortColumn, sortDirection]);
+
   // Pagination calculations
-  const totalRecords = tableData.length;
+  const totalRecords = sortedData.length;
   const totalPages = Math.ceil(totalRecords / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalRecords);
-  const displayData = tableData.slice(startIndex, endIndex);
+  const displayData = sortedData.slice(startIndex, endIndex);
 
   // Pagination control functions
   const goToFirstPage = () => setCurrentPage(1);
   const goToPrevPage = () => setCurrentPage(Math.max(1, currentPage - 1));
   const goToNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
   const goToLastPage = () => setCurrentPage(totalPages);
+
+  // CSV Export function
+  const exportToCSV = () => {
+    const headers = Object.keys(tableData[0]).join(',');
+    const csv = [
+      headers,
+      ...tableData.map(item => Object.values(item).map(value => String(value).replace(/,/g, '')).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${memoryDump.filename}_data.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <section>
@@ -152,7 +223,7 @@ export default function DataTable({ memoryDump }: DataTableProps) {
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
               Complete Binary Memory Dump Analysis - All Data
             </CardTitle>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2">
               <p className="text-slate-400 text-sm">Complete sensor dataset from {memoryDump.filename} - All {totalRecords.toLocaleString()} records available</p>
               <div className="flex items-center space-x-2">
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
@@ -166,6 +237,29 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 </Badge>
               </div>
             </div>
+
+            {/* Filtering and Export Section */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2 mt-4">
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="text"
+                  placeholder="Global Filter"
+                  value={globalFilter}
+                  onChange={(e) => {
+                    setGlobalFilter(e.target.value);
+                    setCurrentPage(1); // Reset page on filter
+                  }}
+                  className="bg-slate-800 border-slate-700 text-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm rounded-lg block w-full p-2.5"
+                />
+                <Button
+                  onClick={exportToCSV}
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="glass-morphism rounded-xl p-6">
@@ -173,22 +267,54 @@ export default function DataTable({ memoryDump }: DataTableProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                      <TableHead className="text-slate-300 font-semibold">Index</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Timestamp</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Temperature</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Battery Voltage</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Battery Current</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Motor Current</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Flow Status</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Gamma Radiation</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Max Vibration Z</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">RPM Average</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Acceleration X</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Acceleration Y</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Acceleration Z</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Shock X</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Shock Y</TableHead>
-                      <TableHead className="text-slate-300 font-semibold">Shock Z</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Index
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Timestamp
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Temperature
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Battery Voltage
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Battery Current
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Motor Current
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Flow Status
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Gamma Radiation
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Max Vibration Z
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        RPM Average
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Acceleration X
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Acceleration Y
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Acceleration Z
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Shock X
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Shock Y
+                      </TableHead>
+                      <TableHead className="text-slate-300 font-semibold">
+                        Shock Z
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MemoryDump, AnalysisResults } from "@/lib/types";
-import { Download, Wrench, AlertTriangle, AlertCircle, Info, Shield, Clock, Zap } from "lucide-react";
+import { Download, Wrench, AlertTriangle, AlertCircle, Info, Shield, Clock, Zap, TrendingUp, Activity, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
 
 interface HealthSummaryProps {
   memoryDump: MemoryDump;
@@ -14,7 +15,7 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'analysis', memoryDump?.filename, memoryDump?.uploadedAt],
     queryFn: async () => {
       if (!memoryDump?.id) throw new Error('No memory dump selected');
-      
+
       const response = await fetch(`/api/memory-dumps/${memoryDump.id}/analysis/${encodeURIComponent(memoryDump.filename)}/${encodeURIComponent(memoryDump.uploadedAt)}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch analysis: ${response.statusText}`);
@@ -47,6 +48,69 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
       console.error('Failed to download PDF report:', error);
     }
   };
+
+  // Enhanced AI Insights
+  const aiInsights = useMemo(() => {
+    if (!analysisResults?.issues) return null;
+
+    const criticalIssues = analysisResults.issues.filter(issue => issue.severity === 'critical');
+    const warningIssues = analysisResults.issues.filter(issue => issue.severity === 'warning');
+
+    // Generate maintenance recommendations
+    const recommendations = [];
+
+    if (criticalIssues.some(issue => issue.issue.toLowerCase().includes('temperature'))) {
+      recommendations.push({
+        priority: 'critical',
+        action: 'Immediate Temperature Inspection',
+        description: 'Check cooling systems, ventilation, and thermal sensors for malfunction.',
+        timeline: 'Within 24 hours'
+      });
+    }
+
+    if (criticalIssues.some(issue => issue.issue.toLowerCase().includes('shock'))) {
+      recommendations.push({
+        priority: 'critical',
+        action: 'Mechanical Integrity Check',
+        description: 'Inspect mounting systems, dampeners, and structural supports.',
+        timeline: 'Within 48 hours'
+      });
+    }
+
+    if (warningIssues.some(issue => issue.issue.toLowerCase().includes('motor'))) {
+      recommendations.push({
+        priority: 'warning',
+        action: 'Motor Maintenance',
+        description: 'Schedule motor current analysis and bearing inspection.',
+        timeline: 'Within 2 weeks'
+      });
+    }
+
+    if (warningIssues.some(issue => issue.issue.toLowerCase().includes('voltage'))) {
+      recommendations.push({
+        priority: 'warning',
+        action: 'Electrical System Review',
+        description: 'Check power supply stability and electrical connections.',
+        timeline: 'Within 1 week'
+      });
+    }
+
+    // Calculate system health score
+    const totalIssues = analysisResults.issues.length;
+    const criticalWeight = criticalIssues.length * 3;
+    const warningWeight = warningIssues.length * 1;
+    const healthScore = Math.max(0, 100 - (criticalWeight + warningWeight) * 5);
+
+    return {
+      recommendations,
+      healthScore,
+      riskLevel: healthScore > 80 ? 'low' : healthScore > 60 ? 'medium' : 'high',
+      predictiveInsights: {
+        nextMaintenanceWindow: healthScore > 80 ? '3-6 months' : healthScore > 60 ? '1-3 months' : 'Immediate',
+        reliabilityTrend: criticalIssues.length > 0 ? 'decreasing' : warningIssues.length > 2 ? 'stable' : 'increasing'
+      }
+    };
+  }, [analysisResults]);
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -288,6 +352,150 @@ export default function HealthSummary({ memoryDump }: HealthSummaryProps) {
                 </div>
                 <h3 className="text-xl font-bold text-slate-100 mb-2">All Systems Operational</h3>
                 <p className="text-slate-400">No issues detected in this memory dump analysis.</p>
+              </div>
+            )}
+
+            {/* AI Analysis Results */}
+            {analysisResults && (
+              <div className="space-y-6">
+                {/* Overall Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-full ${
+                      analysisResults.overallStatus === 'operational' ? 'bg-green-500/20' :
+                      analysisResults.overallStatus === 'warning' ? 'bg-yellow-500/20' : 'bg-red-500/20'
+                    }`}>
+                      {analysisResults.overallStatus === 'operational' ? (
+                        <Shield className="w-6 h-6 text-green-400" />
+                      ) : analysisResults.overallStatus === 'warning' ? (
+                        <AlertTriangle className="w-6 h-6 text-yellow-400" />
+                      ) : (
+                        <AlertCircle className="w-6 h-6 text-red-400" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-200">
+                        System Status: <span className={`${
+                          analysisResults.overallStatus === 'operational' ? 'text-green-400' :
+                          analysisResults.overallStatus === 'warning' ? 'text-yellow-400' : 'text-red-400'
+                        }`}>
+                          {analysisResults.overallStatus.charAt(0).toUpperCase() + analysisResults.overallStatus.slice(1)}
+                        </span>
+                      </h3>
+                      <p className="text-slate-400 text-sm">AI analysis completed at {new Date(analysisResults.generatedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <Button onClick={handleDownloadReport} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF Report
+                  </Button>
+                </div>
+
+                {/* Enhanced AI Insights Dashboard */}
+                {aiInsights && (
+                  <div className="glass-morphism rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-slate-200 mb-6 flex items-center">
+                      <Zap className="w-5 h-5 text-yellow-400 mr-2" />
+                      AI-Powered Predictive Insights
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* System Health Score */}
+                      <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
+                        <div className="text-blue-400 text-xs uppercase font-medium mb-2">System Health Score</div>
+                        <div className="text-3xl font-bold text-blue-400 mb-2">{aiInsights.healthScore}/100</div>
+                        <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              aiInsights.healthScore > 80 ? 'bg-green-500' :
+                              aiInsights.healthScore > 60 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${aiInsights.healthScore}%` }}
+                          ></div>
+                        </div>
+                        <div className={`text-sm ${
+                          aiInsights.riskLevel === 'low' ? 'text-green-300' :
+                          aiInsights.riskLevel === 'medium' ? 'text-yellow-300' : 'text-red-300'
+                        }`}>
+                          {aiInsights.riskLevel.toUpperCase()} Risk Level
+                        </div>
+                      </div>
+
+                      {/* Maintenance Prediction */}
+                      <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
+                        <div className="text-purple-400 text-xs uppercase font-medium mb-2">Next Maintenance</div>
+                        <div className="text-2xl font-bold text-purple-400 mb-2">
+                          {aiInsights.predictiveInsights.nextMaintenanceWindow}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-purple-300" />
+                          <div className="text-purple-300 text-sm">Predicted window</div>
+                        </div>
+                      </div>
+
+                      {/* Reliability Trend */}
+                      <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
+                        <div className="text-green-400 text-xs uppercase font-medium mb-2">Reliability Trend</div>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="text-2xl font-bold text-green-400">
+                            {aiInsights.predictiveInsights.reliabilityTrend.charAt(0).toUpperCase() + 
+                             aiInsights.predictiveInsights.reliabilityTrend.slice(1)}
+                          </div>
+                          {aiInsights.predictiveInsights.reliabilityTrend === 'increasing' ? (
+                            <TrendingUp className="w-6 h-6 text-green-400" />
+                          ) : aiInsights.predictiveInsights.reliabilityTrend === 'stable' ? (
+                            <Activity className="w-6 h-6 text-yellow-400" />
+                          ) : (
+                            <TrendingDown className="w-6 h-6 text-red-400" />
+                          )}
+                        </div>
+                        <div className="text-green-300 text-sm">AI trend analysis</div>
+                      </div>
+                    </div>
+
+                    {/* Maintenance Recommendations */}
+                    {aiInsights.recommendations.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="text-md font-semibold text-slate-200 mb-4">
+                          AI-Generated Maintenance Recommendations
+                        </h4>
+                        <div className="space-y-3">
+                          {aiInsights.recommendations.map((rec, index) => (
+                            <div key={index} className={`p-4 rounded-lg border ${
+                              rec.priority === 'critical' 
+                                ? 'bg-red-500/10 border-red-500/30' 
+                                : 'bg-yellow-500/10 border-yellow-500/30'
+                            }`}>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <Wrench className={`w-4 h-4 ${
+                                      rec.priority === 'critical' ? 'text-red-400' : 'text-yellow-400'
+                                    }`} />
+                                    <h5 className={`font-medium ${
+                                      rec.priority === 'critical' ? 'text-red-400' : 'text-yellow-400'
+                                    }`}>
+                                      {rec.action}
+                                    </h5>
+                                  </div>
+                                  <p className="text-slate-300 text-sm mb-2">{rec.description}</p>
+                                  <div className="text-xs text-slate-400">Timeline: {rec.timeline}</div>
+                                </div>
+                                <Badge className={`${
+                                  rec.priority === 'critical' 
+                                    ? 'bg-red-500/20 text-red-400 border-red-500/50' 
+                                    : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'
+                                }`}>
+                                  {rec.priority.toUpperCase()}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
