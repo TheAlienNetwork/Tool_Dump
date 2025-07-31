@@ -411,9 +411,30 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
 
   const sensorData = dumpDetails.sensorData;
 
-  // Filter data by type
-  const mpData = chartData.filter(d => d.tempMP !== null || d.batteryVoltMP !== null || d.flowStatus !== null);
-  const mdgData = chartData.filter(d => d.accelAX !== null || d.vBatt !== null || d.shockZ !== null);
+  // Filter data by type - Enhanced filtering for better data detection
+  const mpData = chartData.filter(d => 
+    d.tempMP !== null || 
+    d.batteryVoltMP !== null || 
+    d.flowStatus !== null ||
+    d.motorAvg !== null ||
+    d.actuationTime !== null
+  );
+  
+  const mdgData = chartData.filter(d => 
+    d.accelAX !== null || 
+    d.vBatt !== null || 
+    d.shockZ !== null ||
+    d.v5VD !== null ||
+    d.v3_3VD !== null ||
+    d.v1_9VD !== null ||
+    d.v1_5VD !== null ||
+    d.v1_8VA !== null ||
+    d.v3_3VA !== null ||
+    d.v3_3VA_DI !== null ||
+    d.surveyINC !== null ||
+    d.surveyAZM !== null ||
+    d.gamma !== null
+  );
 
   // Calculate statistics with enhanced formatting
   const calculateStats = (data: any[], field: string, type: string) => {
@@ -779,69 +800,85 @@ export default function DataVisualization({ memoryDump }: DataVisualizationProps
                 )}
 
                 {/* System Voltages with Smart Unit Display */}
-                <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Cpu className="w-5 h-5 text-green-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">System Voltages (MDG) - Smart Units</h3>
+                {mdgData.some(d => d.v5VD !== null || d.v3_3VD !== null || d.v1_9VD !== null || d.v1_5VD !== null || d.v1_8VA !== null || d.v3_3VA !== null || d.v3_3VA_DI !== null) && (
+                  <div className="glass-morphism rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <Cpu className="w-5 h-5 text-green-400" />
+                        <h3 className="text-lg font-semibold text-slate-200">System Voltages (MDG) - Smart Units</h3>
+                      </div>
+                      <div className="bg-green-500/20 px-2 py-1 rounded text-xs text-green-400">
+                        {mdgData.filter(d => d.v5VD !== null || d.v3_3VD !== null || d.v1_9VD !== null).length} readings
+                      </div>
+                    </div>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={mdgData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                          <YAxis 
+                            stroke="#9CA3AF" 
+                            fontSize={12} 
+                            label={{ value: 'Voltage', angle: -90, position: 'insideLeft' }}
+                            tickFormatter={createYAxisFormatter('voltage')}
+                            domain={[0, 'dataMax + 1']}
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                            formatter={createTooltipFormatter('voltage')}
+                          />
+                          <Legend />
+                          {mdgData.some(d => d.v3_3VA_DI !== null) && <Line type="monotone" dataKey="v3_3VA_DI" stroke="#EF4444" strokeWidth={2} name="3.3VA_DI" dot={false} />}
+                          {mdgData.some(d => d.v5VD !== null) && <Line type="monotone" dataKey="v5VD" stroke="#10B981" strokeWidth={2} name="5VD" dot={false} />}
+                          {mdgData.some(d => d.v3_3VD !== null) && <Line type="monotone" dataKey="v3_3VD" stroke="#3B82F6" strokeWidth={2} name="3.3VD" dot={false} />}
+                          {mdgData.some(d => d.v1_9VD !== null) && <Line type="monotone" dataKey="v1_9VD" stroke="#F59E0B" strokeWidth={2} name="1.9VD" dot={false} />}
+                          {mdgData.some(d => d.v1_5VD !== null) && <Line type="monotone" dataKey="v1_5VD" stroke="#8B5CF6" strokeWidth={2} name="1.5VD" dot={false} />}
+                          {mdgData.some(d => d.v1_8VA !== null) && <Line type="monotone" dataKey="v1_8VA" stroke="#EC4899" strokeWidth={2} name="1.8VA" dot={false} />}
+                          {mdgData.some(d => d.v3_3VA !== null) && <Line type="monotone" dataKey="v3_3VA" stroke="#06B6D4" strokeWidth={2} name="3.3VA" dot={false} />}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mdgData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis 
-                          stroke="#9CA3AF" 
-                          fontSize={12} 
-                          label={{ value: 'Voltage', angle: -90, position: 'insideLeft' }}
-                          tickFormatter={createYAxisFormatter('voltage')}
-                        />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                          formatter={createTooltipFormatter('voltage')}
-                        />
-                        <Legend />
-                        <Line type="monotone" dataKey="v3_3VA_DI" stroke="#EF4444" strokeWidth={1} name="3.3VA_DI" dot={false} />
-                        <Line type="monotone" dataKey="v5VD" stroke="#10B981" strokeWidth={1} name="5VD" dot={false} />
-                        <Line type="monotone" dataKey="v3_3VD" stroke="#3B82F6" strokeWidth={1} name="3.3VD" dot={false} />
-                        <Line type="monotone" dataKey="v1_9VD" stroke="#F59E0B" strokeWidth={1} name="1.9VD" dot={false} />
-                        <Line type="monotone" dataKey="v1_5VD" stroke="#8B5CF6" strokeWidth={1} name="1.5VD" dot={false} />
-                        <Line type="monotone" dataKey="v1_8VA" stroke="#EC4899" strokeWidth={1} name="1.8VA" dot={false} />
-                        <Line type="monotone" dataKey="v3_3VA" stroke="#06B6D4" strokeWidth={1} name="3.3VA" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+                )}
 
                 {/* Survey Data with Enhanced Angle Display */}
-                <div className="glass-morphism rounded-xl p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Compass className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Survey Data - Enhanced Angles</h3>
+                {mdgData.some(d => d.surveyINC !== null || d.surveyAZM !== null || d.surveyCINC !== null || d.surveyCAZM !== null) && (
+                  <div className="glass-morphism rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <Compass className="w-5 h-5 text-emerald-400" />
+                        <h3 className="text-lg font-semibold text-slate-200">Survey Data - Enhanced Angles</h3>
+                      </div>
+                      <div className="bg-emerald-500/20 px-2 py-1 rounded text-xs text-emerald-400">
+                        {mdgData.filter(d => d.surveyINC !== null || d.surveyAZM !== null).length} readings
+                      </div>
+                    </div>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={mdgData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
+                          <YAxis 
+                            stroke="#9CA3AF" 
+                            fontSize={12} 
+                            label={{ value: 'Degrees', angle: -90, position: 'insideLeft' }}
+                            tickFormatter={createYAxisFormatter('angle')}
+                            domain={[0, 360]}
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                            formatter={createTooltipFormatter('angle')}
+                          />
+                          <Legend />
+                          {mdgData.some(d => d.surveyINC !== null) && <Line type="monotone" dataKey="surveyINC" stroke="#10B981" strokeWidth={2} name="Survey INC" dot={false} />}
+                          {mdgData.some(d => d.surveyCINC !== null) && <Line type="monotone" dataKey="surveyCINC" stroke="#3B82F6" strokeWidth={2} name="Survey CINC" dot={false} />}
+                          {mdgData.some(d => d.surveyAZM !== null) && <Line type="monotone" dataKey="surveyAZM" stroke="#F59E0B" strokeWidth={2} name="Survey AZM" dot={false} />}
+                          {mdgData.some(d => d.surveyCAZM !== null) && <Line type="monotone" dataKey="surveyCAZM" stroke="#8B5CF6" strokeWidth={2} name="Survey CAZM" dot={false} />}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mdgData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} interval="preserveStartEnd" />
-                        <YAxis 
-                          stroke="#9CA3AF" 
-                          fontSize={12} 
-                          label={{ value: 'Degrees', angle: -90, position: 'insideLeft' }}
-                          tickFormatter={createYAxisFormatter('angle')}
-                        />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                          formatter={createTooltipFormatter('angle')}
-                        />
-                        <Legend />
-                        <Line type="monotone" dataKey="surveyINC" stroke="#10B981" strokeWidth={2} name="Survey INC" dot={false} />
-                        <Line type="monotone" dataKey="surveyCINC" stroke="#3B82F6" strokeWidth={2} name="Survey CINC" dot={false} />
-                        <Line type="monotone" dataKey="surveyAZM" stroke="#F59E0B" strokeWidth={2} name="Survey AZM" dot={false} />
-                        <Line type="monotone" dataKey="surveyCAZM" stroke="#8B5CF6" strokeWidth={2} name="Survey CAZM" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+                )}
               </>
             )}
 

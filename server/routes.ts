@@ -274,8 +274,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const sensorData = data.sensorData;
+      // Return the cached device report if available
+      if (data.deviceReport) {
+        console.log(`✅ Returning cached device report with ${Object.keys(data.deviceReport).length} fields`);
+        res.json({ deviceReport: data.deviceReport });
+        return;
+      }
 
+      const sensorData = data.sensorData;
       console.log(`📊 Found ${sensorData.length} sensor records for device report`);
 
       if (sensorData.length === 0) {
@@ -288,7 +294,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enhanced device report generation with more comprehensive data
       const deviceReport = generateEnhancedDeviceReport(sensorData, data.memoryDump);
 
-      console.log(`✅ Generated device report with ${Object.keys(deviceReport).length} data fields`);
+      // Cache the generated report
+      data.deviceReport = deviceReport;
+      memoryStore.set(parseInt(id), data);
+
+      console.log(`✅ Generated and cached device report with ${Object.keys(deviceReport).length} data fields`);
       res.json({ deviceReport });
     } catch (error) {
       console.error('❌ Device report generation error:', error);
@@ -389,26 +399,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 function generateEnhancedDeviceReport(sensorData: any[], memoryDump: any) {
   console.log(`🔧 Generating enhanced device report from ${sensorData.length} sensor records`);
 
-  const deviceReport: any = {
-    // Initialize all fields to prevent undefined issues
-    mpSerialNumber: null,
-    mpFirmwareVersion: null,
-    mpMaxTempFahrenheit: null,
-    mpMaxTempCelsius: null,
-    mdgSerialNumber: null,
-    mdgFirmwareVersion: null,
-    mdgMaxTempFahrenheit: null,
-    mdgMaxTempCelsius: null,
-    circulationHours: null,
-    numberOfPulses: null,
-    motorOnTimeMinutes: null,
-    commErrorsTimeMinutes: null,
-    commErrorsPercent: null,
-    hallStatusTimeMinutes: null,
-    hallStatusPercent: null,
-    mdgEdtTotalHours: null,
-    mdgExtremeShockIndex: null
-  };
+  try {
+    const deviceReport: any = {
+      // Initialize all fields to prevent undefined issues
+      mpSerialNumber: null,
+      mpFirmwareVersion: null,
+      mpMaxTempFahrenheit: null,
+      mpMaxTempCelsius: null,
+      mdgSerialNumber: null,
+      mdgFirmwareVersion: null,
+      mdgMaxTempFahrenheit: null,
+      mdgMaxTempCelsius: null,
+      circulationHours: null,
+      numberOfPulses: null,
+      motorOnTimeMinutes: null,
+      commErrorsTimeMinutes: null,
+      commErrorsPercent: null,
+      hallStatusTimeMinutes: null,
+      hallStatusPercent: null,
+      mdgEdtTotalHours: null,
+      mdgExtremeShockIndex: null
+    };
 
   // Determine file type from filename
   const isMP = memoryDump.filename?.includes('_MP_') || false;
@@ -534,7 +545,19 @@ function generateEnhancedDeviceReport(sensorData: any[], memoryDump: any) {
   });
 
   console.log(`📊 Final device report contains: ${Object.keys(deviceReport).join(', ')}`);
-  return deviceReport;
+    return deviceReport;
+  } catch (error) {
+    console.error('❌ Error generating device report:', error);
+    // Return basic report with error info
+    return {
+      error: 'Device report generation failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      mpSerialNumber: `MP-ERROR-${Date.now()}`,
+      mdgSerialNumber: `MDG-ERROR-${Date.now()}`,
+      mpFirmwareVersion: 'ERROR',
+      mdgFirmwareVersion: 'ERROR'
+    };
+  }
 }
 
 // Legacy function for compatibility
