@@ -22,7 +22,7 @@ interface DeviceReportProps {
 }
 
 export function DeviceReport({ memoryDump }: DeviceReportProps) {
-  const { data: deviceReport, isLoading, error } = useQuery({
+  const { data: deviceReportData, isLoading, error } = useQuery({
     queryKey: ['/api/memory-dumps', memoryDump?.id, 'device-report', memoryDump?.filename, memoryDump?.uploadedAt],
     queryFn: async () => {
       if (!memoryDump?.id) throw new Error('No memory dump selected');
@@ -35,12 +35,12 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
     },
     enabled: !!memoryDump?.id && memoryDump?.status === 'completed',
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Prevent excessive requests
+    refetchOnMount: false,
     refetchOnReconnect: false,
-    staleTime: 30000, // Cache for 30 seconds to prevent infinite requests
-    gcTime: 60000, // Keep in cache for 1 minute
-    retry: 2, // Only retry twice on failure
-    retryDelay: 1000, // Wait 1 second between retries
+    staleTime: 30000,
+    gcTime: 60000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   if (isLoading) {
@@ -76,9 +76,10 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
     );
   }
 
-  const deviceReportData = (deviceReport as any)?.deviceReport;
+  // Extract device report data - handle both direct data and nested structure
+  const deviceReport = deviceReportData?.deviceReport || deviceReportData;
 
-  if (!deviceReportData) {
+  if (!deviceReport) {
     return (
       <div className="glass-morphism rounded-xl p-8">
         <div className="flex items-center space-x-3 mb-4">
@@ -155,7 +156,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
         </CardHeader>
         <CardContent className="space-y-8">
           {/* MP Device Information */}
-          {(deviceReportData.mpSerialNumber || deviceReportData.mpFirmwareVersion) && (
+          {(deviceReport.mpSerialNumber || deviceReport.mpFirmwareVersion) && (
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg">
@@ -165,26 +166,26 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-8">
-                {deviceReportData.mpSerialNumber && (
+                {deviceReport.mpSerialNumber && (
                   <div className="space-y-2">
                     <p className="text-sm text-slate-400 font-medium">Serial Number</p>
                     <Badge className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border-blue-500/50 hover:border-blue-400 transition-all duration-300">
-                      {deviceReportData.mpSerialNumber}
+                      {deviceReport.mpSerialNumber}
                     </Badge>
                   </div>
                 )}
-                {deviceReportData.mpFirmwareVersion && (
+                {deviceReport.mpFirmwareVersion && (
                   <div className="space-y-2">
                     <p className="text-sm text-slate-400 font-medium">Firmware Version</p>
                     <Badge className="bg-dark-700/50 text-slate-300 border-slate-600 hover:border-slate-500 transition-all duration-300">
-                      {deviceReportData.mpFirmwareVersion}
+                      {deviceReport.mpFirmwareVersion}
                     </Badge>
                   </div>
                 )}
               </div>
 
               {/* MP Temperature */}
-              {deviceReportData.mpMaxTempFahrenheit && (
+              {deviceReport.mpMaxTempFahrenheit && (
                 <div className="pl-8 space-y-3">
                   <div className="flex items-center gap-3">
                     <Thermometer className="h-5 w-5 text-rose-400" />
@@ -192,12 +193,12 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
                   </div>
                   <div className="flex gap-3">
                     <Badge 
-                      className={`${getTemperatureColor(getTemperatureStatus(deviceReportData.mpMaxTempFahrenheit))} transition-all duration-300`}
+                      className={`${getTemperatureColor(getTemperatureStatus(deviceReport.mpMaxTempFahrenheit))} transition-all duration-300`}
                     >
-                      {formatValue(deviceReportData.mpMaxTempFahrenheit, "°F", 1)}
+                      {formatValue(deviceReport.mpMaxTempFahrenheit, "°F", 1)}
                     </Badge>
                     <Badge className="bg-dark-700/50 text-slate-300 border-slate-600">
-                      {formatValue(deviceReportData.mpMaxTempCelsius, "°C", 1)}
+                      {formatValue(deviceReport.mpMaxTempCelsius, "°C", 1)}
                     </Badge>
                   </div>
                 </div>
@@ -205,31 +206,31 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
 
               {/* MP Operational Data */}
               <div className="pl-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {deviceReportData.circulationHours && (
+                {deviceReport.circulationHours && (
                   <div className="space-y-3 p-4 bg-dark-700/30 rounded-lg border border-cyan-500/20">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-cyan-400" />
                       <p className="text-sm text-slate-400 font-medium">Circulation Hours</p>
                     </div>
-                    <p className="text-lg font-mono text-cyan-400">{formatValue(deviceReportData.circulationHours, "hrs", 1)}</p>
+                    <p className="text-lg font-mono text-cyan-400">{formatValue(deviceReport.circulationHours, "hrs", 1)}</p>
                   </div>
                 )}
-                {deviceReportData.numberOfPulses && (
+                {deviceReport.numberOfPulses && (
                   <div className="space-y-3 p-4 bg-dark-700/30 rounded-lg border border-amber-500/20">
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-amber-400" />
                       <p className="text-sm text-slate-400 font-medium">Number of Pulses</p>
                     </div>
-                    <p className="text-lg font-mono text-amber-400">{deviceReportData.numberOfPulses.toLocaleString()}</p>
+                    <p className="text-lg font-mono text-amber-400">{deviceReport.numberOfPulses.toLocaleString()}</p>
                   </div>
                 )}
-                {deviceReportData.motorOnTimeMinutes && (
+                {deviceReport.motorOnTimeMinutes && (
                   <div className="space-y-3 p-4 bg-dark-700/30 rounded-lg border border-emerald-500/20">
                     <div className="flex items-center gap-2">
                       <Wrench className="h-4 w-4 text-emerald-400" />
                       <p className="text-sm text-slate-400 font-medium">Motor On Time</p>
                     </div>
-                    <p className="text-lg font-mono text-emerald-400">{formatValue(deviceReportData.motorOnTimeMinutes, "min", 1)}</p>
+                    <p className="text-lg font-mono text-emerald-400">{formatValue(deviceReport.motorOnTimeMinutes, "min", 1)}</p>
                   </div>
                 )}
               </div>
@@ -238,7 +239,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
               <div className="pl-8 space-y-4">
                 <h4 className="text-lg font-semibold text-slate-200">Status Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {(deviceReportData.commErrorsTimeMinutes !== null || deviceReportData.commErrorsPercent !== null) && (
+                  {(deviceReport.commErrorsTimeMinutes !== null || deviceReport.commErrorsPercent !== null) && (
                     <div className="space-y-3 p-4 bg-gradient-to-r from-rose-500/10 to-red-500/10 rounded-lg border border-rose-500/30">
                       <p className="text-sm text-slate-300 font-medium flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-rose-400" />
@@ -246,15 +247,15 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
                       </p>
                       <div className="flex gap-3">
                         <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/50">
-                          {formatValue(deviceReportData.commErrorsTimeMinutes, "min", 2)}
+                          {formatValue(deviceReport.commErrorsTimeMinutes, "min", 2)}
                         </Badge>
                         <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/50">
-                          {formatPercent(deviceReportData.commErrorsPercent)}
+                          {formatPercent(deviceReport.commErrorsPercent)}
                         </Badge>
                       </div>
                     </div>
                   )}
-                  {(deviceReportData.hallStatusTimeMinutes !== null || deviceReportData.hallStatusPercent !== null) && (
+                  {(deviceReport.hallStatusTimeMinutes !== null || deviceReport.hallStatusPercent !== null) && (
                     <div className="space-y-3 p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg border border-emerald-500/30">
                       <p className="text-sm text-slate-300 font-medium flex items-center gap-2">
                         <Cpu className="h-4 w-4 text-emerald-400" />
@@ -262,10 +263,10 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
                       </p>
                       <div className="flex gap-3">
                         <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/50">
-                          {formatValue(deviceReportData.hallStatusTimeMinutes, "min", 2)}
+                          {formatValue(deviceReport.hallStatusTimeMinutes, "min", 2)}
                         </Badge>
                         <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/50">
-                          {formatPercent(deviceReportData.hallStatusPercent)}
+                          {formatPercent(deviceReport.hallStatusPercent)}
                         </Badge>
                       </div>
                     </div>
@@ -276,15 +277,15 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
           )}
 
           {/* Separator */}
-          {(deviceReportData.mpSerialNumber || deviceReportData.mpFirmwareVersion) && 
-           (deviceReportData.mdgSerialNumber || deviceReportData.mdgFirmwareVersion) && (
+          {(deviceReport.mpSerialNumber || deviceReport.mpFirmwareVersion) && 
+           (deviceReport.mdgSerialNumber || deviceReport.mdgFirmwareVersion) && (
             <div className="relative">
               <Separator className="bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
             </div>
           )}
 
           {/* MDG Device Information */}
-          {(deviceReportData.mdgSerialNumber || deviceReportData.mdgFirmwareVersion) && (
+          {(deviceReport.mdgSerialNumber || deviceReport.mdgFirmwareVersion) && (
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-lg">
@@ -294,19 +295,19 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-8">
-                {deviceReportData.mdgSerialNumber && (
+                {deviceReport.mdgSerialNumber && (
                   <div className="space-y-2">
                     <p className="text-sm text-slate-400 font-medium">Serial Number</p>
                     <Badge className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 text-purple-400 border-purple-500/50 hover:border-purple-400 transition-all duration-300">
-                      {deviceReportData.mdgSerialNumber}
+                      {deviceReport.mdgSerialNumber}
                     </Badge>
                   </div>
                 )}
-                {deviceReportData.mdgFirmwareVersion && (
+                {deviceReport.mdgFirmwareVersion && (
                   <div className="space-y-2">
                     <p className="text-sm text-slate-400 font-medium">Firmware Version</p>
                     <Badge className="bg-dark-700/50 text-slate-300 border-slate-600 hover:border-slate-500 transition-all duration-300">
-                      {deviceReportData.mdgFirmwareVersion}
+                      {deviceReport.mdgFirmwareVersion}
                     </Badge>
                   </div>
                 )}
@@ -314,7 +315,7 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
 
               {/* MDG Temperature and Operational Data */}
               <div className="pl-8 space-y-6">
-                {deviceReportData.mdgMaxTempFahrenheit && (
+                {deviceReport.mdgMaxTempFahrenheit && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Thermometer className="h-5 w-5 text-rose-400" />
@@ -322,40 +323,40 @@ export function DeviceReport({ memoryDump }: DeviceReportProps) {
                     </div>
                     <div className="flex gap-3">
                       <Badge 
-                        className={`${getTemperatureColor(getTemperatureStatus(deviceReportData.mdgMaxTempFahrenheit))} transition-all duration-300`}
+                        className={`${getTemperatureColor(getTemperatureStatus(deviceReport.mdgMaxTempFahrenheit))} transition-all duration-300`}
                       >
-                        {formatValue(deviceReportData.mdgMaxTempFahrenheit, "°F", 1)}
+                        {formatValue(deviceReport.mdgMaxTempFahrenheit, "°F", 1)}
                       </Badge>
                       <Badge className="bg-dark-700/50 text-slate-300 border-slate-600">
-                        {formatValue(deviceReportData.mdgMaxTempCelsius, "°C", 1)}
+                        {formatValue(deviceReport.mdgMaxTempCelsius, "°C", 1)}
                       </Badge>
                     </div>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {deviceReportData.mdgEdtTotalHours && (
+                  {deviceReport.mdgEdtTotalHours && (
                     <div className="space-y-3 p-4 bg-dark-700/30 rounded-lg border border-cyan-500/20">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-cyan-400" />
                         <p className="text-sm text-slate-400 font-medium">EDT Total Hours</p>
                       </div>
-                      <p className="text-lg font-mono text-cyan-400">{formatValue(deviceReportData.mdgEdtTotalHours, "hrs", 1)}</p>
+                      <p className="text-lg font-mono text-cyan-400">{formatValue(deviceReport.mdgEdtTotalHours, "hrs", 1)}</p>
                     </div>
                   )}
-                  {deviceReportData.mdgExtremeShockIndex && (
+                  {deviceReport.mdgExtremeShockIndex && (
                     <div className="space-y-3 p-4 bg-dark-700/30 rounded-lg border border-orange-500/20">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-orange-400" />
                         <p className="text-sm text-slate-400 font-medium">Extreme Shock Index</p>
                       </div>
                       <Badge 
-                        className={deviceReportData.mdgExtremeShockIndex > 10 ? 
+                        className={deviceReport.mdgExtremeShockIndex > 10 ? 
                           "bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border-red-500/50" : 
                           "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border-amber-500/50"
                         }
                       >
-                        {formatValue(deviceReportData.mdgExtremeShockIndex, "", 1)}
+                        {formatValue(deviceReport.mdgExtremeShockIndex, "", 1)}
                       </Badge>
                     </div>
                   )}
